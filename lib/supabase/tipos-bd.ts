@@ -1,4 +1,4 @@
-// Generado con Supabase MCP (generate_typescript_types) tras las migraciones de E2.
+// Generado con Supabase MCP (generate_typescript_types) tras las migraciones de E3.
 // No editar a mano: regenerar después de cada migración.
 
 export type Json =
@@ -812,6 +812,196 @@ export type Database = {
           },
         ]
       }
+      membresia_beneficiarios: {
+        Row: {
+          activo: boolean
+          beneficiario_id: string
+          creado_por: string | null
+          created_at: string
+          dado_baja_en: string | null
+          dado_baja_por: string | null
+          fecha_alta: string
+          fecha_baja: string | null
+          id: string
+          membresia_id: string
+          motivo_baja: string | null
+        }
+        Insert: {
+          activo?: boolean
+          beneficiario_id: string
+          creado_por?: string | null
+          created_at?: string
+          dado_baja_en?: string | null
+          dado_baja_por?: string | null
+          fecha_alta: string
+          fecha_baja?: string | null
+          id?: string
+          membresia_id: string
+          motivo_baja?: string | null
+        }
+        Update: {
+          activo?: boolean
+          beneficiario_id?: string
+          creado_por?: string | null
+          created_at?: string
+          dado_baja_en?: string | null
+          dado_baja_por?: string | null
+          fecha_alta?: string
+          fecha_baja?: string | null
+          id?: string
+          membresia_id?: string
+          motivo_baja?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membresia_beneficiarios_beneficiario_id_fkey"
+            columns: ["beneficiario_id"]
+            isOneToOne: false
+            referencedRelation: "beneficiarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membresia_beneficiarios_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membresia_beneficiarios_dado_baja_por_fkey"
+            columns: ["dado_baja_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membresia_beneficiarios_membresia_id_fkey"
+            columns: ["membresia_id"]
+            isOneToOne: false
+            referencedRelation: "membresias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membresia_beneficiarios_membresia_id_fkey"
+            columns: ["membresia_id"]
+            isOneToOne: false
+            referencedRelation: "saldos_membresias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      membresias: {
+        Row: {
+          actualizado_por: string | null
+          cancelada_en: string | null
+          cancelada_por: string | null
+          cliente_id: string
+          creado_por: string | null
+          created_at: string
+          cupo_pactado: number
+          dia_ancla: number
+          dias_gracia: number
+          estado: Database["public"]["Enums"]["estado_membresia"]
+          fecha_inicio: string
+          id: string
+          idempotencia: string
+          modalidad_cupo: Database["public"]["Enums"]["modalidad_cupo"]
+          motivo_cancelacion: string | null
+          plan_id: string
+          precio_pactado: number
+          proxima_renovacion: string
+          suspendida_desde: string | null
+          updated_at: string
+        }
+        Insert: {
+          actualizado_por?: string | null
+          cancelada_en?: string | null
+          cancelada_por?: string | null
+          cliente_id: string
+          creado_por?: string | null
+          created_at?: string
+          cupo_pactado: number
+          dia_ancla: number
+          dias_gracia: number
+          estado?: Database["public"]["Enums"]["estado_membresia"]
+          fecha_inicio: string
+          id?: string
+          idempotencia: string
+          modalidad_cupo: Database["public"]["Enums"]["modalidad_cupo"]
+          motivo_cancelacion?: string | null
+          plan_id: string
+          precio_pactado: number
+          proxima_renovacion: string
+          suspendida_desde?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actualizado_por?: string | null
+          cancelada_en?: string | null
+          cancelada_por?: string | null
+          cliente_id?: string
+          creado_por?: string | null
+          created_at?: string
+          cupo_pactado?: number
+          dia_ancla?: number
+          dias_gracia?: number
+          estado?: Database["public"]["Enums"]["estado_membresia"]
+          fecha_inicio?: string
+          id?: string
+          idempotencia?: string
+          modalidad_cupo?: Database["public"]["Enums"]["modalidad_cupo"]
+          motivo_cancelacion?: string | null
+          plan_id?: string
+          precio_pactado?: number
+          proxima_renovacion?: string
+          suspendida_desde?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membresias_actualizado_por_fkey"
+            columns: ["actualizado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membresias_cancelada_por_fkey"
+            columns: ["cancelada_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membresias_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membresias_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "saldos_clientes"
+            referencedColumns: ["cliente_id"]
+          },
+          {
+            foreignKeyName: "membresias_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membresias_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "planes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       movimientos_dinero: {
         Row: {
           asiento_id: string
@@ -1014,6 +1204,87 @@ export type Database = {
             columns: ["actualizado_por"]
             isOneToOne: false
             referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      periodos_membresia: {
+        Row: {
+          cargo_id: string | null
+          creado_por: string | null
+          created_at: string
+          cupo_asignado: number
+          dias_gracia: number
+          fin: string
+          id: string
+          inicio: string
+          limite_pago: string | null
+          membresia_id: string
+          modalidad_cupo: Database["public"]["Enums"]["modalidad_cupo"]
+          precio: number
+        }
+        Insert: {
+          cargo_id?: string | null
+          creado_por?: string | null
+          created_at?: string
+          cupo_asignado: number
+          dias_gracia: number
+          fin: string
+          id?: string
+          inicio: string
+          limite_pago?: string | null
+          membresia_id: string
+          modalidad_cupo: Database["public"]["Enums"]["modalidad_cupo"]
+          precio: number
+        }
+        Update: {
+          cargo_id?: string | null
+          creado_por?: string | null
+          created_at?: string
+          cupo_asignado?: number
+          dias_gracia?: number
+          fin?: string
+          id?: string
+          inicio?: string
+          limite_pago?: string | null
+          membresia_id?: string
+          modalidad_cupo?: Database["public"]["Enums"]["modalidad_cupo"]
+          precio?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "periodos_membresia_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: true
+            referencedRelation: "cargos_cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "periodos_membresia_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: true
+            referencedRelation: "saldos_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "periodos_membresia_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "periodos_membresia_membresia_id_fkey"
+            columns: ["membresia_id"]
+            isOneToOne: false
+            referencedRelation: "membresias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "periodos_membresia_membresia_id_fkey"
+            columns: ["membresia_id"]
+            isOneToOne: false
+            referencedRelation: "saldos_membresias"
             referencedColumns: ["id"]
           },
         ]
@@ -1492,8 +1763,135 @@ export type Database = {
           },
         ]
       }
+      saldos_membresias: {
+        Row: {
+          beneficiarios_activos: number | null
+          cancelada_en: string | null
+          cliente_id: string | null
+          cliente_nombre: string | null
+          created_at: string | null
+          cuotas_vencidas: number | null
+          cupo_pactado: number | null
+          dia_ancla: number | null
+          dias_gracia: number | null
+          estado: Database["public"]["Enums"]["estado_membresia"] | null
+          fecha_inicio: string | null
+          id: string | null
+          modalidad_cupo: Database["public"]["Enums"]["modalidad_cupo"] | null
+          motivo_cancelacion: string | null
+          pendiente: number | null
+          plan_id: string | null
+          plan_nombre: string | null
+          precio_pactado: number | null
+          proxima_renovacion: string | null
+          suspendida_desde: string | null
+          vencido: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membresias_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membresias_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "saldos_clientes"
+            referencedColumns: ["cliente_id"]
+          },
+          {
+            foreignKeyName: "membresias_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "planes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saldos_periodos: {
+        Row: {
+          aplicado: number | null
+          cargo_estado: Database["public"]["Enums"]["estado_cargo"] | null
+          cargo_id: string | null
+          cliente_id: string | null
+          created_at: string | null
+          cupo_asignado: number | null
+          dias_gracia: number | null
+          fin: string | null
+          id: string | null
+          inicio: string | null
+          limite_pago: string | null
+          membresia_id: string | null
+          modalidad_cupo: Database["public"]["Enums"]["modalidad_cupo"] | null
+          pendiente: number | null
+          precio: number | null
+          vencida: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membresias_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membresias_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "saldos_clientes"
+            referencedColumns: ["cliente_id"]
+          },
+          {
+            foreignKeyName: "periodos_membresia_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: true
+            referencedRelation: "cargos_cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "periodos_membresia_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: true
+            referencedRelation: "saldos_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "periodos_membresia_membresia_id_fkey"
+            columns: ["membresia_id"]
+            isOneToOne: false
+            referencedRelation: "membresias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "periodos_membresia_membresia_id_fkey"
+            columns: ["membresia_id"]
+            isOneToOne: false
+            referencedRelation: "saldos_membresias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      actualizar_condiciones_membresia: {
+        Args: {
+          p_cupo: number
+          p_dias_gracia: number
+          p_membresia_id: string
+          p_modalidad: Database["public"]["Enums"]["modalidad_cupo"]
+          p_motivo: string
+          p_precio: number
+        }
+        Returns: undefined
+      }
+      actualizar_mensualidades: {
+        Args: { p_cliente_id?: string; p_membresia_id?: string }
+        Returns: Json
+      }
       actualizar_perfil: {
         Args: {
           p_activo: boolean
@@ -1503,6 +1901,10 @@ export type Database = {
           p_rol: Database["public"]["Enums"]["rol_usuario"]
         }
         Returns: undefined
+      }
+      agregar_beneficiario_membresia: {
+        Args: { p_beneficiario_id: string; p_membresia_id: string }
+        Returns: string
       }
       anular_cargo: {
         Args: { p_cargo_id: string; p_motivo: string }
@@ -1515,6 +1917,45 @@ export type Database = {
       aplicar_saldo_a_favor: {
         Args: { p_cargo_id: string; p_idempotencia: string; p_monto: number }
         Returns: number
+      }
+      cancelar_membresia: {
+        Args: { p_membresia_id: string; p_motivo: string }
+        Returns: undefined
+      }
+      consultar_cobertura: {
+        Args: {
+          p_beneficiario_id: string
+          p_fecha: string
+          p_membresia_id: string
+        }
+        Returns: {
+          aviso: string
+          cubierto: boolean
+          cupo: number
+          disponibles: number
+          modalidad: Database["public"]["Enums"]["modalidad_cupo"]
+          motivo: string
+          periodo_fin: string
+          periodo_id: string
+          periodo_inicio: string
+          usados: number
+        }[]
+      }
+      historial_membresia: {
+        Args: { p_membresia_id: string }
+        Returns: {
+          accion: string
+          actor: string
+          antes: Json
+          despues: Json
+          entidad: string
+          fecha: string
+          motivo: string
+        }[]
+      }
+      inactivar_beneficiario_membresia: {
+        Args: { p_motivo: string; p_vinculo_id: string }
+        Returns: undefined
       }
       registrar_apertura: {
         Args: {
@@ -1562,6 +2003,17 @@ export type Database = {
           p_pago?: Json
           p_proveedor_id: string
           p_vencimiento: string
+        }
+        Returns: string
+      }
+      registrar_membresia: {
+        Args: {
+          p_beneficiarios: string[]
+          p_cliente_id: string
+          p_condiciones?: Json
+          p_fecha_inicio: string
+          p_idempotencia: string
+          p_plan_id: string
         }
         Returns: string
       }
@@ -1615,12 +2067,13 @@ export type Database = {
       estado_asiento: "confirmado" | "reversado"
       estado_cargo: "vigente" | "anulado"
       estado_gasto: "registrado" | "anulado"
+      estado_membresia: "activa" | "suspendida" | "cancelada"
       estado_pago: "confirmado" | "reversado"
       estado_vehiculo: "operativo" | "mantenimiento" | "fuera_servicio"
       evento_financiero: "registro" | "reverso"
       metodo_pago: "efectivo" | "transferencia" | "tarjeta" | "otro"
       modalidad_cupo: "compartido" | "individual"
-      origen_cargo: "manual"
+      origen_cargo: "manual" | "periodo_membresia"
       origen_financiero:
         | "cargo"
         | "cobro"
@@ -1773,12 +2226,13 @@ export const Constants = {
       estado_asiento: ["confirmado", "reversado"],
       estado_cargo: ["vigente", "anulado"],
       estado_gasto: ["registrado", "anulado"],
+      estado_membresia: ["activa", "suspendida", "cancelada"],
       estado_pago: ["confirmado", "reversado"],
       estado_vehiculo: ["operativo", "mantenimiento", "fuera_servicio"],
       evento_financiero: ["registro", "reverso"],
       metodo_pago: ["efectivo", "transferencia", "tarjeta", "otro"],
       modalidad_cupo: ["compartido", "individual"],
-      origen_cargo: ["manual"],
+      origen_cargo: ["manual", "periodo_membresia"],
       origen_financiero: [
         "cargo",
         "cobro",

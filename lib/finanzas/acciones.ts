@@ -1,16 +1,10 @@
 "use server";
 
-import type { PostgrestError } from "@supabase/supabase-js";
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { puede, type PermisoFinanzas } from "@/lib/auth/roles";
-import { usuarioActivoOpcional } from "@/lib/auth/sesion";
 import type { Campo } from "@/lib/catalogos/definiciones";
 import type { EstadoFormulario } from "@/lib/catalogos/estado";
 import { esUuid } from "@/lib/catalogos/presentacion";
-import { leerValores, validarRegistro, type Datos } from "@/lib/catalogos/validacion";
 import { hoyEnTegucigalpa } from "@/lib/formato";
-import { createClient } from "@/lib/supabase/server";
+import { clave, fallo, procesar, SIN_CLAVE, texto, traducir, type ClienteSupabase } from "@/lib/operaciones";
 import type { Database } from "@/lib/supabase/tipos-bd";
 import {
   camposAplicarSaldo,
@@ -25,74 +19,16 @@ import {
 import { aCentavos, centavosATexto, decimal, opcional } from "./montos";
 
 type Enums = Database["public"]["Enums"];
-type ClienteSupabase = Awaited<ReturnType<typeof createClient>>;
-
-/** Resultado de una operación: error para el formulario o ruta a la que ir. */
-type Fallo = { error: string; errores: Record<string, string> };
-type Resultado = Fallo | { destino: string };
 
 /**
- * Esqueleto común: lee y valida los campos, comprueba sesión y rol en el
- * servidor y ejecuta la operación (que la base vuelve a autorizar). La
- * redirección final queda fuera de cualquier try/catch.
+ * Un cobro puede saldar cuotas de membresía vencidas: se pone al día al
+ * cliente en el acto (reactivación). Si falla, el cobro ya quedó registrado y
+ * la membresía se actualizará en la siguiente ejecución.
  */
-async function procesar(
-  anterior: EstadoFormulario,
-  formData: FormData,
-  campos: readonly Campo[],
-  permiso: PermisoFinanzas,
-  operar: (datos: Datos, supabase: ClienteSupabase) => Promise<Resultado>,
-): Promise<EstadoFormulario> {
-  const valores = leerValores({ campos }, formData);
-  const responder = (cambios: Partial<EstadoFormulario>): EstadoFormulario => ({
-    revision: anterior.revision + 1,
-    valores,
-    errores: {},
-    error: null,
-    similares: null,
-    ...cambios,
-  });
-
-  const usuario = await usuarioActivoOpcional();
-  if (!usuario) {
-    return responder({ error: "Su sesión expiró o su usuario no está activo. Inicie sesión de nuevo." });
-  }
-  if (!puede(permiso, usuario.rol)) {
-    return responder({ error: "Su rol no permite realizar esta operación." });
-  }
-
-  const validacion = validarRegistro({ campos }, valores);
-  if (!validacion.ok) {
-    return responder({ errores: validacion.errores, error: "Revise los campos marcados." });
-  }
-
-  const resultado = await operar(validacion.datos, await createClient());
-  if (!("destino" in resultado)) {
-    return responder(resultado);
-  }
-  // Saldos, panel y listados dependen de cada operación.
-  revalidatePath("/", "layout");
-  redirect(resultado.destino);
+async function actualizarMembresiasDe(supabase: ClienteSupabase, clienteId: string) {
+  const { error } = await supabase.rpc("actualizar_mensualidades", { p_cliente_id: clienteId });
+  if (error) console.error("No se pudieron actualizar las membresías del cliente", error.code, error.message);
 }
-
-const fallo = (error: string, errores: Record<string, string> = {}): Fallo => ({ error, errores });
-
-/** Los mensajes de negocio de las funciones SQL (22023, P0002) ya están en español. */
-function traducir(error: PostgrestError): Fallo {
-  if (error.code === "22023" || error.code === "P0002") return fallo(error.message);
-  if (error.code === "42501") return fallo("Su rol no permite realizar esta operación.");
-  if (error.code === "22P02") return fallo("Algún dato no tiene un formato válido.");
-  console.error("Error en operación financiera", error.code, error.message);
-  return fallo("No se pudo registrar la operación. Puede intentarlo de nuevo: no se duplicará.");
-}
-
-function clave(formData: FormData): string | null {
-  const valor = formData.get("idempotencia");
-  return esUuid(valor) ? valor : null;
-}
-
-const SIN_CLAVE = fallo("El formulario caducó. Recargue la página e inténtelo de nuevo.");
-const texto = (valor: Datos[string]) => (typeof valor === "string" ? valor : null);
 
 // --- Cobros y cargos ---------------------------------------------------
 
@@ -132,6 +68,7 @@ export async function registrarCobro(
       p_aplicaciones: aplicaciones,
     });
     if (error) return traducir(error);
+    await actualizarMembresiasDe(supabase, clienteId);
     return { destino: `/finanzas/cobros/${data}?guardado=1` };
   });
 }
@@ -172,6 +109,8 @@ export async function aplicarSaldo(
       p_monto: decimal(String(datos.monto)),
     });
     if (error) return traducir(error);
+    const { data: cargo } = await supabase.from("cargos_cliente").select("cliente_id").eq("id", cargoId).maybeSingle();
+    if (cargo) await actualizarMembresiasDe(supabase, cargo.cliente_id);
     return { destino: `/finanzas/cargos/${cargoId}?aplicado=1` };
   });
 }

@@ -17,6 +17,7 @@ export function FormularioCatalogo({
   rutaBase = "",
   hoy,
   ocultos,
+  prefijo = "",
 }: {
   campos: readonly Campo[];
   accion: Accion;
@@ -28,6 +29,8 @@ export function FormularioCatalogo({
   hoy: string;
   /** Campos ocultos fijos, como la clave de idempotencia de la operación. */
   ocultos?: Record<string, string>;
+  /** Prefijo de los id cuando hay varios formularios en la página (evita id repetidos). */
+  prefijo?: string;
 }) {
   const [estado, despachar, pendiente] = useActionState(accion, estadoInicial);
   const hidratado = useHidratado();
@@ -51,6 +54,7 @@ export function FormularioCatalogo({
               valor={estado.valores[campo.nombre] ?? ""}
               error={estado.errores[campo.nombre]}
               hoy={hoy}
+              prefijo={prefijo}
             />
           </Fragment>
         ))}
@@ -102,13 +106,15 @@ function CampoFormulario({
   valor,
   error,
   hoy,
+  prefijo,
 }: {
   campo: Campo;
   valor: string;
   error: string | undefined;
   hoy: string;
+  prefijo: string;
 }) {
-  const id = `campo-${campo.nombre}`;
+  const id = `campo-${prefijo}${campo.nombre}`;
   const idDescripcion = error ? `${id}-error` : campo.ayuda ? `${id}-ayuda` : undefined;
   const comunes = {
     id,

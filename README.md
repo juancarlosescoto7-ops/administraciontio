@@ -82,16 +82,33 @@ Las tablas financieras son de solo lectura desde la API; toda escritura pasa por
 
 Plantillas contables: cargo D CxC / H ingreso de la línea · cobro D caja-banco / H anticipos · aplicación D anticipos / H CxC · gasto D gasto de la categoría / H CxP · pago D CxP / H caja-banco · transferencia D destino / H origen · saldo inicial D caja-banco / H capital y saldos iniciales.
 
+### Membresías (E3)
+
+`/membresias`: listado, alta (cliente → plan y fecha → revisión de condiciones y beneficiarios → confirmar) y detalle con condiciones, beneficiarios, mensualidades, disponibilidad de traslados e historial. Igual que en finanzas, las tablas son de solo lectura desde la API y se escriben con funciones SQL (`registrar_membresia`, `actualizar_condiciones_membresia`, `agregar_beneficiario_membresia`, `inactivar_beneficiario_membresia`, `cancelar_membresia`, `actualizar_mensualidades`; consulta: `consultar_cobertura`, `historial_membresia`).
+
+- **Mensualidades:** cada período genera un solo cargo de E2 (D CxC / H 4100 Ingreso por membresías) que vence al inicio del período. Las renovaciones se calculan desde el día de anclaje (31 ene → 28/29 feb → 31 mar). Las cuotas se pagan con los cobros, anticipos y saldos a favor de E2.
+- **Actualizar mensualidades** (sin cron): botón en `/membresias` y en cada detalle, al abrir el panel (Server Action por POST, nunca en el GET) y tras cada cobro o aplicación de saldo registrados desde la aplicación. Es idempotente y solo genera hasta hoy.
+- **Morosidad:** una cuota impaga después de inicio + días de gracia suspende la membresía desde el día siguiente. No se generan cuotas mientras está suspendida. Al saldarla se reactiva: si ya pasó la renovación, empieza un ciclo nuevo desde la fecha de reactivación y los meses suspendidos no se cobran. Una membresía cancelada no se reactiva.
+
+| Operación | Administrador | Operador | Finanzas |
+|---|---|---|---|
+| Consultar membresías, cobertura e historial | Sí | Sí | Sí |
+| Crear membresías y dar de alta o baja beneficiarios | Sí | Sí | No |
+| Condiciones particulares, editar condiciones y cancelar | Sí | No | No |
+| Actualizar mensualidades y cobrar cuotas (E2) | Sí | Sí | Sí |
+
 ## Verificación contra el proyecto de desarrollo
 
-Además de `npm test`, hay scripts sin dependencias adicionales que usan usuarios **ficticios** y crean registros marcados `[PRUEBA E1]` o `[PRUEBA E2]`. Se niegan a ejecutarse si `.env.local` no apunta al proyecto de desarrollo. Las credenciales de prueba van en un archivo fuera del repositorio (`E2E_ADMIN_CORREO`, `E2E_ADMIN_CLAVE`, y lo mismo para `OPERADOR`, `FINANZAS` e `INACTIVO`); el administrador, operador y finanzas de prueba deben estar activos y el usuario «inactivo», no.
+Además de `npm test`, hay scripts sin dependencias adicionales que usan usuarios **ficticios** y crean registros marcados `[PRUEBA E1]`, `[PRUEBA E2]` o `[PRUEBA E3]`. Se niegan a ejecutarse si `.env.local` no apunta al proyecto de desarrollo. Las credenciales de prueba van en un archivo fuera del repositorio (`E2E_ADMIN_CORREO`, `E2E_ADMIN_CLAVE`, y lo mismo para `OPERADOR`, `FINANZAS` e `INACTIVO`); el administrador, operador y finanzas de prueba deben estar activos y el usuario «inactivo», no.
 
 ```bash
 E2E_CREDENCIALES=/ruta/credenciales.env node scripts/verificar-rls.mjs        # RLS por rol vía API REST
 E2E_CREDENCIALES=/ruta/credenciales.env node scripts/verificar-finanzas.mjs   # núcleo financiero vía API REST
+E2E_CREDENCIALES=/ruta/credenciales.env node scripts/verificar-membresias.mjs # membresías vía API REST
 npm run build && npm start                                                     # en otra terminal
 E2E_CREDENCIALES=/ruta/credenciales.env node scripts/e2e-navegador.mjs        # navegador real (Edge/Chrome)
 E2E_CREDENCIALES=/ruta/credenciales.env node scripts/e2e-finanzas.mjs         # interfaz financiera
+E2E_CREDENCIALES=/ruta/credenciales.env node scripts/e2e-membresias.mjs       # interfaz de membresías
 ```
 
 `E2E_URL` cambia la dirección de la app (por omisión `http://localhost:3000`).

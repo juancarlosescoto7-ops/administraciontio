@@ -339,4 +339,156 @@ Ninguno. Los dos bloqueos anteriores quedaron resueltos:
 
 ### Commit
 
-El hash del commit de E2 se informa en la entrega (no puede incluirse en el propio commit).
+E2: `22bc0dc`.
+
+---
+
+## E3 — Membresías
+
+- **Fecha:** 2026-10-26 (America/Tegucigalpa)
+- **Resultado:** APROBADO. Todo se verificó contra Supabase Cloud de desarrollo (`cgohbizokewvivxmvbij`, comprobado con `get_project_url` antes de aplicar cambios), por API REST con usuarios reales, por SQL y en navegador real.
+
+### Funcionalidad entregada
+
+- **Alta de membresías** (administrador y operador): buscar cliente → elegir plan activo y fecha de inicio → revisar condiciones (precio, cupo, modalidad, gracia y primeros períodos) y marcar beneficiarios → confirmar. Se copian las condiciones del plan. Solo el administrador puede pactar condiciones particulares. La fecha de inicio puede ser pasada: se generan los períodos transcurridos.
+- **Beneficiarios:** varios por membresía; un beneficiario puede estar en varias membresías. Las altas y bajas (con motivo) se conservan como historial; solo un vínculo activo por beneficiario y membresía.
+- **Mensualidades:** cada período (inicio, fin, precio, cupo, modalidad, gracia y límite de pago) genera un solo cargo de E2 en la misma transacción. Las renovaciones se calculan desde el día de anclaje (31 ene → 28 feb → 31 mar → 30 abr). `UNIQUE (membresia_id, inicio)` y `UNIQUE (origen_tipo, origen_id)` impiden duplicados.
+- **Actualizar mensualidades:** botón en el listado y en el detalle; al abrir el panel (Server Action por POST, nunca en el GET); y tras cada cobro o aplicación de saldo registrados desde la aplicación. Es idempotente, sin cron, y solo genera hasta hoy.
+- **Pagos:** solo con E2 (cobro completo, parcial, anticipado y aplicación de saldo a favor), sin tablas de cobro nuevas. El detalle enlaza a «Registrar cobro» y cada cuota, a su cargo.
+- **Morosidad:** la cuota vence al inicio del período y su límite es inicio + días de gracia. Pasado el límite con saldo, la membresía queda suspendida desde el día siguiente. No genera cuotas mientras está suspendida, no cubre traslados y conserva deudas, pagos, beneficiarios e historial.
+- **Reactivación automática** al saldar las cuotas vencidas: si la renovación pendiente ya pasó, empieza un ciclo nuevo desde la fecha de reactivación (nuevo día de anclaje y nueva cuota) y los meses suspendidos no se cobran. Si se salda antes, el ciclo continúa igual. La fecha de afiliación no cambia y la bitácora registra el día de anclaje anterior y el nuevo. Una cancelada no se reactiva.
+- **Edición de condiciones** (administrador, con motivo): se aplica a los ciclos futuros; los períodos generados conservan las suyas.
+- **Cancelación** (administrador, con motivo y confirmación): antes genera los períodos ya iniciados; después no renueva. Las deudas se conservan.
+- **Cobertura y cupo:** `consultar_cobertura(membresía, beneficiario, fecha)` comprueba estado, vínculo en la fecha, período generado, morosidad y cupo del período (compartido o individual), y avisa de cuotas en gracia. Si el período aún no existe, responde «pendiente de validación». El cupo no se acumula entre meses. No reserva ni consume nada.
+- **Interfaz `/membresias`:**
+  - Listado con cliente, plan, estado, próxima renovación, beneficiarios, saldo pendiente y vencido; búsqueda y filtro por estado.
+  - Alta en tres pasos.
+  - Detalle con información general, condiciones, beneficiarios, disponibilidad de hoy, mensualidades pagadas, pendientes y vencidas, cancelación e historial.
+  - El panel muestra membresías activas, suspendidas, cuotas vencidas e importe vencido. El detalle del cargo enlaza a su membresía.
+
+### Decisiones (opción más simple compatible con la especificación)
+
+- **Permisos:** consultar, actualizar mensualidades y cobrar, los tres roles (actualizar solo materializa lo que fijan las condiciones). Crear membresías y gestionar beneficiarios, administrador y operador. Condiciones particulares, edición de condiciones y cancelación, solo administrador («gestiona las membresías y sus condiciones»).
+- **Reactivación sin modificar E2:** no se añadieron triggers a las tablas financieras. La reactivación ocurre al actualizar mensualidades, que se ejecuta tras cada cobro o aplicación desde la aplicación y al abrir el panel. Su fecha efectiva es el día en que se ejecuta.
+- **Morosidad evaluada con el estado actual:** al ponerse al día, una renovación no se genera si alguna cuota ya estaba vencida antes de ella. Se usan los pagos registrados hasta ese momento, no la fecha de cada pago.
+- **Reactivación dentro del mismo período:** si la deuda se salda antes de la renovación siguiente, no hay meses saltados y el ciclo sigue igual. Así no se cobra dos veces el mismo tramo.
+- **Precio 0:** el período se genera sin cargo (`cargo_id` nulo) y nunca genera morosidad.
+- **Beneficiario dado de baja:** pierde la cobertura desde el día de la baja.
+- **Integración con E4 preparada:** `private.cupo_ocupado(periodo, beneficiario)` devuelve hoy 0 porque no hay traslados. E4 la reemplazará para contar reservas válidas y consumos reales. `private.registrar_cargo_servicio` queda disponible para los cargos de E4 y E5 con la plantilla de E2.
+
+### Archivos principales
+
+- Migraciones: [origen](../supabase/migrations/20261026210357_e3_membresias_origen.sql), [estructura](../supabase/migrations/20261026210430_e3_membresias_estructura.sql) y [operaciones](../supabase/migrations/20261026210603_e3_membresias_operaciones.sql).
+- Aplicación:
+  - [lib/membresias/](../lib/membresias/): `acciones.ts` (Server Actions), `definiciones.ts` (formularios y etiquetas) y `fechas.ts` (espejo del cálculo de renovaciones para la vista previa).
+  - [lib/operaciones.ts](../lib/operaciones.ts): esqueleto común de las Server Actions, extraído de `lib/finanzas/acciones.ts`. No es `"use server"`, así que no queda expuesto como acción.
+  - [components/membresias/](../components/membresias/) y rutas en `app/(privado)/membresias/`.
+  - Permisos en [lib/auth/roles.ts](../lib/auth/roles.ts).
+- Verificación: [scripts/verificar-membresias.mjs](../scripts/verificar-membresias.mjs), [scripts/e2e-membresias.mjs](../scripts/e2e-membresias.mjs) y [lib/membresias/membresias.test.ts](../lib/membresias/membresias.test.ts).
+
+### Cambios de esquema / migraciones (aplicadas en `cgohbizokewvivxmvbij` por MCP)
+
+| Versión | Archivo | Contenido | MD5 (archivo = `schema_migrations`) |
+|---|---|---|---|
+| `20261026210357` | `e3_membresias_origen` | Valor `periodo_membresia` en `origen_cargo`. Va en una migración propia porque un valor nuevo de enum no puede usarse en la misma transacción | `7094cf75…` |
+| `20261026210430` | `e3_membresias_estructura` | Enum `estado_membresia`; tablas `membresias`, `membresia_beneficiarios` (índice único parcial de vínculo activo) y `periodos_membresia` (`UNIQUE (membresia_id, inicio)`, límite de pago generado, cargo obligatorio si hay precio); índices; sin DELETE ni TRUNCATE en las tres, y períodos inmutables; vistas `saldos_periodos` y `saldos_membresias` (`security_invoker`); RLS de solo lectura para los tres roles activos | `3fec3feb…` |
+| `20261026210603` | `e3_membresias_operaciones` | 8 funciones públicas `SECURITY DEFINER` con `search_path` vacío, `auth.uid()` y rol verificados; 8 auxiliares en `private`, sin acceso desde la API | `f0e10d73…` |
+
+- Antes de aplicar se comprobó que ningún nombre nuevo existiera. Las migraciones solo crean objetos: no modifican tablas ni funciones de E1 o E2, solo añaden un valor al enum `origen_cargo`, previsto en E2.
+- Tipos regenerados en [lib/supabase/tipos-bd.ts](../lib/supabase/tipos-bd.ts).
+- **Permisos de E2 reutilizados (verificado por SQL):** ninguna función es ejecutable por `anon`; ninguna función de `private` lo es por `authenticated` (salvo los ayudantes de rol de E1); todas tienen `search_path` vacío. `registrar_cobro` y `aplicar_saldo_a_favor` siguen exigiendo rol activo.
+- Advisors de seguridad: 8 avisos nuevos «SECURITY DEFINER ejecutable por authenticated», **intencionales** como en E2, y el aviso manual de contraseñas filtradas. Rendimiento: solo «índice sin uso».
+
+### Comandos y pruebas (2026-10-26, Node 24.22.0, Windows 11)
+
+| Comando | Resultado |
+|---|---|
+| `npm run lint` / `npm run typecheck` | OK / OK |
+| `npm test` | OK, 7 archivos, **58 pruebas** (12 nuevas: renovaciones 28–31 y bisiestos, permisos y formularios) |
+| `npm run build` | OK (`/membresias`, `/membresias/nueva`, `/membresias/[id]`) |
+| `npm audit` | 0 vulnerabilidades |
+| `node scripts/verificar-membresias.mjs` (API REST, usuarios reales) | **92/92** (dos ejecuciones) |
+| `node scripts/e2e-membresias.mjs` (Edge sin interfaz, `next start`) | **25/25** (tres ejecuciones seguidas); log del servidor sin errores |
+| Regresión E1: `verificar-rls.mjs` / `e2e-navegador.mjs` | **61/61** / **43/43** |
+| Regresión E2: `verificar-finanzas.mjs` / `e2e-finanzas.mjs` | **75/75** / **28/28** |
+| SQL (MCP): fechas de `private.siguiente_renovacion` | 31/12/2023 → 31/01 → 29/02/2024 → 31/03; 29, 30 y 31 de enero de 2026 → 28/02; vuelve al día de anclaje |
+| SQL (MCP): `private.calcular_disponibles` con usos simulados como argumentos | compartido 2 − 2 de otros = 0; individual 2 con 2 de otros = 2; nunca negativo |
+| Defensas contra el propietario (SQL, revertido) | DELETE de período, membresía o vínculo, UPDATE de período, TRUNCATE, período duplicado y vínculo activo duplicado: todos rechazados |
+| Invariantes del libro (SQL), tras todas las corridas | 293 asientos, 0 descuadrados, 0 cajas descuadradas, libro neto 0.00; 80 períodos con precio = 80 cargos de mensualidad; 0 movimientos de dinero por cargos o aplicaciones; 0 períodos solapados o duplicados; 0 activas atrasadas o morosas |
+
+**Pruebas obligatorias (`verificar-membresias.mjs`, salvo indicación):**
+
+1. El operador crea una membresía con dos beneficiarios; se copian las condiciones del plan. Un reintento con la misma clave devuelve la misma membresía; con otros datos se rechaza; sin beneficiarios se rechaza.
+2. El administrador crea una membresía con condiciones particulares (L 450, cupo 3, individual, gracia 10). Al editarlas a L 600, el período ya generado conserva L 450. Cambiar el precio del plan no altera membresías ni períodos.
+3. Primera mensualidad: un período de hoy al día anterior a la renovación y un cargo de L 500 (vence al inicio), con asiento D 1200 / H 4100 y sin movimiento de caja.
+4. Renovación mensual: una membresía iniciada hace un mes tiene 2 períodos contiguos, un cargo por período y nada futuro.
+5. Aniversarios 28, 29, 30 y 31 de enero de 2026, 29/01/2024 y 31/12/2023: las series generadas coinciden con el cálculo esperado (28/02, 29/02/2024 y regreso al 31).
+6. Dos ejecuciones seguidas de «Actualizar mensualidades» no generan nada nuevo.
+7. Concurrencia:
+   - Tres actualizaciones simultáneas de una membresía recién saldada producen una reactivación y un solo período nuevo.
+   - Tres altas simultáneas con la misma clave dejan una sola membresía.
+   - Tres actualizaciones generales en paralelo terminan sin error.
+8. Pago completo (finanzas): pendiente 0 y una sola entrada de L 500.
+9. Pago parcial (operador): cargo L 500, aplicado L 300, pendiente L 200 y entrada de L 300. Dentro de la gracia sigue activa y cubierta, con aviso.
+10. Anticipo de L 500 aplicado a la cuota: pendiente 0 y saldo a favor 0, sin nueva entrada de dinero. La aplicación es D 2200 / H 1200 y el ingreso se reconoce una sola vez.
+11. Suspensión: una cuota impaga pasada la gracia suspende desde límite + 1 y deja de cubrir traslados.
+12. Durante la suspensión no se genera la renovación ni otras al volver a actualizar; la deuda vencida se conserva.
+13. Reactivación:
+    - Tras pagar, el ciclo nuevo empieza hoy con su cuota. Se cobran 2 cuotas (L 1,000), no las de los meses suspendidos. La fecha de afiliación se conserva y el historial registra el cambio del día de anclaje.
+    - Saldada antes de la renovación, se reactiva sin cambiar el ciclo.
+14. Cancelación con motivo (no por el operador ni dos veces):
+    - La deuda se conserva.
+    - Actualizar no la revisa.
+    - Pagar no la reactiva.
+    - No cubre traslados ni admite beneficiarios.
+15. Un mismo beneficiario está activo en dos membresías. Agregarlo de nuevo no duplica el vínculo. La baja con motivo quita la cobertura, y la nueva alta conserva el historial.
+16. Modalidades: en compartido, cupo 2 para la membresía; en individual, 3 por beneficiario; un beneficiario no vinculado no está cubierto. La lógica de descuento se verificó por SQL con usos simulados como argumentos de la función pura.
+17. Cada período tiene su cupo (2 y 2, no 4). Una fecha de un período no generado queda «pendiente de validación».
+18. Permisos:
+    - `anon` no lee las 5 tablas o vistas ni ejecuta las funciones; un usuario inactivo no opera.
+    - Finanzas no crea membresías ni gestiona beneficiarios o condiciones.
+    - El operador no pacta condiciones, no las edita ni cancela.
+    - Nadie, ni el administrador, inserta, edita o borra directamente membresías, períodos o vínculos.
+    - Los tres roles consultan.
+19. Un cargo por período con precio. Cada cobro tiene un único movimiento de caja y nada más mueve dinero.
+20. Los 23 asientos de la corrida están balanceados, uno por evento (el libro completo, en la tabla anterior).
+
+**Escenarios en navegador (`e2e-membresias.mjs`):**
+
+- **Operador:** alta en tres pasos, con error si no confirma (conserva la selección) y sin campos de condiciones particulares. En el detalle: cuota pendiente, cobertura y beneficiario agregado. Listado con búsqueda y filtro por estado.
+- **Finanzas:** abrir el detalle (GET) no escribe; abrir el panel (POST) reactiva una membresía cuya deuda se pagó por la API. Registra el cobro de una cuota vencida desde el detalle, y la membresía se reactiva al instante con ciclo nuevo. El botón «Actualizar mensualidades» es idempotente.
+- **Administrador:** edita las condiciones (L 650) sin alterar la cuota generada, cancela con motivo (rechazado sin confirmar) y ve condiciones particulares en el alta.
+- **Móvil 390×844:** listado y detalle sin desplazamiento horizontal.
+
+**Pendiente de E4 (no simulado):** la reserva temporal de cupo, el consumo al completar, la liberación al cancelar y la revalidación al cambiar la fecha requieren los traslados reales. E3 deja `consultar_cobertura` y `private.cupo_ocupado` listos para conectarlos.
+
+### Datos en Supabase de desarrollo
+
+- Registros ficticios marcados `[PRUEBA E3]`: planes, clientes, beneficiarios, cajas, membresías y sus períodos, cargos, cobros y asientos. Por diseño no se pueden borrar; el proyecto de producción será otro.
+- Los usuarios ficticios se reactivaron temporalmente y **se desactivaron de nuevo** (bitácora: `reactivar_usuario_prueba` / `desactivar_usuario_prueba`). Solo el administrador real queda activo.
+
+### Defectos encontrados y corregidos durante la etapa
+
+1. **Id de campos repetidos en una misma página.** El detalle de membresía tiene varios formularios con «motivo» y «confirmar», que generaban el mismo `id`: las etiquetas apuntaban al campo de otro formulario. Lo mismo ocurría en E2 al abrir dos correcciones (por ejemplo, reverso de cobro y de aplicación). Ahora `FormularioCatalogo` acepta un prefijo de id; las correcciones de E2 usan el tipo como prefijo y se actualizó `e2e-finanzas.mjs`.
+2. **«Registrar cobro» solo con deuda.** Impedía el pago anticipado desde el detalle; ahora se muestra siempre a los roles que cobran.
+3. **Pruebas de navegador** (no de la aplicación):
+   - El formato de moneda usa un espacio de no separación.
+   - El contenido llega por streaming oculto y debe esperarse a que sea visible.
+
+### Pendientes (configuración manual del propietario, sin cambios desde E1)
+
+1. Deshabilitar el registro público en Supabase › Authentication › Sign In / Providers.
+2. Activar la protección de contraseñas filtradas si el plan lo permite.
+
+### Limitaciones
+
+- Sin cron, una membresía se pone al día cuando alguien abre el panel, pulsa «Actualizar mensualidades» o registra un cobro desde la aplicación. Si nadie usa el sistema varios días, la suspensión o la reactivación se registran ese día.
+- La reactivación toma como fecha efectiva el día en que se ejecuta. Un cobro registrado con fecha anterior no adelanta el nuevo ciclo.
+- Cancelar el mismo día de la renovación genera esa cuota antes de cancelar, porque el período ya empezó.
+- El cupo usado es 0 hasta E4. La disponibilidad mostrada es teórica.
+- La alta muestra hasta 300 beneficiarios activos, sin buscador.
+- El mensaje que ve el propietario de la base si intenta modificar un período reutiliza el texto genérico de E2 («asientos y movimientos»).
+
+### Commit
+
+El hash del commit de E3 se informa en la entrega (no puede incluirse en el propio commit).

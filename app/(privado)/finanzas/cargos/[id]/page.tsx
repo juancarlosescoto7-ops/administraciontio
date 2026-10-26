@@ -36,11 +36,12 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
   ]);
   if (!cargo || !cargo.cliente_id) notFound();
 
-  const { data: saldoCliente } = await supabase
-    .from("saldos_clientes")
-    .select("saldo_a_favor")
-    .eq("cliente_id", cargo.cliente_id)
-    .maybeSingle();
+  const [{ data: saldoCliente }, { data: periodo }] = await Promise.all([
+    supabase.from("saldos_clientes").select("saldo_a_favor").eq("cliente_id", cargo.cliente_id).maybeSingle(),
+    cargo.origen_tipo === "periodo_membresia" && cargo.origen_id
+      ? supabase.from("periodos_membresia").select("membresia_id").eq("id", cargo.origen_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
 
   const ruta = `/finanzas/cargos/${id}`;
   const vigente = cargo.estado === "vigente";
@@ -73,7 +74,18 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
           ["Actividad", cargo.actividad ? ETIQUETAS_ACTIVIDAD[cargo.actividad] : null],
           ["Fecha", formatearFecha(cargo.fecha)],
           ["Vencimiento", formatearFecha(cargo.vencimiento)],
-          ["Origen", cargo.origen_tipo === "manual" ? "Cargo administrativo" : cargo.origen_tipo],
+          [
+            "Origen",
+            periodo ? (
+              <Link key="o" href={`/membresias/${periodo.membresia_id}`} className="text-primario hover:underline">
+                Mensualidad de membresía
+              </Link>
+            ) : cargo.origen_tipo === "manual" ? (
+              "Cargo administrativo"
+            ) : (
+              cargo.origen_tipo
+            ),
+          ],
           ["Registrado", formatearFechaHora(cargo.created_at)],
           ...(cargo.estado === "anulado"
             ? ([["Motivo de anulación", cargo.motivo_anulacion], ["Anulado", formatearFechaHora(cargo.anulado_en)]] as [string, string | null][])

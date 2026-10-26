@@ -193,6 +193,11 @@ body {
     color: var(--tenue);
   }
 
+  .insignia-advertencia {
+    background: var(--advertencia-fondo);
+    color: var(--advertencia-texto);
+  }
+
   .enlace-nav {
     display: flex;
     align-items: center;

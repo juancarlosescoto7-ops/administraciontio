@@ -124,10 +124,10 @@ try {
     (await esperar("document.body.innerText.includes('Saldo a favor aplicado')", 20000)) && (await contiene(L("800.00"))));
 
   await ir(rutaCobro);
-  await llenar("#campo-motivo", `${MARCA} prueba de reverso`);
+  await llenar("#campo-cobro-motivo", `${MARCA} prueba de reverso`);
   await pulsar("Reversar cobro");
   comprobar("reverso sin confirmar la casilla se rechaza", await esperar("document.body.innerText.includes('Marque la casilla')"));
-  await marcar("#campo-confirmar");
+  await marcar("#campo-cobro-confirmar");
   await pulsar("Reversar cobro");
   comprobar("cobro reversado con motivo y conservado",
     (await esperar("document.body.innerText.includes('Corrección registrada')", 20000)) && (await contiene("Reversado")) && (await contiene("Motivo del reverso")));

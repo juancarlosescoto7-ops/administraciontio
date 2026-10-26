@@ -19,21 +19,28 @@ export function FormularioOperacion({
   accion,
   textoEnviar,
   rutaCancelar = null,
+  registro = null,
+  prefijo,
 }: {
   campos: readonly Campo[];
   accion: Accion;
   textoEnviar: string;
   rutaCancelar?: string | null;
+  /** Valores iniciales (p. ej., condiciones vigentes al editarlas). */
+  registro?: Record<string, unknown> | null;
+  /** Prefijo de los id si la página tiene varios formularios. */
+  prefijo?: string;
 }) {
   return (
     <FormularioCatalogo
       campos={campos}
       accion={accion}
-      estadoInicial={estadoInicial(valoresDesdeRegistro({ campos }, null))}
+      estadoInicial={estadoInicial(valoresDesdeRegistro({ campos }, registro))}
       textoEnviar={textoEnviar}
       rutaCancelar={rutaCancelar}
       hoy={hoyEnTegucigalpa()}
       ocultos={{ idempotencia: randomUUID() }}
+      prefijo={prefijo}
     />
   );
 }
@@ -61,6 +68,8 @@ export function FormularioCorreccion({
       textoEnviar={textoEnviar}
       rutaCancelar={null}
       hoy={hoyEnTegucigalpa()}
+      // Una página puede mostrar dos correcciones (p. ej., cobro y aplicación).
+      prefijo={`${tipo}-`}
     />
   );
 }

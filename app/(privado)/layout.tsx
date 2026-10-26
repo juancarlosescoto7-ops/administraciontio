@@ -16,6 +16,7 @@ const GRUPOS: GrupoNavegacion[] = [
       { href: "/proveedores", etiqueta: "Proveedores" },
     ],
   },
+  { titulo: "Servicios", enlaces: [{ href: "/membresias", etiqueta: "Membresías" }] },
   {
     titulo: "Planes y tarifas",
     enlaces: [

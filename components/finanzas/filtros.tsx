@@ -27,13 +27,17 @@ export function FormularioFiltros({
   filtros,
   estados,
   placeholder,
+  fechas = true,
 }: {
   filtros: Filtros;
   estados: readonly Opcion[];
   placeholder: string;
+  /** Rango de fechas desde/hasta. */
+  fechas?: boolean;
 }) {
+  const columnas = fechas ? "lg:grid-cols-[2fr_1fr_1fr_1fr_auto]" : "lg:grid-cols-[2fr_1fr_auto]";
   return (
-    <form method="get" className="tarjeta mb-4 grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr_auto] lg:items-end">
+    <form method="get" className={`tarjeta mb-4 grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 ${columnas} lg:items-end`}>
       <label className="campo">
         <span className="campo-etiqueta">Buscar</span>
         <input className="entrada" type="search" name="q" defaultValue={filtros.busqueda} placeholder={placeholder} />
@@ -48,14 +52,18 @@ export function FormularioFiltros({
           ))}
         </select>
       </label>
-      <label className="campo">
-        <span className="campo-etiqueta">Desde</span>
-        <input className="entrada" type="date" name="desde" defaultValue={filtros.desde ?? ""} />
-      </label>
-      <label className="campo">
-        <span className="campo-etiqueta">Hasta</span>
-        <input className="entrada" type="date" name="hasta" defaultValue={filtros.hasta ?? ""} />
-      </label>
+      {fechas && (
+        <>
+          <label className="campo">
+            <span className="campo-etiqueta">Desde</span>
+            <input className="entrada" type="date" name="desde" defaultValue={filtros.desde ?? ""} />
+          </label>
+          <label className="campo">
+            <span className="campo-etiqueta">Hasta</span>
+            <input className="entrada" type="date" name="hasta" defaultValue={filtros.hasta ?? ""} />
+          </label>
+        </>
+      )}
       <button type="submit" className="boton boton-secundario">
         Filtrar
       </button>

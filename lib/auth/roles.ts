@@ -58,8 +58,21 @@ export const PERMISOS_FINANZAS = {
   corregir: ["administrador"],
 } as const satisfies Record<string, readonly Rol[]>;
 
+/** Espejo de las verificaciones de rol de las funciones de membresías de E3. */
+export const PERMISOS_MEMBRESIAS = {
+  /** Alta de membresías y altas/bajas de beneficiarios. */
+  registrarMembresia: ["administrador", "operador"],
+  /** Condiciones particulares, edición de condiciones y cancelación. */
+  gestionarMembresia: ["administrador"],
+  /** Actualizar mensualidades: solo materializa lo que fijan las condiciones. */
+  actualizarMensualidades: ["administrador", "operador", "finanzas"],
+} as const satisfies Record<string, readonly Rol[]>;
+
+const PERMISOS = { ...PERMISOS_FINANZAS, ...PERMISOS_MEMBRESIAS };
+
+export type Permiso = keyof typeof PERMISOS;
 export type PermisoFinanzas = keyof typeof PERMISOS_FINANZAS;
 
-export function puede(permiso: PermisoFinanzas, rol: Rol): boolean {
-  return (PERMISOS_FINANZAS[permiso] as readonly Rol[]).includes(rol);
+export function puede(permiso: Permiso, rol: Rol): boolean {
+  return (PERMISOS[permiso] as readonly Rol[]).includes(rol);
 }
