@@ -1,0 +1,3 @@
+# Supabase Cloud: proyecto de desarrollo de este ERP; autenticacion por OAuth.
+[mcp_servers.supabase]
+url = "https://mcp.supabase.com/mcp?project_ref=cgohbizokewvivxmvbij&features=database%2Cdevelopment%2Cdebugging%2Cdocs"

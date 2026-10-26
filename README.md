@@ -47,6 +47,14 @@ Las migraciones se aplican mediante el MCP oficial de Supabase, acotado al proye
 }
 ```
 
-Después, autenticar con `/mcp` en una sesión interactiva de Claude Code. No usar `read_only=true`.
+Este repositorio ya configura el proyecto de desarrollo `cgohbizokewvivxmvbij` en `.mcp.json` (Claude Code) y `.codex/config.toml` (Codex). Ambos usan únicamente `database,development,debugging,docs`, con escritura habilitada. No usar `read_only=true`.
+
+Desde la raíz del repositorio:
+
+- **Codex:** ejecutar `codex mcp login supabase` y completar OAuth en el navegador. El repositorio debe ser de confianza para cargar su configuración local.
+- **Claude Code:** abrir `claude` y aprobar el servidor del proyecto; después ejecutar `claude mcp login supabase` y completar OAuth (también disponible desde `/mcp`).
+- Verificar con `codex mcp get supabase` y `claude mcp get supabase`. Reiniciar las sesiones existentes para cargar las herramientas. Registrar el servidor no demuestra todavía acceso a la base de datos.
+
+Los tokens OAuth se gestionan en cada cliente; nunca se guardan en estos archivos ni en Git.
 
 Toda migración aplicada debe existir idéntica en `supabase/migrations/`.

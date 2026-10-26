@@ -3,7 +3,7 @@
 ## E0 — Arranque técnico
 
 - **Fecha:** 2026-10-25
-- **Resultado:** PARCIAL. Todo lo local está terminado y verificado; la verificación remota de Supabase está **bloqueada** porque el MCP de Supabase no está conectado a la sesión del agente (ver «Bloqueos»).
+- **Resultado:** APROBADO. Lo local y la verificación remota de Supabase Cloud (MCP y app) están terminados y verificados (ver «Verificación de Supabase Cloud»).
 
 ### Funcionalidad entregada
 
@@ -37,6 +37,20 @@
 - **Ninguna migración creada ni aplicada.** E0 no requiere tablas ni funciones: la conectividad de la app se valida con el endpoint de salud de Auth, sin exponer datos ni conceder permisos a `anon`. No se generó una migración vacía. Se creó la carpeta `supabase/migrations/` (con `.gitkeep`) para E1.
 - No se realizó ningún cambio en Supabase Cloud.
 
+### Verificación de Supabase Cloud (2026-10-25, Claude Code + MCP oficial)
+
+| Comprobación | Resultado |
+|---|---|
+| Proyecto conectado (`get_project_url`) | `https://cgohbizokewvivxmvbij.supabase.co`: coincide con el `project_ref` de desarrollo de `.mcp.json` y `.codex/config.toml`; el servidor MCP está limitado a ese proyecto |
+| Herramientas disponibles | `list_tables`, `list_migrations`, `apply_migration`, `execute_sql`, `get_advisors`, `generate_typescript_types`, `query_logs`, `search_docs` |
+| `list_tables` (`public`) | Sin tablas |
+| `list_migrations` | Sin migraciones (coincide con `supabase/migrations/` vacío) |
+| `select version(), current_setting('transaction_read_only')` | PostgreSQL 17.11; `transaction_read_only = off` (no es de solo lectura) |
+| `get_advisors` (security) | Sin avisos |
+| App real: `.env.local` (ignorado por Git) con URL y clave **publicable** `sb_publishable_…` obtenida por `get_publishable_keys`; `npm run build` + `next start` → `GET /` | HTTP 200, «Proyecto inicializado» y «Conexión con Supabase validada»; ni el `project_ref` ni la clave aparecen en el HTML ni en `.next/static` |
+
+Supabase Cloud fue realmente alcanzado, tanto por MCP como desde el servidor de la app. Tras configurar `.env.local` se repitieron `lint`, `typecheck`, `test` (13/13) y `build`, todos OK.
+
 ### Comandos y pruebas (2026-10-25, Node 24.22.0, Windows 11)
 
 | Comando | Resultado |
@@ -54,19 +68,20 @@ Pruebas unitarias cubren: validación de configuración (https, configuración p
 ### Autorrevisión
 
 - Sin archivos ni scripts Docker ni `supabase start`.
-- Sin secretos en el repositorio (solo un valor ficticio `sb_secret_ficticia` dentro de una prueba). No existe `.env.local`.
+- Sin secretos en el repositorio (solo un valor ficticio `sb_secret_ficticia` dentro de una prueba). `.env.local` existe solo en local, contiene únicamente la URL y la clave publicable y Git lo ignora. `.mcp.json` y `.codex/config.toml` no contienen tokens.
 - Sin operaciones fuera de alcance: no hay login, roles, tablas comerciales ni despliegue.
 - Defectos corregidos durante la etapa: conflicto de `@types/node` con Vitest 5; advertencia de Vite por cargar `vitest.config` ESM como CommonJS (renombrado a `.mts`); se eliminaron Google Fonts (dependencia de red en build) y los SVG de la plantilla no usados.
 - `AGENTS.md`: se **añadió al final**, sin modificar el contenido existente, el bloque `nextjs-agent-rules` que `next dev` inserta automáticamente cuando detecta un agente; así el árbol de Git no queda con cambios espurios.
 
 ### Bloqueos
 
-1. **Supabase MCP no disponible en la sesión del agente.** No hay ningún servidor MCP de Supabase configurado (ni de usuario ni de proyecto), por lo que no se pudo: confirmar el `project_ref` de desarrollo, comprobar que no es de solo lectura, listar tablas/migraciones, ni ejecutar la consulta de solo lectura (`select version()`). Cómo resolverlo: crear `.mcp.json` según el README con el `project_ref` de desarrollo y autenticar por OAuth con `/mcp`.
-2. **No existe `.env.local`.** No se pudo validar la conexión real de la app con Supabase Cloud (la ruta de éxito solo está probada con `fetch` simulado). Cómo resolverlo: copiar `.env.example` a `.env.local` con la URL y la clave publicable del proyecto de desarrollo y abrir `http://localhost:3000`; debe mostrar «Conexión con Supabase validada».
+Ninguno. Los dos bloqueos anteriores quedaron resueltos:
+
+1. **MCP de Supabase:** el proyecto de desarrollo `cgohbizokewvivxmvbij` está configurado en `.mcp.json` (Claude) y `.codex/config.toml` (Codex) con `features=database,development,debugging,docs` y sin modo de solo lectura; ambos clientes están autenticados por OAuth (los tokens no se guardan en el repositorio). Verificado por MCP (ver tabla anterior).
+2. **`.env.local`:** creado localmente con la URL y la clave publicable; está excluido por `.gitignore` (`.env.*`) y no se versiona. La app muestra «Conexión con Supabase validada».
 
 ### Pendiente antes de E1
 
-- Resolver los dos bloqueos y repetir la verificación remota de E0 (MCP: proyecto conectado, `list_tables`, `list_migrations`, `select version()`; app: «Conexión con Supabase validada»).
 - Crear manualmente en el Dashboard el primer usuario administrador y deshabilitar el registro público (Auth > Sign In / Providers) cuando se inicie E1.
 
 ### Commit
