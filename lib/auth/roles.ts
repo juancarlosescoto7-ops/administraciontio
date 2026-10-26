@@ -68,7 +68,15 @@ export const PERMISOS_MEMBRESIAS = {
   actualizarMensualidades: ["administrador", "operador", "finanzas"],
 } as const satisfies Record<string, readonly Rol[]>;
 
-const PERMISOS = { ...PERMISOS_FINANZAS, ...PERMISOS_MEMBRESIAS };
+/** Espejo de las verificaciones de rol de las funciones de traslados de E4. */
+export const PERMISOS_AMBULANCIAS = {
+  /** Registrar, programar, asignar recursos, reprogramar, iniciar, finalizar y cancelar. */
+  gestionarTraslados: ["administrador", "operador"],
+  /** Correcciones sensibles: revertir un beneficio consumido. */
+  corregirTraslados: ["administrador"],
+} as const satisfies Record<string, readonly Rol[]>;
+
+const PERMISOS = { ...PERMISOS_FINANZAS, ...PERMISOS_MEMBRESIAS, ...PERMISOS_AMBULANCIAS };
 
 export type Permiso = keyof typeof PERMISOS;
 export type PermisoFinanzas = keyof typeof PERMISOS_FINANZAS;

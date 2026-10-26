@@ -35,6 +35,11 @@ export function decimal(texto: string): number {
   return texto as unknown as number;
 }
 
+/** Como decimal(), para parámetros numeric que aceptan NULL. */
+export function decimalOpcional(texto: string | null): number {
+  return texto as unknown as number;
+}
+
 /**
  * Los tipos generados no marcan como opcionales los parámetros SQL que
  * aceptan NULL (referencia, vencimiento, proveedor…).

@@ -6,6 +6,8 @@ export type TipoCampo =
   | "correo"
   | "telefono"
   | "fecha"
+  /** Fecha y hora local de Tegucigalpa; se envía como timestamptz con zona. */
+  | "fecha_hora"
   | "entero"
   | "monto"
   | "seleccion"

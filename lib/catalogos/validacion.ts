@@ -1,4 +1,4 @@
-import { hoyEnTegucigalpa } from "@/lib/formato";
+import { aFechaHoraLocal, hoyEnTegucigalpa, momentoDesdeLocal } from "@/lib/formato";
 import type { Campo, DefinicionCatalogo } from "./definiciones";
 import { esUuid } from "./presentacion";
 
@@ -88,6 +88,13 @@ function validarCampo(
       }
       return { valor: texto };
     }
+    case "fecha_hora": {
+      const partes = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})$/.exec(texto);
+      if (!partes || !esFechaValida(partes[1]) || Number(partes[2]) > 23 || Number(partes[3]) > 59) {
+        return { error: "Fecha y hora no válidas." };
+      }
+      return { valor: momentoDesdeLocal(texto) };
+    }
     case "entero": {
       if (!/^-?\d+$/.test(texto)) return { error: "Ingrese un número entero." };
       const numero = Number(texto);
@@ -151,6 +158,8 @@ export function valoresDesdeRegistro(
       valores[campo.nombre] = "";
     } else if (campo.tipo === "monto") {
       valores[campo.nombre] = Number(valor).toFixed(2);
+    } else if (campo.tipo === "fecha_hora") {
+      valores[campo.nombre] = aFechaHoraLocal(String(valor));
     } else {
       valores[campo.nombre] = String(valor);
     }

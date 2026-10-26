@@ -41,6 +41,23 @@ export function formatearFechaHora(valor: string | null | undefined): string {
   return formatoFechaHora.format(fecha).replace(",", "");
 }
 
+// Honduras no aplica horario de verano: America/Tegucigalpa es UTC−6 todo el año.
+const DESFASE_TEGUCIGALPA = "-06:00";
+
+/** "2026-10-28T14:30" (hora local de un input datetime-local) → timestamptz con zona. */
+export function momentoDesdeLocal(local: string): string {
+  return `${local}:00${DESFASE_TEGUCIGALPA}`;
+}
+
+/** Marca de tiempo → "AAAA-MM-DDTHH:mm" en hora de Tegucigalpa (para datetime-local). */
+export function aFechaHoraLocal(valor: string | Date | null | undefined): string {
+  if (!valor) return "";
+  const fecha = typeof valor === "string" ? new Date(valor) : valor;
+  if (Number.isNaN(fecha.getTime())) return "";
+  const local = new Date(fecha.getTime() - 6 * 60 * 60 * 1000);
+  return local.toISOString().slice(0, 16);
+}
+
 /** Fecha de hoy (AAAA-MM-DD) en la zona horaria de la empresa. */
 export function hoyEnTegucigalpa(ahora: Date = new Date()): string {
   return new Intl.DateTimeFormat("en-CA", {

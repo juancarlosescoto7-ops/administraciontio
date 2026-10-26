@@ -42,6 +42,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       ? supabase.from("periodos_membresia").select("membresia_id").eq("id", cargo.origen_id).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
+  const traslado = cargo.origen_tipo === "traslado_ambulancia" ? cargo.origen_id : null;
 
   const ruta = `/finanzas/cargos/${id}`;
   const vigente = cargo.estado === "vigente";
@@ -79,6 +80,10 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
             periodo ? (
               <Link key="o" href={`/membresias/${periodo.membresia_id}`} className="text-primario hover:underline">
                 Mensualidad de membresía
+              </Link>
+            ) : traslado ? (
+              <Link key="o" href={`/ambulancias/${traslado}`} className="text-primario hover:underline">
+                Traslado de ambulancia particular
               </Link>
             ) : cargo.origen_tipo === "manual" ? (
               "Cargo administrativo"

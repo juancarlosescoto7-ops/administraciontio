@@ -1,4 +1,4 @@
-import { formatearFecha, formatearMoneda } from "@/lib/formato";
+import { formatearFecha, formatearFechaHora, formatearMoneda } from "@/lib/formato";
 import type { Campo, DefinicionCatalogo } from "./definiciones";
 
 export function buscarCampo(def: DefinicionCatalogo, nombre: string): Campo | undefined {
@@ -13,6 +13,8 @@ export function mostrarValor(campo: Campo | undefined, valor: unknown): string {
       return formatearMoneda(valor as number | string);
     case "fecha":
       return formatearFecha(String(valor));
+    case "fecha_hora":
+      return formatearFechaHora(String(valor));
     case "seleccion":
       return campo.opciones?.find((opcion) => opcion.valor === valor)?.etiqueta ?? String(valor);
     case "booleano":

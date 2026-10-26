@@ -491,4 +491,172 @@ E2: `22bc0dc`.
 
 ### Commit
 
-El hash del commit de E3 se informa en la entrega (no puede incluirse en el propio commit).
+E3: `9b5b864`.
+
+---
+
+## E4 — Traslados de ambulancia
+
+- **Fecha:** 2026-10-26 (America/Tegucigalpa)
+- **Resultado:** APROBADO. Todo se verificó contra Supabase Cloud de desarrollo (`cgohbizokewvivxmvbij`, comprobado con `get_project_url` antes de aplicar cambios), por API REST con usuarios reales, por SQL y en navegador real.
+
+### Funcionalidad entregada
+
+- **Solicitudes** (administrador y operador):
+  - Cliente → membresía (cubierto) o servicio particular → datos: beneficiario o pasajero, fecha y hora, duración estimada (90 min por omisión, ajustable), origen, destino, motivo, observaciones, ambulancia y conductor opcionales, y precio si es particular.
+  - Una solicitud urgente se registra con solo cliente, hora y origen. Cada formulario lleva su clave de idempotencia.
+- **Estados operativos:** solicitado → programado → en curso → completado, o cancelado (solo antes de iniciar), con trazabilidad en la bitácora. Un trigger de la base rechaza las transiciones incoherentes y cualquier cambio a un traslado completado o cancelado.
+- **Cobertura** (solo cubiertos): `valida`, `pendiente_validacion` o `no_valida`, separada del estado operativo.
+  - Se evalúan el estado de la membresía, las cuotas vencidas fuera de gracia, el vínculo del beneficiario en la fecha, el período de esa fecha y el cupo compartido o individual (contando reservas y consumos).
+  - Si la cobertura no es válida, la solicitud se conserva sin reserva, no puede iniciarse como cubierta y puede revalidarse.
+- **Reservas y consumos** (`reservas_beneficio`): una reserva por traslado, contada en el período de la fecha del servicio.
+  - Al completar se consume exactamente una; al cancelar se libera con motivo. Completar dos veces no consume otra.
+  - Un período futuro todavía no generado recibe una reserva provisional; no se genera la mensualidad por adelantado.
+  - Antes de iniciar se revalida y solo se inicia con el período generado y la reserva confirmada.
+- **Revalidación automática** (triggers sobre `membresias` y `membresia_beneficiarios`) cuando cambian el estado, el ciclo o las condiciones de la membresía o sus beneficiarios: suspensión, cancelación, reactivación, renovación, cambio de cupo, baja o alta de un beneficiario.
+  - Las reservas inválidas se liberan. Si sobran reservas, se liberan primero las más recientes.
+  - Las solicitudes sin cobertura recuperan el cupo por orden de llegada.
+- **Paso a particular:** explícito, con precio, motivo y confirmación de que el cliente acepta. Libera la reserva y conserva el historial de cobertura (bitácora y reservas liberadas).
+- **Recursos** (`ocupaciones_recurso`, tabla técnica reutilizable por E5):
+  - Ambulancia operativa (tipo ambulancia o mixto) y conductor activo, obligatorios para iniciar.
+  - Una restricción de exclusión GiST impide dos horarios planificados que se crucen para el mismo recurso. Las funciones bloquean además la fila del recurso, de modo que dos asignaciones simultáneas no pasan.
+  - Un servicio en curso ocupa el recurso hasta terminar, aunque se prolongue. Ajustar su duración informa de los cruces con servicios posteriores sin reprogramarlos.
+  - Los recursos pueden reasignarse con registro del cambio.
+- **Inicio y fin:**
+  - Al iniciar se registra la hora real. Un particular puede iniciarse sin pagar.
+  - Al finalizar se registran la hora real y las observaciones, y se liberan los recursos. En un cubierto se consume el beneficio, sin ingreso nuevo. En un particular se genera un solo cargo de E2 por el precio pactado (D 1200 / H 4200) y, si el operador lo indica, se aplica el saldo a favor del cliente con `aplicar_saldo_a_favor`.
+- **Cancelación** con motivo: libera recursos y reserva, no genera cargo, y los anticipos quedan como saldo a favor.
+- **Corrección** (solo administrador): devolver un beneficio consumido. Los importes se corrigen con los reversos de E2.
+- **Interfaz `/ambulancias`:**
+  - Listado con fecha, cliente, beneficiario o pasajero, tipo, estado, cobertura, ambulancia y conductor; filtros por búsqueda, estado, tipo y fechas.
+  - Nueva solicitud, con la cobertura de hoy y una tarifa que propone el precio.
+  - Detalle con datos, horario, recursos, cobertura e historial de reservas, datos financieros separados del estado operativo, acciones según estado y rol, avisos e historial.
+  - El panel muestra traslados de hoy, en curso, pendientes sin recursos y cubiertos sin cobertura válida.
+  - `/ambulancias/traslados` (la ruta de la especificación maestra) redirige al módulo. El detalle del cargo enlaza al traslado.
+
+### Decisiones (opción más simple compatible con la especificación)
+
+- **Permisos:** registrar y gestionar traslados, administrador y operador. Finanzas consulta y cobra mediante E2, sin cambiar estados. Devolver un beneficio consumido, solo administrador.
+- **Ciclo de la solicitud:** se puede iniciar desde «solicitado» (urgencias) o «programado». La reserva se hace al registrar.
+- **Datos obligatorios:** el destino se exige para iniciar y el precio de un particular para finalizar.
+- **Cancelación:** no consume beneficio ni aplica penalización.
+- **Reutilización de E3 sin reescribirlo:** se reemplazó `private.cupo_ocupado` (en E3 devolvía 0) para que cuente reservas reales, y se añadieron triggers de revalidación. No se modificó ninguna función pública de E2 ni de E3.
+- **Hora local:** Honduras no tiene horario de verano; la interfaz convierte la hora local a UTC−6.
+
+### Archivos principales
+
+- Migraciones: [origen](../supabase/migrations/20261026220923_e4_ambulancias_origen.sql), [estructura](../supabase/migrations/20261026221014_e4_ambulancias_estructura.sql), [operaciones](../supabase/migrations/20261026221256_e4_ambulancias_operaciones.sql) e [índice](../supabase/migrations/20261026223142_e4_ambulancias_indice.sql).
+- Aplicación:
+  - [lib/ambulancias/](../lib/ambulancias/): `acciones.ts` (Server Actions) y `definiciones.ts` (formularios, etiquetas y la matriz de acciones por estado y rol).
+  - [components/ambulancias/](../components/ambulancias/) y rutas en `app/(privado)/ambulancias/`.
+  - Campo `fecha_hora` en el formulario común, con conversiones en [lib/formato.ts](../lib/formato.ts); filtros con selectores adicionales.
+- Verificación: [scripts/verificar-ambulancias.mjs](../scripts/verificar-ambulancias.mjs), [scripts/e2e-ambulancias.mjs](../scripts/e2e-ambulancias.mjs) y [lib/ambulancias/ambulancias.test.ts](../lib/ambulancias/ambulancias.test.ts).
+
+### Cambios de esquema / migraciones (aplicadas en `cgohbizokewvivxmvbij` por MCP)
+
+| Versión | Archivo | Contenido | MD5 (archivo = `schema_migrations`) |
+|---|---|---|---|
+| `20261026220923` | `e4_ambulancias_origen` | Valor `traslado_ambulancia` en `origen_cargo`, en migración propia por ser un valor nuevo de enum | `d3557650…` |
+| `20261026221014` | `e4_ambulancias_estructura` | Extensión `btree_gist` (esquema `extensions`); 5 enums; tablas `traslados_ambulancia` (CHECK de coherencia de tipo, cargo, ejecución y cancelación), `reservas_beneficio` (una vigente por traslado) y `ocupaciones_recurso` (exclusión de solapes); índices; triggers de protección (transiciones, reservas y ocupaciones; sin DELETE ni TRUNCATE); vista `saldos_traslados`; RLS de solo lectura | `ffb1e6cf…` |
+| `20261026221256` | `e4_ambulancias_operaciones` | 16 funciones públicas `SECURITY DEFINER` con `search_path` vacío, `auth.uid()` y rol verificados; 24 auxiliares en `private` sin acceso desde la API; triggers de revalidación sobre membresías y vínculos; reemplazo de `private.cupo_ocupado` | `f99410b0…` |
+| `20261026223142` | `e4_ambulancias_indice` | Índice completo de la FK `reservas_beneficio.membresia_id`, detectado en la revisión propia | `2bbd68fc…` |
+
+- Antes de aplicar se comprobó que ningún nombre nuevo existiera. Nada se borra ni se modifica de forma destructiva.
+- Tipos regenerados en [lib/supabase/tipos-bd.ts](../lib/supabase/tipos-bd.ts).
+- **Advisors de seguridad:** 16 avisos nuevos «SECURITY DEFINER ejecutable por authenticated», intencionales como en E2 y E3 (son las únicas vías de escritura), más el aviso manual de contraseñas filtradas.
+- **Índices de FK:** las tres tablas nuevas tienen cubiertas todas sus claves foráneas (verificado por SQL).
+
+### Comandos y pruebas (2026-10-26, Node 24.22.0, Windows 11)
+
+| Comando | Resultado |
+|---|---|
+| `npm run lint` / `npm run typecheck` | OK / OK |
+| `npm test` | OK, 8 archivos, **69 pruebas** (11 nuevas: transiciones por estado y rol, hora local y formularios) |
+| `npm run build` | OK (`/ambulancias`, `/ambulancias/nuevo`, `/ambulancias/[id]`, `/ambulancias/traslados`) |
+| `npm audit` | 0 vulnerabilidades |
+| `node scripts/verificar-ambulancias.mjs` (API REST, usuarios reales) | **74/74**. En la primera ejecución, 73/74: la expresión de una comprobación no coincidía con el mensaje real (el comportamiento era el esperado); se corrigió la prueba |
+| `node scripts/e2e-ambulancias.mjs` (Edge sin interfaz, `next start`) | **21/21**; log del servidor sin errores |
+| Regresión E1: `verificar-rls.mjs` / `e2e-navegador.mjs` | **61/61** / **43/43** |
+| Regresión E2: `verificar-finanzas.mjs` / `e2e-finanzas.mjs` | **75/75** / **28/28** |
+| Regresión E3: `verificar-membresias.mjs` / `e2e-membresias.mjs` | **92/92** / **25/25** |
+| SQL (transacción revertida): provisional → período generado; bajada y subida de cupo; cancelación | Las dos provisionales pasan a válidas con período enlazado; con cupo 1 se libera la más reciente y con cupo 2 se recupera; al cancelar la membresía, 0 reservas vigentes |
+| Defensas contra el propietario (SQL, revertido) | Rechazados: DELETE y TRUNCATE; editar un completado; saltar de solicitado a completado; volver una consumida a reservada o moverla de período; cambiar el horario de una ocupación; insertar un solape (restricción de exclusión); una segunda reserva vigente del mismo traslado; finalizar uno no iniciado |
+| Invariantes (SQL), tras todas las corridas | 396 asientos, 0 descuadrados, libro neto 0.00; 7 particulares completados = 7 cargos, sin huérfanos; 0 dobles consumos, 0 reservas u ocupaciones colgadas, 0 períodos sobrerreservados, 0 solapes activos, 0 movimientos de dinero por cargos o aplicaciones |
+
+**Pruebas obligatorias (`verificar-ambulancias.mjs`, salvo indicación):**
+
+1. Cubierto registrado por el operador: solicitado, con el cliente de la membresía, cobertura válida y reserva en el período de la fecha. El reintento con la misma clave no duplica.
+2. Particular registrado y programado: precio pactado, pasajero sin ficha, sin cobertura ni reserva. No admite membresía.
+3. Un beneficiario no vinculado se registra como no válido, sin reserva. Se rechazan un cubierto sin beneficiario y una membresía de otro cliente.
+4. Con la membresía suspendida, la solicitud se conserva como no válida; con la activa, es válida.
+5. La reserva aparece en la consulta de cupo (usados 1, disponibles 1).
+6. Al completar se consume exactamente un beneficio, sin cargo ni ingreso nuevo.
+7. Al cancelar se libera la reserva con motivo y vuelve el cupo.
+8. Completar dos veces no consume otra vez. Un particular se inicia con saldo pendiente.
+9. Dos solicitudes simultáneas por el último cupo: una válida y otra no; una sola reserva vigente.
+10. Compartido 2: A completa uno y B reserva otro, disponibilidad 0, y la tercera solicitud no es válida.
+11. Individual 2: A usa sus dos, la tercera de A no es válida y B conserva su cupo.
+12. Período futuro: pendiente de validación con reserva provisional; no se genera la mensualidad; el cupo futuro cuenta las provisionales; no se inicia como cubierto. La confirmación al generarse el período se probó por SQL.
+13. Pérdida y recuperación de cobertura:
+    - La baja del beneficiario deja el traslado como no válido y libera la reserva; no se inicia ni se convierte solo.
+    - La nueva alta lo revalida con una reserva nueva y conserva el historial.
+    - El paso a particular es explícito y con motivo. Revalidar recupera el cupo liberado.
+14. Reprogramación:
+    - En el mismo período conserva la reserva y mueve los recursos.
+    - A un período futuro deja una reserva provisional.
+    - Sobre un horario ocupado se rechaza sin cambios. Exige motivo.
+15. Ambulancia ocupada: rechazo con descripción del cruce. Un vehículo de alquiler no sirve. Dos asignaciones simultáneas de la misma ambulancia: solo prospera una. La consulta de disponibilidad marca la ocupada.
+16. Conductor ocupado: rechazo; el intento fallido no deja ocupaciones.
+17. No se inicia sin ambulancia y conductor.
+18. Finalización: completado con hora real y observaciones; libera los recursos.
+19. Dos finalizaciones simultáneas de un particular: un solo cargo de L 1,500 con asiento D 1200 / H 4200.
+20. Cobro parcial de finanzas: pagado L 500, pendiente L 1,000, estado financiero «parcial».
+21. Anticipo de L 800 aplicado al completar: pagado 800, pendiente 700, saldo a favor 0. Una sola entrada de dinero y una aplicación D 2200 / H 1200. Aplicar más saldo del disponible se rechaza sin completar nada.
+22. Cancelación con anticipo: sin cargo, recursos liberados, saldo a favor conservado y sin movimientos nuevos.
+23. Permisos:
+    - Finanzas no registra, programa, asigna, inicia, cancela ni reprograma (42501); los tres roles consultan.
+    - Solo el administrador devuelve un beneficio consumido.
+24. RLS: `anon` no lee las 4 tablas o vistas ni ejecuta funciones; un usuario inactivo no registra. Nadie, ni el administrador, inserta, edita o borra directamente traslados, reservas u ocupaciones.
+25. Un cargo por particular completado; ninguna reserva vigente duplicada; 13 asientos de la corrida balanceados; solo los cobros mueven dinero.
+26. Regresión de E1, E2 y E3: tabla anterior.
+
+**Escenarios en navegador (`e2e-ambulancias.mjs`):**
+
+- **Operador, cubierto:** cobertura de hoy en el formulario; registro programado con recursos; iniciar y finalizar con consumo del beneficio.
+- **Operador, particular urgente:** sin destino ni recursos, con precio propuesto por tarifa. El inicio se rechaza con un mensaje claro; luego edita el destino y asigna recursos. Al finalizar aplica el anticipo de L 500: cargo de L 1,200 con L 700 pendientes.
+- **Cancelación:** rechazada sin confirmar; con motivo, el traslado se conserva.
+- **Listado:** filtros por búsqueda, estado y tipo.
+- **Finanzas:** ve los datos financieros y «Registrar cobro», sin acciones operativas, y consulta el historial.
+- **Móvil 390×844:** sin desplazamiento horizontal.
+
+### Datos en Supabase de desarrollo
+
+- Registros ficticios marcados `[PRUEBA E4]`: planes, clientes, beneficiarios, ambulancias, conductores, cajas, tarifas, membresías, traslados, reservas, ocupaciones, cargos, cobros y asientos. Por diseño no se pueden borrar.
+- Los usuarios ficticios se reactivaron temporalmente y **se desactivaron de nuevo** (bitácora). Solo el administrador real queda activo.
+
+### Defectos encontrados y corregidos durante la etapa
+
+1. **FK sin índice completo:** `reservas_beneficio.membresia_id` solo tenía un índice parcial. Corregido con la migración `20261026223142`.
+2. **Función estable con UUID volátil:** `recursos_disponibles` usaba `gen_random_uuid()` como origen excluido. Se cambió por un UUID fijo antes de aplicar la migración.
+3. **Pruebas:**
+   - Una expresión no coincidía con el mensaje real.
+   - Los intervalos llegan en UTC por la API.
+   - Dos comprobaciones de defensas por SQL no eran concluyentes porque no había filas que modificar; se repitieron creando los datos en la transacción revertida.
+
+### Pendientes (configuración manual del propietario, sin cambios desde E1)
+
+1. Deshabilitar el registro público en Supabase › Authentication › Sign In / Providers.
+2. Activar la protección de contraseñas filtradas si el plan lo permite.
+
+### Limitaciones
+
+- La condición de cobertura guardada se actualiza con los eventos (registro, reprogramación, revalidación, inicio y cambios de membresía). Una cuota que vence sin que nadie actualice las mensualidades no la cambia hasta la siguiente revalidación, pero el inicio siempre revalida.
+- Los recursos solo se reasignan antes de iniciar. Durante el servicio solo se ajusta la duración.
+- Corregir el importe de un particular completado se hace con E2: anular el cargo y registrar un cargo administrativo. El traslado conserva el cargo anulado como referencia.
+- No hay penalizaciones por cancelación, mapas, GPS ni notificaciones (fuera del MVP).
+- La alta muestra hasta 300 beneficiarios activos, sin buscador.
+- Las pruebas de navegador se ejecutaron en el puerto 3100 (el 3000 lo ocupa un `next dev` del usuario, que no se tocó).
+
+### Commit
+
+El hash del commit de E4 se informa en la entrega (no puede incluirse en el propio commit).

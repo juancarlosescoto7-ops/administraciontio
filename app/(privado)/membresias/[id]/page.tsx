@@ -239,7 +239,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
           {membresia.modalidad_cupo === "compartido"
             ? "Cupo compartido: todos los beneficiarios usan el mismo cupo del período."
             : "Cupo individual: cada beneficiario tiene su propio cupo en el período."}{" "}
-          El cupo no se acumula entre meses. Aún no hay traslados registrados: el cupo usado se contará con el módulo de traslados.
+          El cupo no se acumula entre meses. Los usados incluyen traslados programados (reservados) y completados (consumidos).
         </p>
         <Tabla
           filas={coberturas}

@@ -173,6 +173,9 @@ function CampoFormulario({
         <input {...comunes} className="entrada" type="date" max={campo.noFutura ? hoy : undefined} defaultValue={valor} />
       );
       break;
+    case "fecha_hora":
+      control = <input {...comunes} className="entrada" type="datetime-local" defaultValue={valor} />;
+      break;
     case "entero":
       control = (
         <input

@@ -28,16 +28,22 @@ export function FormularioFiltros({
   estados,
   placeholder,
   fechas = true,
+  extras = [],
 }: {
   filtros: Filtros;
   estados: readonly Opcion[];
   placeholder: string;
   /** Rango de fechas desde/hasta. */
   fechas?: boolean;
+  /** Selectores adicionales (p. ej., tipo de servicio). */
+  extras?: readonly { nombre: string; etiqueta: string; opciones: readonly Opcion[]; valor: string }[];
 }) {
   const columnas = fechas ? "lg:grid-cols-[2fr_1fr_1fr_1fr_auto]" : "lg:grid-cols-[2fr_1fr_auto]";
   return (
-    <form method="get" className={`tarjeta mb-4 grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 ${columnas} lg:items-end`}>
+    <form
+      method="get"
+      className={`tarjeta mb-4 grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 ${extras.length ? "lg:grid-cols-3" : columnas} lg:items-end`}
+    >
       <label className="campo">
         <span className="campo-etiqueta">Buscar</span>
         <input className="entrada" type="search" name="q" defaultValue={filtros.busqueda} placeholder={placeholder} />
@@ -52,6 +58,18 @@ export function FormularioFiltros({
           ))}
         </select>
       </label>
+      {extras.map((extra) => (
+        <label key={extra.nombre} className="campo">
+          <span className="campo-etiqueta">{extra.etiqueta}</span>
+          <select className="entrada" name={extra.nombre} defaultValue={extra.valor}>
+            {extra.opciones.map((opcion) => (
+              <option key={opcion.valor} value={opcion.valor}>
+                {opcion.etiqueta}
+              </option>
+            ))}
+          </select>
+        </label>
+      ))}
       {fechas && (
         <>
           <label className="campo">
