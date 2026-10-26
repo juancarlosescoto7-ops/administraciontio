@@ -1,47 +1,13 @@
 // Verifica RLS y permisos por rol contra la API REST real de Supabase (desarrollo).
 // Uso: E2E_CREDENCIALES=/ruta/credenciales.env node scripts/verificar-rls.mjs
 // Crea registros ficticios marcados con "[PRUEBA E1]". No elimina nada.
-import { cargarEntorno, crearReporte, MARCA_PRUEBA } from "./comun.mjs";
+import { cargarEntorno, crearClienteRest, crearReporte, denegado, MARCA_PRUEBA } from "./comun.mjs";
 
 const env = cargarEntorno();
-const URL_BASE = env.NEXT_PUBLIC_SUPABASE_URL;
-const CLAVE = env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const { iniciarSesion, api } = crearClienteRest(env);
 const { comprobar, terminar } = crearReporte();
 const sufijo = Date.now().toString(36).toUpperCase();
 
-async function iniciarSesion(correo, clave) {
-  const respuesta = await fetch(`${URL_BASE}/auth/v1/token?grant_type=password`, {
-    method: "POST",
-    headers: { apikey: CLAVE, "Content-Type": "application/json" },
-    body: JSON.stringify({ email: correo, password: clave }),
-  });
-  const cuerpo = await respuesta.json();
-  if (!respuesta.ok) throw new Error(`No se pudo iniciar sesión con ${correo}: ${cuerpo.msg ?? respuesta.status}`);
-  return { token: cuerpo.access_token, id: cuerpo.user.id };
-}
-
-async function api(token, metodo, ruta, cuerpo) {
-  const respuesta = await fetch(`${URL_BASE}/rest/v1/${ruta}`, {
-    method: metodo,
-    headers: {
-      apikey: CLAVE,
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      "Content-Type": "application/json",
-      Prefer: "return=representation",
-    },
-    body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
-  });
-  const texto = await respuesta.text();
-  let datos = null;
-  try {
-    datos = texto ? JSON.parse(texto) : null;
-  } catch {
-    datos = texto;
-  }
-  return { estado: respuesta.status, datos, codigo: datos?.code };
-}
-
-const denegado = (r) => r.estado === 401 || r.estado === 403 || r.codigo === "42501";
 const TABLAS = [
   "perfiles", "bitacora", "clientes", "beneficiarios", "vehiculos", "conductores",
   "proveedores", "planes", "tarifas", "cuentas_dinero",

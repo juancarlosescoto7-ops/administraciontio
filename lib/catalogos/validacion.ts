@@ -1,5 +1,9 @@
 import { hoyEnTegucigalpa } from "@/lib/formato";
 import type { Campo, DefinicionCatalogo } from "./definiciones";
+import { esUuid } from "./presentacion";
+
+/** Lo único que la validación necesita de una definición: sus campos. */
+type ConCampos = Pick<DefinicionCatalogo, "campos">;
 
 /** Valores tal como se muestran en el formulario (para volver a pintarlo). */
 export type Valores = Record<string, string>;
@@ -18,7 +22,7 @@ const PATRON_TELEFONO = /^[0-9+()\-\s]+$/;
 const PATRON_MONTO = /^\d{1,12}(\.\d{1,2})?$/;
 const PATRON_FECHA = /^(\d{4})-(\d{2})-(\d{2})$/;
 
-export function leerValores(def: DefinicionCatalogo, formData: FormData): Valores {
+export function leerValores(def: ConCampos, formData: FormData): Valores {
   const valores: Valores = {};
   for (const campo of def.campos) {
     const crudo = formData.get(campo.nombre);
@@ -34,7 +38,7 @@ export function leerValores(def: DefinicionCatalogo, formData: FormData): Valore
   return valores;
 }
 
-function esFechaValida(texto: string): boolean {
+export function esFechaValida(texto: string): boolean {
   const partes = PATRON_FECHA.exec(texto);
   if (!partes) return false;
   const [anio, mes, dia] = partes.slice(1).map(Number);
@@ -103,6 +107,9 @@ function validarCampo(
       return { valor: `${enteros.replace(/^0+(?=\d)/, "")}.${decimales.padEnd(2, "0")}` };
     }
     case "seleccion": {
+      if (campo.opcionesDinamicas) {
+        return esUuid(texto) ? { valor: texto } : { error: "Seleccione una opción válida." };
+      }
       if (!campo.opciones?.some((opcion) => opcion.valor === texto)) {
         return { error: "Seleccione una opción válida." };
       }
@@ -112,7 +119,7 @@ function validarCampo(
 }
 
 export function validarRegistro(
-  def: DefinicionCatalogo,
+  def: ConCampos,
   valores: Valores,
   hoy: string = hoyEnTegucigalpa(),
 ): ResultadoValidacion {
@@ -130,7 +137,7 @@ export function validarRegistro(
 
 /** Convierte una fila de la base en valores de formulario. */
 export function valoresDesdeRegistro(
-  def: DefinicionCatalogo,
+  def: ConCampos,
   registro: Record<string, unknown> | null,
 ): Valores {
   const valores: Valores = {};

@@ -209,4 +209,134 @@ Ninguno. Los dos bloqueos anteriores quedaron resueltos:
 ### Commit
 
 - E1: `58e37ae`.
-- Revisión posterior: el hash se informa en la entrega (no puede incluirse en el propio commit).
+- Revisión posterior: `26a2a15`.
+
+---
+
+## E2 — Núcleo financiero
+
+- **Fecha:** 2026-10-26 (America/Tegucigalpa)
+- **Resultado:** APROBADO. Todo lo implementado se verificó contra Supabase Cloud de desarrollo (`cgohbizokewvivxmvbij`, comprobado con `get_project_url` antes de cada cambio), por API REST con usuarios reales y en navegador real.
+
+### Funcionalidad entregada
+
+- **Cargos a clientes:** cargo administrativo (origen `manual`, solo administrador) con cliente, línea de ingreso (membresías, ambulancias particulares, alquileres, transportes), concepto, fecha, vencimiento opcional e importe. `UNIQUE (origen_tipo, origen_id)`: un mismo evento no genera dos cargos. Pendiente = importe − aplicaciones vigentes. Los cargos de E3–E5 llegarán por sus módulos.
+- **Cobros:** cliente, caja o banco, fecha, método (`efectivo`, `transferencia`, `tarjeta`, `otro`), referencia opcional e importe. Se aplican total o parcialmente a uno o varios cargos del mismo cliente; el sobrante queda como **saldo a favor**. Todo cobro entra una sola vez en la caja o banco.
+- **Anticipos:** un cobro sin cargos queda íntegro como saldo a favor, sin vencimiento. «Aplicar saldo a favor» lo traslada a un cargo tomando primero los cobros más antiguos, sin nueva entrada de dinero.
+- **Gastos y pagos:** gasto con proveedor opcional, categoría, actividad (incluida `general`), fecha, vencimiento, concepto, importe y notas; pago inmediato opcional (contado o abono) y pagos parciales posteriores. Por pagar = gasto − pagos confirmados.
+- **Caja y bancos:** saldo por cuenta = suma de movimientos confirmados (no existe columna de saldo); movimientos por cuenta; transferencias entre cuentas; saldo inicial documentado (uno vigente por cuenta, con contrapartida en capital).
+- **Contabilidad automática:** plan mínimo con 1100 Caja y bancos (desglosada por caja o banco), 1200 CxC, 2100 CxP, 2200 Anticipos, 3100 Capital y saldos iniciales, 4100–4400 ingresos por línea y 5100–5900 gastos por categoría. Cada evento genera su asiento con las plantillas de la especificación; `UNIQUE (origen_tipo, origen_id, evento)`. Sin pantalla de asientos manuales: los asientos de cada documento se muestran en solo lectura (administrador y finanzas).
+- **Reversos y anulaciones** (solo administrador, con motivo y confirmación obligatorios y registro en la bitácora): reversar cobro (primero reversa sus aplicaciones), reversar aplicación, anular cargo (lo aplicado vuelve al saldo a favor), reversar pago de gasto, anular gasto (exige reversar antes sus pagos), reversar transferencia y reversar saldo inicial. Cada reverso crea el asiento espejo y el contramovimiento; el original queda marcado y nada se borra.
+- **Interfaz:**
+  - `/finanzas/cobros`: listado, alta en dos pasos (buscar cliente y registrar con aplicación a cargos) y detalle.
+  - `/finanzas/cargos`: listado, alta y detalle con aplicar saldo y anular.
+  - `/finanzas/pendientes`: CxC por cliente con saldo a favor y CxP; `/finanzas/pendientes/[cliente]` es el estado de cuenta.
+  - `/finanzas/gastos`: listado, alta con pago inmediato y detalle con abonos.
+  - `/finanzas/cuentas`: saldos y total disponible; el detalle de cuenta muestra saldo, saldo inicial y movimientos; `/finanzas/cuentas/transferir` y detalle de transferencia.
+  - Listados con búsqueda, estado y rango de fechas; importes Total / Pagado / Pendiente / Saldo a favor siempre visibles. El panel muestra CxC, saldos a favor, CxP y dinero disponible. Menú y acciones según el rol.
+
+### Decisiones (opción más simple compatible con la especificación)
+
+- **Permisos:** cobros y aplicación de saldo a favor, los tres roles (el operador registra cobros, §2). Gastos, pagos y transferencias: administrador y finanzas. Cargos manuales, saldos iniciales, reversos y anulaciones: solo administrador («ajustes administrativos», §2). Lectura: cargos, cobros y saldos de clientes para todos; tesorería, gastos y asientos para administrador y finanzas.
+- **Idempotencia:** cada formulario lleva una clave UUID nueva. Un reintento con la misma clave devuelve lo ya registrado; con otros datos, se rechaza.
+- **1100 Caja y bancos** es una sola cuenta contable, desglosada en las líneas por `cuenta_dinero_id`; así la transferencia es D 1100 (destino) / H 1100 (origen).
+- **Saldos contables:** suman todas las líneas, originales y reversos; `asientos.estado = 'reversado'` es solo informativo.
+- Las fechas de las operaciones no pueden ser futuras; el reverso se fecha el día en que se registra.
+- No se impide dejar una caja en negativo (la especificación no lo prevé).
+- Las categorías de gasto se crean con la migración (combustible, mantenimiento, salarios, servicios, otros), sin pantalla de edición.
+
+### Archivos principales
+
+- Migraciones: [estructura](../supabase/migrations/20261026190818_e2_finanzas_estructura.sql), [operaciones](../supabase/migrations/20261026191029_e2_finanzas_operaciones.sql), [corrección](../supabase/migrations/20261026192721_e2_finanzas_triggers_definer.sql).
+- Aplicación: [lib/finanzas/](../lib/finanzas/) (`acciones.ts` Server Actions, `definiciones.ts` formularios, `montos.ts` importes en centavos, `consultas.ts`), [components/finanzas/](../components/finanzas/), rutas en `app/(privado)/finanzas/` y permisos en [lib/auth/roles.ts](../lib/auth/roles.ts).
+- Verificación: [scripts/verificar-finanzas.mjs](../scripts/verificar-finanzas.mjs) y [scripts/e2e-finanzas.mjs](../scripts/e2e-finanzas.mjs); el control de Edge se extrajo de `e2e-navegador.mjs` a [scripts/navegador.mjs](../scripts/navegador.mjs) y el cliente REST común está en [scripts/comun.mjs](../scripts/comun.mjs). Pruebas unitarias en [lib/finanzas/finanzas.test.ts](../lib/finanzas/finanzas.test.ts).
+
+### Cambios de esquema / migraciones (aplicadas en `cgohbizokewvivxmvbij` por MCP)
+
+| Versión | Archivo | Contenido | MD5 (archivo = `schema_migrations`) |
+|---|---|---|---|
+| `20261026190818` | `e2_finanzas_estructura` | 11 enums; tablas `cuentas_contables` (14 cuentas), `categorias_gasto` (5), `cargos_cliente`, `cobros_cliente`, `aplicaciones_cobro` (FK compuestas que garantizan el mismo cliente), `gastos`, `pagos_gasto`, `transferencias` (cabecera técnica), `asientos`, `lineas_asiento` y `movimientos_dinero`; índices; triggers de invariantes (aplicación y pago sin exceder saldos, con bloqueo de filas); trigger diferido de cuadre (Debe = Haber y 1100 = movimientos); protección del historial (sin DELETE ni TRUNCATE ni cambio de importes, ni siquiera por el propietario); vistas `saldos_cargos`, `saldos_cobros`, `saldos_clientes`, `saldos_gastos` y `saldos_cuentas_dinero` (`security_invoker`); RLS de solo lectura por rol | `1e058744…` |
+| `20261026191029` | `e2_finanzas_operaciones` | 14 funciones públicas `SECURITY DEFINER` con `search_path` vacío y verificación de rol: `registrar_cargo`, `anular_cargo`, `registrar_cobro`, `aplicar_saldo_a_favor`, `reversar_aplicacion`, `reversar_cobro`, `registrar_gasto`, `registrar_pago_gasto`, `reversar_pago_gasto`, `anular_gasto`, `registrar_transferencia`, `reversar_transferencia`, `registrar_apertura` y `reversar_apertura`; 18 auxiliares en `private`, sin acceso desde la API | `d4f779e9…` |
+| `20261026192721` | `e2_finanzas_triggers_definer` | Corrección del defecto 1: los triggers de integridad pasan a `SECURITY DEFINER` | `9432eb90…` |
+
+- Antes de aplicar se comprobó que ningún nombre nuevo existiera. Las migraciones solo crean objetos: E1 no se modificó y solo se referencia por FK. Tipos regenerados en [lib/supabase/tipos-bd.ts](../lib/supabase/tipos-bd.ts).
+- Advisors de seguridad: los 14 avisos nuevos «SECURITY DEFINER ejecutable por authenticated» son **intencionales**, porque son las únicas vías de escritura y validan identidad, rol y datos. Se mantiene el aviso manual de contraseñas filtradas. Advisors de rendimiento: solo «índice sin uso» (tablas nuevas).
+
+### Comandos y pruebas (2026-10-26, Node 24.22.0, Windows 11)
+
+| Comando | Resultado |
+|---|---|
+| `npm run lint` / `npm run typecheck` | OK / OK |
+| `npm test` | OK, 6 archivos, **46 pruebas** (11 nuevas: importes en centavos sin float, permisos financieros y validación de formularios) |
+| `npm run build` | OK; las 15 rutas financieras como Partial Prerender |
+| `npm audit` | 0 vulnerabilidades |
+| `node scripts/verificar-finanzas.mjs` (API REST, usuarios reales) | **75/75** |
+| `node scripts/verificar-rls.mjs` (regresión E1) | **61/61** |
+| `node scripts/e2e-finanzas.mjs` (Edge sin interfaz, `next start`) | **28/28**; log del servidor sin errores |
+| `node scripts/e2e-navegador.mjs` (regresión E1) | **43/43** |
+| Invariantes por SQL (MCP) sobre todo el libro, tras todas las corridas | 93 asientos: 0 descuadrados, 0 sin líneas, 0 cajas o bancos con movimientos distintos de sus líneas de 1100, 0 sobreaplicaciones, 0 aplicaciones entre clientes distintos, 0 movimientos duplicados; libro neto 0.00 |
+| Defensas contra el propietario (SQL, revertido) | DELETE, TRUNCATE, cambiar un importe, «des-reversar» y editar un movimiento: todos rechazados por los triggers |
+
+**Pruebas obligatorias contra Supabase (`verificar-finanzas.mjs`):**
+
+1. Cargo de L 1,500 y cobro de L 500: total 1,500, aplicado 500, pendiente 1,000 y una sola entrada de L 500 en caja. Asientos: D CxC / H ingreso; D caja / H anticipos; D anticipos / H CxC, sin movimiento de caja.
+2. Anticipo de L 700 sin cargo: saldo a favor 700 y caja +700. Tras un cargo de L 1,000 y la aplicación: pendiente 300 y saldo a favor 0, sin nuevo movimiento de dinero.
+3. Gasto de L 800 con pago de L 300: gasto 800, salida de caja 300 y CxP 500. Asientos D 5100 / H CxP y D CxP / H caja; el gasto no se duplica. Un abono de L 600, mayor que lo pendiente, se rechaza.
+4. Transferencia de L 1,000: Caja −1,000, Banco +1,000, total igual y solo líneas de 1100. Una transferencia a la misma cuenta se rechaza.
+5. Idempotencia: los reintentos secuenciales y **simultáneos** (3 en paralelo) de un cobro dejan un cobro, un movimiento y un asiento. Cargo, gasto pagado de contado, transferencia y aplicación de saldo reintentados en paralelo se registran una vez. Una clave reutilizada con otros datos se rechaza.
+6. Sobreaplicación: se rechaza aplicar más que el pendiente del cargo, más que el saldo a favor o más que el importe del cobro (en este caso el cobro no se registra). De **dos aplicaciones simultáneas** contra el mismo anticipo solo prospera una.
+7. Aislamiento: el cobro de un cliente no se aplica al cargo de otro y no deja rastro; el saldo a favor de un cliente no paga cargos de otro.
+8. Todos los asientos balancean, ningún evento tiene dos asientos y cada caja o banco cuadra con sus líneas de 1100.
+9. Permisos:
+   - anon no lee ninguna de las 16 tablas o vistas ni ejecuta funciones; un usuario inactivo no tiene acceso.
+   - Operador y finanzas no registran cargos manuales.
+   - El operador no registra gastos ni transferencias, ni ve tesorería, asientos o gastos.
+   - Solo el administrador reversa y registra saldos iniciales.
+   - Nadie, ni siquiera el administrador, inserta, edita o borra directamente cobros, movimientos, asientos, líneas o aplicaciones.
+10. Error intermedio: un gasto con pago inválido no deja gasto. Un cobro cuya segunda aplicación falla no deja cobro, aplicaciones ni dinero. El reintento corregido con la misma clave se registra una sola vez.
+11. Reversos:
+    - Sin motivo, se rechazan.
+    - El cobro reversado se conserva con autor y motivo; sus aplicaciones quedan reversadas, el asiento original marcado con su espejo, y el contramovimiento es de −500. Un cobro no se reversa dos veces.
+    - Un gasto con pagos no se anula hasta reversarlos.
+    - Se reversa una transferencia.
+    - Anular un cargo devuelve lo aplicado al saldo a favor.
+    - Los cinco quedan en la bitácora.
+
+**Escenarios en navegador (`e2e-finanzas.mjs`):**
+
+- Menú según el rol.
+- Operador: busca un cliente y registra un cobro con aplicación (con error si aplica más de lo recibido, conservando lo escrito); consulta el estado de cuenta; no ve gastos, saldos de caja ni asientos.
+- Finanzas: registra un gasto con abono y una transferencia; ve los saldos (Caja L 1,200 = 2,000 + 500 − 300 − 1,000; Banco L 1,000); no registra saldos iniciales.
+- Administrador: ve los indicadores del panel, registra un anticipo y lo aplica desde el cargo, reversa un cobro (rechazado mientras no confirma la casilla) y el cargo vuelve a quedar pendiente.
+- Móvil 390×844: sin desplazamiento horizontal y con tarjetas.
+
+### Datos en Supabase de desarrollo
+
+- Registros ficticios marcados `[PRUEBA E2]`: clientes, cajas y bancos, cargos, cobros, gastos, transferencias, saldos iniciales y sus asientos. Por diseño no se pueden borrar; el proyecto de producción será otro y no los contendrá.
+- Los usuarios ficticios se reactivaron temporalmente para las pruebas y **se desactivaron de nuevo** al final (bitácora: `reactivar_usuario_prueba` / `desactivar_usuario_prueba`). Solo el administrador real queda activo, y no se crearon datos financieros con su cuenta.
+
+### Defectos encontrados y corregidos durante la etapa
+
+1. **Cobro del operador rechazado como «asiento descuadrado (Debe 0, Haber 0)».** El trigger diferido de cuadre se ejecuta al confirmar, con el rol del usuario, y la RLS le ocultaba al operador las líneas del asiento. La prueba de humo con el administrador no lo detectó; sí `verificar-finanzas.mjs`. Corregido con la migración `20261026192721` (triggers de integridad `SECURITY DEFINER`). La transacción fallida no dejó rastro.
+2. **Las casillas no mostraban su error.** El formulario genérico no pintaba el mensaje de los campos booleanos («Marque la casilla para confirmar»). Corregido en [components/catalogos/formulario-catalogo.tsx](../components/catalogos/formulario-catalogo.tsx).
+3. **Estado del formulario tras un error de la base.** La primera versión de las Server Actions reemplazaba los valores escritos al devolver el error. Corregido antes de las pruebas: ahora solo se devuelven el error y los mensajes por campo.
+4. **Saldo inicial fuera de los últimos 200 movimientos.** El detalle de la cuenta dejaba de detectarlo; ahora se consulta aparte.
+5. `corregir` valida el tipo de corrección con `Object.hasOwn`, porque los argumentos enlazados llegan del cliente.
+
+### Pendientes (configuración manual del propietario, sin cambios desde E1)
+
+1. Deshabilitar el registro público en Supabase › Authentication › Sign In / Providers.
+2. Activar la protección de contraseñas filtradas si el plan lo permite.
+
+### Limitaciones
+
+- En E2 solo hay cargos administrativos; membresías, traslados, alquileres y transportes generarán los suyos en E3–E5, añadiendo valores a `origen_cargo`.
+- Las categorías de gasto son fijas (sin pantalla de edición).
+- Los listados muestran hasta 200 registros (500 en Pendientes) con filtros, y los totales de un listado suman solo lo mostrado.
+- El detalle del cargo muestra la actividad, no la línea de ingreso, porque el operador no tiene acceso al plan de cuentas.
+- La caja puede quedar en negativo. No hay conciliación bancaria ni reportes (E6).
+- Las pruebas de navegador se ejecutaron en el puerto 3100 porque el 3000 estaba ocupado por un `next dev` del usuario, que no se tocó.
+
+### Commit
+
+El hash del commit de E2 se informa en la entrega (no puede incluirse en el propio commit).

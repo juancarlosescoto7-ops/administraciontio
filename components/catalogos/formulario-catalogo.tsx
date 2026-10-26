@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { Fragment, useActionState } from "react";
 import type { Campo } from "@/lib/catalogos/definiciones";
 import type { EstadoFormulario } from "@/lib/catalogos/estado";
 import { useHidratado } from "@/components/use-hidratado";
@@ -14,16 +14,20 @@ export function FormularioCatalogo({
   estadoInicial,
   textoEnviar,
   rutaCancelar,
-  rutaBase,
+  rutaBase = "",
   hoy,
+  ocultos,
 }: {
   campos: readonly Campo[];
   accion: Accion;
   estadoInicial: EstadoFormulario;
   textoEnviar: string;
-  rutaCancelar: string;
-  rutaBase: string;
+  /** null: sin botón «Cancelar» (formularios dentro de una página de detalle). */
+  rutaCancelar: string | null;
+  rutaBase?: string;
   hoy: string;
+  /** Campos ocultos fijos, como la clave de idempotencia de la operación. */
+  ocultos?: Record<string, string>;
 }) {
   const [estado, despachar, pendiente] = useActionState(accion, estadoInicial);
   const hidratado = useHidratado();
@@ -32,16 +36,23 @@ export function FormularioCatalogo({
 
   return (
     <form action={despachar} className="flex flex-col gap-6" noValidate>
+      {Object.entries(ocultos ?? {}).map(([nombre, valor]) => (
+        <input key={nombre} type="hidden" name={nombre} value={valor} />
+      ))}
       {/* La clave fuerza a reponer los valores devueltos por el servidor. */}
       <div key={estado.revision} className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
         {campos.map((campo) => (
-          <CampoFormulario
-            key={campo.nombre}
-            campo={campo}
-            valor={estado.valores[campo.nombre] ?? ""}
-            error={estado.errores[campo.nombre]}
-            hoy={hoy}
-          />
+          <Fragment key={campo.nombre}>
+            {campo.seccion && (
+              <h3 className="border-t border-borde pt-4 font-semibold sm:col-span-2">{campo.seccion}</h3>
+            )}
+            <CampoFormulario
+              campo={campo}
+              valor={estado.valores[campo.nombre] ?? ""}
+              error={estado.errores[campo.nombre]}
+              hoy={hoy}
+            />
+          </Fragment>
         ))}
       </div>
 
@@ -73,9 +84,11 @@ export function FormularioCatalogo({
       )}
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <Link href={rutaCancelar} className="boton boton-secundario">
-          Cancelar
-        </Link>
+        {rutaCancelar !== null && (
+          <Link href={rutaCancelar} className="boton boton-secundario">
+            Cancelar
+          </Link>
+        )}
         <button type="submit" className="boton boton-primario" disabled={pendiente || !hidratado}>
           {pendiente ? "Guardando…" : similares.length > 0 ? "Registrar de todos modos" : textoEnviar}
         </button>
@@ -117,10 +130,16 @@ function CampoFormulario({
           />
           <span className="campo-etiqueta">{campo.etiqueta}</span>
         </label>
-        {campo.ayuda && (
-          <p id={`${id}-ayuda`} className="campo-ayuda">
-            {campo.ayuda}
+        {error ? (
+          <p id={`${id}-error`} className="campo-error">
+            {error}
           </p>
+        ) : (
+          campo.ayuda && (
+            <p id={`${id}-ayuda`} className="campo-ayuda">
+              {campo.ayuda}
+            </p>
+          )
         )}
       </div>
     );

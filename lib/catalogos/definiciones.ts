@@ -23,6 +23,13 @@ export type Campo = {
   /** Valor mínimo (entero). */
   min?: number;
   opciones?: readonly Opcion[];
+  /**
+   * Opciones que dependen de datos (cuentas, cargos…): en el servidor se
+   * valida que el valor sea un UUID y la base comprueba que exista.
+   */
+  opcionesDinamicas?: boolean;
+  /** Título de sección que se muestra antes del campo. */
+  seccion?: string;
   /** Normaliza a mayúsculas (códigos y placas). */
   mayusculas?: boolean;
   /** Fecha que no puede ser posterior a hoy. */
@@ -326,7 +333,7 @@ export const CATALOGOS: Record<ClaveCatalogo, DefinicionCatalogo> = {
     ruta: "/finanzas/cuentas",
     titulo: "Cajas y bancos",
     descripcion:
-      "Cuentas de dinero en HNL. Los saldos se calcularán a partir de movimientos confirmados (próxima etapa); nunca se editan a mano.",
+      "Cuentas de dinero en HNL. El saldo se calcula con los movimientos confirmados; nunca se edita a mano.",
     singular: "cuenta",
     etiquetaNuevo: "Nueva cuenta",
     campoTitulo: "nombre",

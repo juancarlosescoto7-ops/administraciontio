@@ -67,15 +67,34 @@ Crear la cuenta en el Dashboard (paso 1 anterior). Aparece en `/configuracion/us
 
 Nadie borra registros: se inactivan. Usuarios sin sesión no tienen ningún privilegio.
 
+### Finanzas (E2)
+
+Las tablas financieras son de solo lectura desde la API; toda escritura pasa por funciones SQL (`public.registrar_*`, `reversar_*`, `anular_*`) que verifican el rol, registran documento, movimiento de caja/banco y asiento contable en una sola transacción y son idempotentes (clave por operación). Los saldos se calculan siempre (vistas `saldos_*`); nada se borra: se corrige con reversos que exigen motivo y quedan en la bitácora.
+
+| Operación | Administrador | Operador | Finanzas |
+|---|---|---|---|
+| Consultar cargos, cobros y saldos de clientes | Sí | Sí | Sí |
+| Registrar cobros y aplicar saldo a favor | Sí | Sí | Sí |
+| Registrar cargos administrativos | Sí | No | No |
+| Gastos, pagos de gastos y transferencias | Sí | No | Sí |
+| Consultar saldos/movimientos de caja y bancos, gastos y asientos | Sí | No | Sí |
+| Saldos iniciales, reversos y anulaciones | Sí | No | No |
+
+Plantillas contables: cargo D CxC / H ingreso de la línea · cobro D caja-banco / H anticipos · aplicación D anticipos / H CxC · gasto D gasto de la categoría / H CxP · pago D CxP / H caja-banco · transferencia D destino / H origen · saldo inicial D caja-banco / H capital y saldos iniciales.
+
 ## Verificación contra el proyecto de desarrollo
 
-Además de `npm test`, hay dos scripts sin dependencias adicionales que usan usuarios **ficticios** y crean registros marcados `[PRUEBA E1]`. Se niegan a ejecutarse si `.env.local` no apunta al proyecto de desarrollo. Las credenciales de prueba van en un archivo fuera del repositorio (`E2E_ADMIN_CORREO`, `E2E_ADMIN_CLAVE`, y lo mismo para `OPERADOR`, `FINANZAS` e `INACTIVO`); el administrador, operador y finanzas de prueba deben estar activos y el usuario «inactivo», no.
+Además de `npm test`, hay scripts sin dependencias adicionales que usan usuarios **ficticios** y crean registros marcados `[PRUEBA E1]` o `[PRUEBA E2]`. Se niegan a ejecutarse si `.env.local` no apunta al proyecto de desarrollo. Las credenciales de prueba van en un archivo fuera del repositorio (`E2E_ADMIN_CORREO`, `E2E_ADMIN_CLAVE`, y lo mismo para `OPERADOR`, `FINANZAS` e `INACTIVO`); el administrador, operador y finanzas de prueba deben estar activos y el usuario «inactivo», no.
 
 ```bash
-E2E_CREDENCIALES=/ruta/credenciales.env node scripts/verificar-rls.mjs       # RLS por rol vía API REST
-npm run build && npm start                                                    # en otra terminal
-E2E_CREDENCIALES=/ruta/credenciales.env node scripts/e2e-navegador.mjs       # navegador real (Edge/Chrome)
+E2E_CREDENCIALES=/ruta/credenciales.env node scripts/verificar-rls.mjs        # RLS por rol vía API REST
+E2E_CREDENCIALES=/ruta/credenciales.env node scripts/verificar-finanzas.mjs   # núcleo financiero vía API REST
+npm run build && npm start                                                     # en otra terminal
+E2E_CREDENCIALES=/ruta/credenciales.env node scripts/e2e-navegador.mjs        # navegador real (Edge/Chrome)
+E2E_CREDENCIALES=/ruta/credenciales.env node scripts/e2e-finanzas.mjs         # interfaz financiera
 ```
+
+`E2E_URL` cambia la dirección de la app (por omisión `http://localhost:3000`).
 
 ## Supabase MCP (agentes)
 

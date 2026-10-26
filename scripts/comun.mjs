@@ -47,3 +47,45 @@ export function crearReporte() {
 }
 
 export const MARCA_PRUEBA = "[PRUEBA E1]";
+
+/** Cliente mínimo de la API REST de Supabase con la clave publicable. */
+export function crearClienteRest(env) {
+  const URL_BASE = env.NEXT_PUBLIC_SUPABASE_URL;
+  const CLAVE = env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+  async function iniciarSesion(correo, clave) {
+    const respuesta = await fetch(`${URL_BASE}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      headers: { apikey: CLAVE, "Content-Type": "application/json" },
+      body: JSON.stringify({ email: correo, password: clave }),
+    });
+    const cuerpo = await respuesta.json();
+    if (!respuesta.ok) throw new Error(`No se pudo iniciar sesión con ${correo}: ${cuerpo.msg ?? respuesta.status}`);
+    return { token: cuerpo.access_token, id: cuerpo.user.id };
+  }
+
+  async function api(token, metodo, ruta, cuerpo) {
+    const respuesta = await fetch(`${URL_BASE}/rest/v1/${ruta}`, {
+      method: metodo,
+      headers: {
+        apikey: CLAVE,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        "Content-Type": "application/json",
+        Prefer: "return=representation",
+      },
+      body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
+    });
+    const texto = await respuesta.text();
+    let datos = null;
+    try {
+      datos = texto ? JSON.parse(texto) : null;
+    } catch {
+      datos = texto;
+    }
+    return { estado: respuesta.status, datos, codigo: datos?.code, mensaje: datos?.message };
+  }
+
+  return { iniciarSesion, api };
+}
+
+export const denegado = (r) => r.estado === 401 || r.estado === 403 || r.codigo === "42501";

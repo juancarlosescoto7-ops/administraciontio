@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Suspense } from "react";
-import { puedeAdministrarUsuarios, ETIQUETAS_ROL } from "@/lib/auth/roles";
+import { puede, puedeAdministrarUsuarios, ETIQUETAS_ROL, type Rol } from "@/lib/auth/roles";
 import { requerirUsuario } from "@/lib/auth/sesion";
 import { Navegacion, type GrupoNavegacion } from "@/components/navegacion";
 
@@ -23,8 +23,20 @@ const GRUPOS: GrupoNavegacion[] = [
       { href: "/tarifas", etiqueta: "Tarifas" },
     ],
   },
-  { titulo: "Finanzas", enlaces: [{ href: "/finanzas/cuentas", etiqueta: "Cajas y bancos" }] },
 ];
+
+function grupoFinanzas(rol: Rol): GrupoNavegacion {
+  return {
+    titulo: "Finanzas",
+    enlaces: [
+      { href: "/finanzas/cobros", etiqueta: "Cobros" },
+      { href: "/finanzas/cargos", etiqueta: "Cargos" },
+      { href: "/finanzas/pendientes", etiqueta: "Pendientes" },
+      ...(puede("verTesoreria", rol) ? [{ href: "/finanzas/gastos", etiqueta: "Gastos" }] : []),
+      { href: "/finanzas/cuentas", etiqueta: "Cajas y bancos" },
+    ],
+  };
+}
 
 const GRUPO_CONFIGURACION: GrupoNavegacion = {
   titulo: "Configuración",
@@ -46,9 +58,11 @@ export default function LayoutPrivado({ children }: { children: ReactNode }) {
 
 async function BarraNavegacion() {
   const usuario = await requerirUsuario();
-  const grupos = puedeAdministrarUsuarios(usuario.rol)
-    ? [...GRUPOS, GRUPO_CONFIGURACION]
-    : GRUPOS;
+  const grupos = [
+    ...GRUPOS,
+    grupoFinanzas(usuario.rol),
+    ...(puedeAdministrarUsuarios(usuario.rol) ? [GRUPO_CONFIGURACION] : []),
+  ];
 
   return (
     <Navegacion

@@ -39,3 +39,27 @@ export function puedeEditar(clave: ClaveCatalogo, rol: Rol): boolean {
 export function puedeAdministrarUsuarios(rol: Rol): boolean {
   return rol === "administrador";
 }
+
+/**
+ * Espejo de las verificaciones de rol de las funciones financieras de E2
+ * (public.registrar_*, reversar_*, anular_*) y de la RLS de lectura.
+ */
+export const PERMISOS_FINANZAS = {
+  /** Cobros y aplicación de saldo a favor. */
+  registrarCobro: ["administrador", "operador", "finanzas"],
+  /** Cargos administrativos (los de servicios llegarán en E3–E5). */
+  registrarCargo: ["administrador"],
+  /** Gastos y sus pagos. */
+  gestionarGastos: ["administrador", "finanzas"],
+  /** Saldos y movimientos de caja/banco, gastos y asientos. */
+  verTesoreria: ["administrador", "finanzas"],
+  transferir: ["administrador", "finanzas"],
+  /** Reversos, anulaciones y saldos iniciales. */
+  corregir: ["administrador"],
+} as const satisfies Record<string, readonly Rol[]>;
+
+export type PermisoFinanzas = keyof typeof PERMISOS_FINANZAS;
+
+export function puede(permiso: PermisoFinanzas, rol: Rol): boolean {
+  return (PERMISOS_FINANZAS[permiso] as readonly Rol[]).includes(rol);
+}
