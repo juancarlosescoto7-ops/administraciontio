@@ -84,6 +84,14 @@ Ninguno. Los dos bloqueos anteriores quedaron resueltos:
 
 - Crear manualmente en el Dashboard el primer usuario administrador y deshabilitar el registro público (Auth > Sign In / Providers) cuando se inicie E1.
 
+### Cierre de E0 (2026-10-25)
+
+- Revisión previa al commit: el `.env.example` del árbol de trabajo tenía la URL real y la clave publicable del proyecto de desarrollo; se restauraron los valores ficticios exigidos por el contrato (§10). Los valores reales permanecen solo en `.env.local` (ignorado por `.gitignore`).
+- Búsqueda de secretos en los archivos versionables (`sb_secret_`, JWT, claves `sb_publishable_` reales): sin coincidencias fuera de `.env.local` y de los valores ficticios de las pruebas.
+- Repetidos `npm run lint` (OK), `npm run typecheck` (OK), `npm test` (13/13) y `npm run build` (OK).
+- Se versionan `.mcp.json` y `.codex/config.toml` (solo la URL del MCP con el `project_ref` de desarrollo, sin tokens).
+
 ### Commit
 
-Ver historial de Git (`git log`); el hash se informa al cerrar la etapa.
+- Arranque: `de98964`.
+- Cierre de E0: `859aef1` (este registro del hash se añadió en un commit de documentación posterior).
