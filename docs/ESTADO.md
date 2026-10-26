@@ -167,16 +167,46 @@ Ninguno. Los dos bloqueos anteriores quedaron resueltos:
 ### Pendientes (configuración manual del propietario)
 
 1. **Deshabilitar el registro público** en Supabase › Authentication › Sign In / Providers («Allow new users to sign up»). Hoy `disable_signup = false`; mitigado porque toda cuenta nueva nace inactiva y sin acceso, pero debe desactivarse.
-2. **Bootstrap del administrador real** en el SQL Editor: `select private.bootstrap_primer_administrador('administraciontio@gmail.com', 'Nombre visible');` (no lo ejecuté por no estar autorizado).
+2. ~~Bootstrap del administrador real~~ **Resuelto (2026-10-25):** a pedido expreso del propietario se ejecutó `private.bootstrap_primer_administrador('administraciontio@gmail.com', 'Administrador')`; el perfil quedó `administrador` y activo, con registro en la bitácora. Antes de ejecutarlo, el perfil figuraba con rol `administrador` pero inactivo, un cambio hecho fuera de la aplicación después de la reversión del incidente.
 3. Activar la protección de contraseñas filtradas en Auth si el plan lo permite.
 
 ### Limitaciones
 
+- Un registro inexistente o un ID no válido muestra la página «no existe», pero con HTTP 200: el contenido privado se transmite en streaming dentro de `<Suspense>` y el estado HTTP ya se envió. No afecta a la seguridad (la RLS no devuelve datos) ni al usuario.
+- `private.bootstrap_primer_administrador` comprueba «no hay administrador activo» sin bloqueo: dos ejecuciones simultáneas del propietario podrían habilitar a dos usuarios. Riesgo bajo: solo la ejecuta el propietario por SQL y, con el administrador real activo, ya se rechaza siempre.
 - La aplicación requiere JavaScript para enviar formularios (ver defecto 2). Los listados muestran hasta 200 registros (se pide refinar la búsqueda).
 - La advertencia de duplicados compara nombre igual (sin distinguir mayúsculas) e identificación igual; no detecta variantes ortográficas.
 - `perfiles` referencia `auth.users` con `ON DELETE RESTRICT`: una cuenta con perfil no se puede borrar desde el Dashboard; se desactiva.
 - No se probó en un teléfono físico: la vista móvil se verificó con emulación de 390×844 en Edge.
 
+### Revisión posterior al commit de E1 (2026-10-26)
+
+**Cambios revisados e incluidos** (sin cambios de esquema):
+
+- Navegación inmediata: los listados, altas y detalles de catálogos y de usuarios muestran el encabezado al instante y cargan la sesión y los datos dentro de `<Suspense>` ([components/catalogos/paginas.tsx](../components/catalogos/paginas.tsx), `app/(privado)/configuracion/usuarios/`). El botón «Nuevo…» se resuelve aparte según el rol. Las verificaciones de sesión y rol no cambian: cada componente asíncrono llama a `requerirUsuario()`, que se ejecuta una sola vez por solicitud gracias a `cache`.
+- El indicador «Cargando…» pasa a ser el componente `Cargando` de [components/encabezado.tsx](../components/encabezado.tsx), reutilizado por `app/(privado)/loading.tsx`.
+- Pendiente 2 (bootstrap del administrador real) marcado como resuelto. Bitácora: `bootstrap_primer_administrador` a las 03:21:50 UTC. La bitácora no tiene ninguna entrada del paso intermedio a «administrador inactivo», lo que confirma que ese cambio se hizo fuera de la aplicación.
+
+**Revisión propia:** migraciones, RLS, Server Actions, proxy, sesión, validación (montos como texto decimal, búsqueda saneada para `or` de PostgREST, destino de login sin redirección abierta). No se hallaron defectos que exijan cambios de código ni de esquema; dos observaciones menores se anotaron en «Limitaciones».
+
+**Verificaciones repetidas (2026-10-26, Node 24.22.0, Windows 11):**
+
+| Comprobación | Resultado |
+|---|---|
+| `npm run lint` / `npm run typecheck` | OK / OK |
+| `npm test` | OK, 5 archivos, 35 pruebas |
+| `npm run build` | OK; rutas privadas como Partial Prerender |
+| `npm audit` | 0 vulnerabilidades |
+| `node scripts/verificar-rls.mjs` | **61/61** |
+| `node scripts/e2e-navegador.mjs` contra `next start` | **43/43**; log del servidor sin errores |
+| Comprobación adicional en navegador (operador) | 5/5: cliente inexistente e ID no válido muestran «no existe» sin quedarse en «Cargando…»; detalle de usuario muestra aviso de permiso; botón «Nuevo cliente» visible |
+| MCP `list_migrations` + MD5 de `schema_migrations` | Mismas 2 migraciones; MD5 idéntico al de los archivos (`cb5828e8…`, `6eeeb1c3…`) |
+| MCP `get_advisors` (security) | Los mismos 2 avisos ya documentados |
+| Búsqueda de secretos en archivos versionados | Sin coincidencias (solo los valores ficticios de `.env.example`) |
+
+**Datos de desarrollo:** para repetir las pruebas se reactivaron temporalmente `prueba.admin`, `prueba.operador` y `prueba.finanzas` por SQL y después se volvieron a desactivar. Las dos operaciones quedaron en la bitácora (`reactivar_usuario_prueba` y `desactivar_usuario_prueba`). Las pruebas añadieron registros ficticios marcados `[PRUEBA E1]`. Estado final: solo el administrador real está activo.
+
 ### Commit
 
-El hash del commit de E1 se informa en la entrega (no puede incluirse en el propio commit).
+- E1: `58e37ae`.
+- Revisión posterior: el hash se informa en la entrega (no puede incluirse en el propio commit).

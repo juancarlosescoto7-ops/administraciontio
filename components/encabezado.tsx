@@ -36,6 +36,14 @@ export function InsigniaEstado({ activo }: { activo: boolean }) {
   );
 }
 
+export function Cargando() {
+  return (
+    <p className="texto-tenue" role="status">
+      Cargando…
+    </p>
+  );
+}
+
 export function SinPermiso({ mensaje }: { mensaje: string }) {
   return (
     <p role="alert" className="aviso aviso-advertencia">

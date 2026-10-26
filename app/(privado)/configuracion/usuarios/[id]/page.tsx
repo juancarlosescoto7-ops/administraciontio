@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { ETIQUETAS_ROL, esRol, puedeAdministrarUsuarios } from "@/lib/auth/roles";
 import { requerirUsuario } from "@/lib/auth/sesion";
 import { esUuid } from "@/lib/catalogos/presentacion";
@@ -6,7 +7,7 @@ import { formatearFechaHora } from "@/lib/formato";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/tipos-bd";
 import { actualizarUsuario } from "@/lib/usuarios/acciones";
-import { Encabezado, InsigniaEstado, SinPermiso } from "@/components/encabezado";
+import { Cargando, Encabezado, InsigniaEstado, SinPermiso } from "@/components/encabezado";
 import { FormularioUsuario } from "@/components/usuarios/formulario-usuario";
 
 function resumirCambio(antes: Json | null, despues: Json | null): string {
@@ -23,10 +24,17 @@ function resumirCambio(antes: Json | null, despues: Json | null): string {
   return partes.join(", ") || "sin cambios de acceso";
 }
 
-export default async function PaginaUsuario({
-  params,
-  searchParams,
-}: PageProps<"/configuracion/usuarios/[id]">) {
+type PropsUsuario = PageProps<"/configuracion/usuarios/[id]">;
+
+export default function PaginaUsuario({ params, searchParams }: PropsUsuario) {
+  return (
+    <Suspense fallback={<Cargando />}>
+      <ContenidoUsuario params={params} searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function ContenidoUsuario({ params, searchParams }: Pick<PropsUsuario, "params" | "searchParams">) {
   const usuario = await requerirUsuario();
   const volver = { href: "/configuracion/usuarios", etiqueta: "Usuarios" };
   if (!puedeAdministrarUsuarios(usuario.rol)) {

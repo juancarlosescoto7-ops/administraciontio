@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { puedeEditar, type ClaveCatalogo } from "@/lib/auth/roles";
 import { requerirUsuario } from "@/lib/auth/sesion";
 import { guardarRegistro } from "@/lib/catalogos/acciones";
@@ -16,14 +17,16 @@ import { tablaCatalogo, type Fila } from "@/lib/catalogos/tabla";
 import { filtroBusqueda, limpiarBusqueda, valoresDesdeRegistro } from "@/lib/catalogos/validacion";
 import { formatearFechaHora, hoyEnTegucigalpa } from "@/lib/formato";
 import { createClient } from "@/lib/supabase/server";
-import { Encabezado, InsigniaEstado, SinPermiso } from "@/components/encabezado";
+import { Cargando, Encabezado, InsigniaEstado, SinPermiso } from "@/components/encabezado";
 import { FormularioCatalogo } from "./formulario-catalogo";
 
 type ParametrosBusqueda = Promise<Record<string, string | string[] | undefined>>;
 
 const LIMITE_LISTADO = 200;
 
-export async function PaginaListado({
+// Sesión, parámetros de la URL y datos son de tiempo de solicitud: van detrás de
+// <Suspense> para que la navegación entre listado, alta y detalle sea inmediata.
+export function PaginaListado({
   clave,
   searchParams,
 }: {
@@ -31,7 +34,42 @@ export async function PaginaListado({
   searchParams: ParametrosBusqueda;
 }) {
   const def = CATALOGOS[clave];
+  return (
+    <>
+      <Encabezado
+        titulo={def.titulo}
+        descripcion={def.descripcion}
+        acciones={
+          <Suspense fallback={null}>
+            <BotonNuevo def={def} />
+          </Suspense>
+        }
+      />
+      <Suspense fallback={<Cargando />}>
+        <ContenidoListado def={def} searchParams={searchParams} />
+      </Suspense>
+    </>
+  );
+}
+
+async function BotonNuevo({ def }: { def: DefinicionCatalogo }) {
   const usuario = await requerirUsuario();
+  if (!puedeEditar(def.clave, usuario.rol)) return null;
+  return (
+    <Link href={`${def.ruta}/nuevo`} className="boton boton-primario">
+      {def.etiquetaNuevo}
+    </Link>
+  );
+}
+
+async function ContenidoListado({
+  def,
+  searchParams,
+}: {
+  def: DefinicionCatalogo;
+  searchParams: ParametrosBusqueda;
+}) {
+  await requerirUsuario();
   const parametros = await searchParams;
   const busqueda = limpiarBusqueda(primerValor(parametros.q));
   const filtroEstado = leerFiltroEstado(primerValor(parametros.estado));
@@ -50,18 +88,6 @@ export async function PaginaListado({
 
   return (
     <>
-      <Encabezado
-        titulo={def.titulo}
-        descripcion={def.descripcion}
-        acciones={
-          puedeEditar(def.clave, usuario.rol) && (
-            <Link href={`${def.ruta}/nuevo`} className="boton boton-primario">
-              {def.etiquetaNuevo}
-            </Link>
-          )
-        }
-      />
-
       <form method="get" className="tarjeta mb-4 flex flex-col gap-3 p-4 sm:flex-row sm:items-end">
         <label className="campo flex-1">
           <span className="campo-etiqueta">Buscar</span>
@@ -176,39 +202,41 @@ function ListadoFilas({ def, filas }: { def: DefinicionCatalogo; filas: Fila[] }
   );
 }
 
-export async function PaginaNuevo({ clave }: { clave: ClaveCatalogo }) {
+export function PaginaNuevo({ clave }: { clave: ClaveCatalogo }) {
   const def = CATALOGOS[clave];
-  const usuario = await requerirUsuario();
-  const volver = { href: def.ruta, etiqueta: def.titulo };
-
-  if (!puedeEditar(def.clave, usuario.rol)) {
-    return (
-      <>
-        <Encabezado titulo={def.etiquetaNuevo} volver={volver} />
-        <SinPermiso mensaje={`Su rol no permite registrar en ${def.titulo.toLowerCase()}.`} />
-      </>
-    );
-  }
-
   return (
     <>
-      <Encabezado titulo={def.etiquetaNuevo} volver={volver} />
-      <div className="tarjeta p-4 sm:p-6">
-        <FormularioCatalogo
-          campos={def.campos}
-          accion={guardarRegistro.bind(null, def.clave, null)}
-          estadoInicial={estadoInicial(valoresDesdeRegistro(def, null))}
-          textoEnviar="Registrar"
-          rutaCancelar={def.ruta}
-          rutaBase={def.ruta}
-          hoy={hoyEnTegucigalpa()}
-        />
-      </div>
+      <Encabezado titulo={def.etiquetaNuevo} volver={{ href: def.ruta, etiqueta: def.titulo }} />
+      <Suspense fallback={<Cargando />}>
+        <ContenidoNuevo def={def} />
+      </Suspense>
     </>
   );
 }
 
-export async function PaginaDetalle({
+async function ContenidoNuevo({ def }: { def: DefinicionCatalogo }) {
+  const usuario = await requerirUsuario();
+  if (!puedeEditar(def.clave, usuario.rol)) {
+    return <SinPermiso mensaje={`Su rol no permite registrar en ${def.titulo.toLowerCase()}.`} />;
+  }
+
+  return (
+    <div className="tarjeta p-4 sm:p-6">
+      <FormularioCatalogo
+        campos={def.campos}
+        accion={guardarRegistro.bind(null, def.clave, null)}
+        estadoInicial={estadoInicial(valoresDesdeRegistro(def, null))}
+        textoEnviar="Registrar"
+        rutaCancelar={def.ruta}
+        rutaBase={def.ruta}
+        hoy={hoyEnTegucigalpa()}
+      />
+    </div>
+  );
+}
+
+// El título del detalle sale del registro, así que todo el contenido espera.
+export function PaginaDetalle({
   clave,
   params,
   searchParams,
@@ -217,7 +245,22 @@ export async function PaginaDetalle({
   params: Promise<{ id: string }>;
   searchParams: ParametrosBusqueda;
 }) {
-  const def = CATALOGOS[clave];
+  return (
+    <Suspense fallback={<Cargando />}>
+      <ContenidoDetalle def={CATALOGOS[clave]} params={params} searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function ContenidoDetalle({
+  def,
+  params,
+  searchParams,
+}: {
+  def: DefinicionCatalogo;
+  params: Promise<{ id: string }>;
+  searchParams: ParametrosBusqueda;
+}) {
   const usuario = await requerirUsuario();
   const { id } = await params;
   const { guardado } = await searchParams;

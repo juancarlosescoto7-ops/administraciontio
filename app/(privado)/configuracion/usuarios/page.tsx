@@ -1,11 +1,20 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { ETIQUETAS_ROL, puedeAdministrarUsuarios } from "@/lib/auth/roles";
 import { requerirUsuario } from "@/lib/auth/sesion";
 import { formatearFechaHora } from "@/lib/formato";
 import { createClient } from "@/lib/supabase/server";
-import { Encabezado, InsigniaEstado, SinPermiso } from "@/components/encabezado";
+import { Cargando, Encabezado, InsigniaEstado, SinPermiso } from "@/components/encabezado";
 
-export default async function PaginaUsuarios() {
+export default function PaginaUsuarios() {
+  return (
+    <Suspense fallback={<Cargando />}>
+      <ContenidoUsuarios />
+    </Suspense>
+  );
+}
+
+async function ContenidoUsuarios() {
   const usuario = await requerirUsuario();
   if (!puedeAdministrarUsuarios(usuario.rol)) {
     return (
