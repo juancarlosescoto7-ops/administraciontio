@@ -95,3 +95,88 @@ Ninguno. Los dos bloqueos anteriores quedaron resueltos:
 
 - Arranque: `de98964`.
 - Cierre de E0: `859aef1` (este registro del hash se añadió en un commit de documentación posterior).
+
+---
+
+## E1 — Acceso y catálogos
+
+- **Fecha:** 2026-10-25 (America/Tegucigalpa; 2026-10-26 UTC)
+- **Resultado:** APROBADO con configuraciones manuales pendientes (ver «Pendientes»). Todo lo implementado se verificó contra Supabase Cloud de desarrollo y en navegador real.
+
+### Funcionalidad entregada
+
+- **Autenticación** (Supabase Auth, correo y contraseña, `@supabase/ssr`): `/login`, inicio y cierre de sesión, cookies de sesión gestionadas por `@supabase/ssr` y refrescadas en [proxy.ts](../proxy.ts) con `getClaims()`. El proxy redirige a `/login?siguiente=…` toda ruta sin sesión (destino validado contra redirecciones abiertas) y `/login` al panel si ya hay sesión. La aplicación no ofrece registro.
+- **Acceso solo para perfiles activos:** [lib/auth/sesion.ts](../lib/auth/sesion.ts) es la única fuente de identidad en el servidor (sesión verificada + perfil). Un usuario sin perfil activo es desconectado al iniciar sesión, va a `/sin-acceso` si conserva una sesión, y la RLS no le devuelve datos.
+- **Roles** `administrador`, `operador`, `finanzas` en `public.perfiles`. El rol solo cambia con `public.actualizar_perfil` (administrador activo, nunca el propio rol/estado, motivo obligatorio al cambiar rol/estado, registro en `public.bitacora`). Matriz de permisos en el README.
+- **Bootstrap del primer administrador:** `private.bootstrap_primer_administrador(correo, nombre)`, solo ejecutable por el propietario de la base (SQL Editor/MCP), no expuesta por la API, se niega si ya hay un administrador activo. Procedimiento en el README.
+- **Catálogos** con listado (búsqueda y filtro activo/inactivo), alta, consulta y edición; las acciones se muestran según el rol y se vuelven a verificar en el servidor y en RLS: clientes (advertencia de posibles duplicados por nombre o identificación, sin bloquear), beneficiarios, vehículos (código y placa únicos, normalizados en mayúsculas), conductores, proveedores, planes de membresía, tarifas y cajas/bancos. Sin borrado: los registros se inactivan.
+- **Administración de perfiles** en `/configuracion/usuarios` (solo administrador): listado, edición de nombre/rol/estado con motivo y bitácora por usuario.
+- **Interfaz** en español, responsive (menú desplegable en móvil, barra lateral en escritorio, tarjetas en móvil y tabla en escritorio), modo claro/oscuro, montos HNL (`L 1,250.50`), fechas dd/mm/aaaa y horas en America/Tegucigalpa. Los módulos de etapas posteriores se anuncian como «Próximamente» sin rutas.
+- Se retiró la pantalla de E0 (estado de conexión); [lib/supabase/estado-conexion.ts](../lib/supabase/estado-conexion.ts) se conserva con sus pruebas como utilidad de diagnóstico, sin uso en la interfaz.
+
+### Archivos principales
+
+- Acceso: [proxy.ts](../proxy.ts), [lib/supabase/proxy.ts](../lib/supabase/proxy.ts), [lib/auth/](../lib/auth/) (`sesion.ts`, `roles.ts`, `rutas.ts`), [app/login/](../app/login/), [app/sin-acceso/page.tsx](../app/sin-acceso/page.tsx).
+- Catálogos: [lib/catalogos/](../lib/catalogos/) (definiciones, validación, Server Action `acciones.ts`), [components/catalogos/](../components/catalogos/), rutas en `app/(privado)/`.
+- Usuarios: [lib/usuarios/acciones.ts](../lib/usuarios/acciones.ts), `app/(privado)/configuracion/usuarios/`.
+- Tipos generados: [lib/supabase/tipos-bd.ts](../lib/supabase/tipos-bd.ts).
+- Verificación: [scripts/verificar-rls.mjs](../scripts/verificar-rls.mjs), [scripts/e2e-navegador.mjs](../scripts/e2e-navegador.mjs).
+
+### Cambios de esquema / migraciones (aplicadas en `cgohbizokewvivxmvbij` por MCP)
+
+| Versión | Archivo | Contenido | Resultado |
+|---|---|---|---|
+| `20261026024644` | [e1_perfiles_y_acceso](../supabase/migrations/20261026024644_e1_perfiles_y_acceso.sql) | esquema `private`; enum `rol_usuario`; `perfiles`, `bitacora`; funciones `rol_activo`, `tiene_rol`, `es_usuario_activo`; triggers sobre `auth.users` (perfil inactivo al crear, sincronización de correo) y protección de perfiles; `actualizar_perfil`; `bootstrap_primer_administrador`; RLS; perfil inactivo para el usuario Auth existente | Aplicada |
+| `20261026024721` | [e1_catalogos](../supabase/migrations/20261026024721_e1_catalogos.sql) | enums de tipos/estados/actividad; `clientes`, `beneficiarios`, `vehiculos`, `conductores`, `proveedores`, `planes`, `tarifas`, `cuentas_dinero` (PK uuid, `numeric(14,2)`, `CHECK`, `UNIQUE`, índices, columnas técnicas `created_at/updated_at/creado_por/actualizado_por` selladas por trigger); RLS y privilegios por rol (sin `DELETE`, sin acceso `anon`) | Aplicada |
+
+- **Identidad repositorio = base:** el MD5 del SQL registrado en `supabase_migrations.schema_migrations` coincide con el de cada archivo (`cb5828e8…` y `6eeeb1c3…`). `.gitattributes` fija LF en `*.sql` para que Git en Windows no altere los archivos.
+- No se crearon tablas financieras, de membresías ni de servicios. `categorias_gasto` se deja para E2 (la usan los gastos); los catálogos técnicos de E1 son los enums.
+- Advisors de seguridad tras el DDL: (1) `actualizar_perfil` es SECURITY DEFINER ejecutable por `authenticated`: **intencional**, es el único camino de cambio de rol y valida internamente; (2) protección de contraseñas filtradas desactivada (ajuste manual de Auth). Advisors de rendimiento: solo «índice sin uso» (tablas recién creadas).
+
+### Datos en Supabase de desarrollo
+
+- **Usuarios ficticios** (dominio reservado `example.com`): `prueba.admin`, `prueba.operador`, `prueba.finanzas`, `prueba.inactivo`. Contraseñas aleatorias guardadas solo fuera del repositorio. Al terminar las pruebas se dejaron **todos inactivos** para que el bootstrap del administrador real funcione; el administrador puede reactivarlos desde `/configuracion/usuarios` para repetir las pruebas.
+- **Registros ficticios** marcados `[PRUEBA E1]` / `PRB-…` (clientes, vehículos, planes, tarifa, caja, proveedor, beneficiarios y conductores). Deben excluirse de producción (el proyecto de producción será otro).
+- **Cuenta real `administraciontio@gmail.com`:** queda con perfil **inactivo** (rol operador), a la espera del bootstrap por el propietario. Incidente: al probar el bootstrap envié dos llamadas en paralelo; el sistema de permisos denegó la primera, pero la segunda —que esperaba que fallara— la habilitó como administrador con el nombre «Otro intento». Lo revertí de inmediato (inactiva, operador, nombre original) y quedó en la bitácora (`bootstrap_primer_administrador` y `revertir_bootstrap`).
+
+### Comandos y pruebas (2026-10-25, Node 24.22.0, Windows 11)
+
+| Comando | Resultado |
+|---|---|
+| `npm run lint` | OK, 0 errores / 0 advertencias |
+| `npm run typecheck` | OK |
+| `npm test` | OK, 5 archivos, 35 pruebas (validación de catálogos, montos sin float, fechas, permisos por rol, rutas públicas, redirección segura, formato HNL/zona horaria, configuración y conexión de E0) |
+| `npm run build` | OK; rutas privadas como Partial Prerender, `proxy.ts` activo |
+| `npm audit` | 0 vulnerabilidades |
+| `node scripts/verificar-rls.mjs` (API REST real) | **61/61** |
+| `node scripts/e2e-navegador.mjs` (Edge sin interfaz, `next start`) | **43/43**; log del servidor sin errores |
+| Bootstrap por SQL | Éxito con el administrador ficticio; segundo intento rechazado («Ya existe un administrador activo») |
+| Consultas MCP de persistencia | Registros creados por la app presentes en Cloud, con `creado_por/actualizado_por` correctos |
+
+**Escenarios verificados en RLS (API REST con sesiones reales):** `anon` no lee ninguna de las 10 tablas, no inserta ni ejecuta `actualizar_perfil`; el bootstrap no está expuesto. Administrador: activa usuarios con motivo, rechazo sin motivo, no cambia su rol ni se desactiva, ve perfiles y bitácora, registra planes/tarifas/cajas, `CHECK` de precio negativo y de tarifa «general», unicidad de código y placa (varios NULL permitidos), código no normalizado rechazado. Usuario inactivo: solo ve su perfil, ningún catálogo, no inserta. Operador: registra/edita clientes, beneficiario menor sin identidad, conductor y vehículo; no borra; no registra planes, tarifas ni cajas; solo ve su perfil; no ve la bitácora; no cambia su rol (UPDATE directo, función, ni el de otro); no inserta perfiles; `creado_por` no se puede falsear. Finanzas: consulta clientes; no registra/edita clientes, beneficiarios, conductores, vehículos ni cajas; registra proveedores; no cambia su rol.
+
+**Escenarios verificados en navegador:** redirección al login sin sesión (y regreso a la ruta pedida), sin registro público, contraseña incorrecta, usuario inactivo rechazado sin sesión residual, `/login` con sesión → panel, menú según rol, validación en servidor conservando lo escrito, alta/edición de cliente y de vehículo persistidas, advertencia de duplicado con confirmación, búsqueda y filtro, error de código repetido en el campo, restricciones del operador, solo lectura para finanzas, edición de perfiles por el administrador (propio rol bloqueado, motivo obligatorio), plan con monto `1,250.5` → `1250.50` y listado en HNL, cierre de sesión y rutas protegidas después. Móvil (390×844): sin desplazamiento horizontal, tarjetas, menú plegable; escritorio (1280×800): barra lateral y tablas.
+
+### Defectos encontrados y corregidos durante la etapa
+
+1. **Error `Date.now()` al prerenderizar** en todas las rutas privadas: con Partial Prefetching el «App Shell» incluye la lectura de cookies y `getClaims()` consulta la hora. Corregido con `await connection()` en `obtenerSesion` (la sesión y los datos se resuelven siempre por solicitud).
+2. **Pantalla en blanco al enviar un formulario antes de la hidratación:** con Cache Components, la respuesta a un envío nativo (sin JS) que devuelve un estado de error llega sin HTML. Corregido deshabilitando los botones de envío hasta hidratar ([components/use-hidratado.ts](../components/use-hidratado.ts)). Consecuencia: la aplicación requiere JavaScript.
+3. Prueba de RLS no idempotente (dependía de que el operador estuviera inactivo); corregida.
+4. Página de error del grupo privado en español (`app/(privado)/error.tsx`); se añadió después de la última corrida E2E y no cambia los flujos probados (lint, typecheck, pruebas y build repetidos).
+
+### Pendientes (configuración manual del propietario)
+
+1. **Deshabilitar el registro público** en Supabase › Authentication › Sign In / Providers («Allow new users to sign up»). Hoy `disable_signup = false`; mitigado porque toda cuenta nueva nace inactiva y sin acceso, pero debe desactivarse.
+2. **Bootstrap del administrador real** en el SQL Editor: `select private.bootstrap_primer_administrador('administraciontio@gmail.com', 'Nombre visible');` (no lo ejecuté por no estar autorizado).
+3. Activar la protección de contraseñas filtradas en Auth si el plan lo permite.
+
+### Limitaciones
+
+- La aplicación requiere JavaScript para enviar formularios (ver defecto 2). Los listados muestran hasta 200 registros (se pide refinar la búsqueda).
+- La advertencia de duplicados compara nombre igual (sin distinguir mayúsculas) e identificación igual; no detecta variantes ortográficas.
+- `perfiles` referencia `auth.users` con `ON DELETE RESTRICT`: una cuenta con perfil no se puede borrar desde el Dashboard; se desactiva.
+- No se probó en un teléfono físico: la vista móvil se verificó con emulación de 390×844 en Edge.
+
+### Commit
+
+El hash del commit de E1 se informa en la entrega (no puede incluirse en el propio commit).

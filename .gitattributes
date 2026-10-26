@@ -1,0 +1,2 @@
+# Las migraciones deben conservarse idénticas a lo aplicado en Supabase.
+*.sql text eol=lf
