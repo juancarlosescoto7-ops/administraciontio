@@ -42,7 +42,15 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       ? supabase.from("periodos_membresia").select("membresia_id").eq("id", cargo.origen_id).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
-  const traslado = cargo.origen_tipo === "traslado_ambulancia" ? cargo.origen_id : null;
+  // Documento operativo que originó el cargo (E4 y E5).
+  const operacion =
+    cargo.origen_tipo === "traslado_ambulancia"
+      ? { ruta: `/ambulancias/${cargo.origen_id}`, texto: "Traslado de ambulancia particular" }
+      : cargo.origen_tipo === "alquiler"
+        ? { ruta: `/alquileres/${cargo.origen_id}`, texto: "Alquiler de vehículo" }
+        : cargo.origen_tipo === "transporte"
+          ? { ruta: `/transportes/${cargo.origen_id}`, texto: "Transporte con conductor" }
+          : null;
 
   const ruta = `/finanzas/cargos/${id}`;
   const vigente = cargo.estado === "vigente";
@@ -81,9 +89,9 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
               <Link key="o" href={`/membresias/${periodo.membresia_id}`} className="text-primario hover:underline">
                 Mensualidad de membresía
               </Link>
-            ) : traslado ? (
-              <Link key="o" href={`/ambulancias/${traslado}`} className="text-primario hover:underline">
-                Traslado de ambulancia particular
+            ) : operacion ? (
+              <Link key="o" href={operacion.ruta} className="text-primario hover:underline">
+                {operacion.texto}
               </Link>
             ) : cargo.origen_tipo === "manual" ? (
               "Cargo administrativo"

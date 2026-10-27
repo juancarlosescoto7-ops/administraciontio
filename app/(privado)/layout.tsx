@@ -21,6 +21,8 @@ const GRUPOS: GrupoNavegacion[] = [
     enlaces: [
       { href: "/membresias", etiqueta: "Membresías" },
       { href: "/ambulancias", etiqueta: "Traslados de ambulancia" },
+      { href: "/alquileres", etiqueta: "Alquileres" },
+      { href: "/transportes", etiqueta: "Transporte con conductor" },
     ],
   },
   {

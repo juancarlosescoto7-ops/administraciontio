@@ -659,4 +659,157 @@ E3: `9b5b864`.
 
 ### Commit
 
-El hash del commit de E4 se informa en la entrega (no puede incluirse en el propio commit).
+E4: `b9f4c3f`.
+
+---
+
+## E5 — Alquileres y transporte con conductor
+
+- **Fecha:** 2026-10-26 (America/Tegucigalpa)
+- **Resultado:** APROBADO. Todo se verificó contra Supabase Cloud de desarrollo (`cgohbizokewvivxmvbij`, comprobado con `get_project_url` antes de aplicar cambios), por API REST con usuarios reales, por SQL y en navegador real.
+
+### Funcionalidad entregada
+
+- **Alquileres (`/alquileres`):**
+  - Reserva: cliente → entrega y devolución previstas + tarifa → disponibilidad y precio propuesto (tarifa diaria × días en bloques de 24 h iniciados, mínimo 1) → precio ajustable → confirmar. El vehículo queda ocupado en el intervalo.
+  - La reserva puede modificarse con motivo (vehículo, fechas, precio), siempre comprobando disponibilidad en la base.
+  - **Entrega:** hora real, kilometraje y combustible de salida, observaciones. Puede entregarse sin estar pagado; el vehículo queda ocupado hasta su devolución real.
+  - **Devolución:** hora real, kilometraje y combustible de regreso, observaciones y cargos adicionales expresos (concepto e importe). Se muestran el recorrido y la diferencia de combustible, sin calcular multas ni daños. Un kilometraje de regreso menor que el de salida solo lo admite el administrador, con motivo.
+  - **Estados** validados por un trigger: reservado → entregado → devuelto, o cancelado (solo reservado). No se devuelve un vehículo no entregado ni se cancela uno entregado.
+- **Transporte con conductor (`/transportes`):**
+  - Solicitud con fecha y hora, duración estimada (90 min por omisión), origen, destino, tarifa de referencia, precio pactado y vehículo y conductor opcionales.
+  - Programar, asignar o reasignar recursos, reprogramar, iniciar (exige ambos recursos aptos y libres), ajustar la duración en curso (con avisos, sin reprogramar otros), finalizar y cancelar sin iniciar.
+  - Estados: solicitado → programado → en curso → completado, o cancelado.
+- **Cobros (E2, sin un sistema nuevo):**
+  - Un solo cargo: al devolver el alquiler (precio pactado + adicionales, D 1200 / H 4300) o al completar el transporte (D 1200 / H 4400). Repetir la operación, incluso de forma simultánea, no lo duplica.
+  - Los anticipos son saldo a favor del cliente y se aplican al cerrar con `aplicar_saldo_a_favor`, sin nueva entrada de dinero.
+  - Abonos y saldo pendiente con los cobros de E2. Las cancelaciones no generan cargo y los anticipos quedan como saldo a favor.
+- **Disponibilidad compartida:**
+  - Alquileres, transportes y traslados usan la misma tabla `ocupaciones_recurso` de E4, con su restricción de exclusión y el bloqueo del recurso. Un vehículo o conductor no puede estar en dos operaciones de cualquier módulo cuyos horarios se crucen.
+  - Cancelar libera. Un alquiler entregado o un servicio en curso ocupa hasta su fin real y, aunque se pase de horario, impide nuevos inicios del mismo recurso.
+  - Los avisos advierten del horario excedido y de las operaciones de las dos horas siguientes que pueden verse afectadas, sin modificarlas.
+- **Vehículos:** se reutiliza `vehiculos`. Alquiler: tipo alquiler o mixto; transporte: transporte o mixto; ambulancia: ambulancia o mixto. Siempre activo y operativo; nunca se cambia el tipo.
+- **Interfaz:**
+  - Listados con búsqueda, estado y fechas.
+  - Altas guiadas.
+  - Detalles con datos, entrega y devolución o asignación, cobros (estado financiero separado del operativo), acciones según estado y rol, avisos e historial.
+  - El panel muestra vehículos alquilados, devoluciones vencidas, entregas próximas y transportes de hoy y en curso. El detalle del cargo enlaza a su alquiler o transporte.
+
+### Decisiones (opción más simple compatible con la especificación)
+
+- **Permisos:** reservar, entregar, devolver y gestionar transportes, administrador y operador. Finanzas consulta y cobra (E2) sin cambiar estados. Corregir un kilometraje menor, solo administrador.
+- **Anticipos:** no se vinculan a un contrato concreto; se aplican al cerrar el saldo a favor del cliente que indica el operador.
+- **Reservas e inicio:**
+  - El alquiler exige precio pactado al reservar; el transporte puede registrarse sin precio, que se exige al completar.
+  - La entrega anticipada se rechaza si el vehículo tiene otra operación programada antes de la devolución prevista.
+  - El inicio de un transporte, como el de un traslado, solo se bloquea si un recurso sigue en curso; los cruces posteriores son avisos.
+- **Infraestructura de ocupaciones:** solo se añadieron los orígenes `alquiler` y `transporte` al enum de E4. Sus funciones y su restricción ya comparaban con ocupaciones de cualquier origen, así que no se duplicó nada. No se modificó ninguna función de E1–E4.
+
+### Archivos principales
+
+- Migraciones: [orígenes](../supabase/migrations/20261027002456_e5_alquileres_transportes_origenes.sql), [estructura](../supabase/migrations/20261027002539_e5_alquileres_transportes_estructura.sql), [operaciones](../supabase/migrations/20261027002739_e5_alquileres_transportes_operaciones.sql) y [avisos](../supabase/migrations/20261027002912_e5_avisos_horario_excedido.sql).
+- Aplicación:
+  - [lib/alquileres/](../lib/alquileres/) y [lib/transportes/](../lib/transportes/) (acciones y definiciones).
+  - [components/operaciones.tsx](../components/operaciones.tsx): piezas comunes de los detalles, extraídas del detalle de traslados, que ahora también las usa.
+  - Rutas en `app/(privado)/alquileres/` y `app/(privado)/transportes/`.
+- Verificación: [scripts/verificar-alquileres-transportes.mjs](../scripts/verificar-alquileres-transportes.mjs), [scripts/e2e-alquileres-transportes.mjs](../scripts/e2e-alquileres-transportes.mjs) y [lib/alquileres/alquileres-transportes.test.ts](../lib/alquileres/alquileres-transportes.test.ts).
+
+### Cambios de esquema / migraciones (aplicadas en `cgohbizokewvivxmvbij` por MCP)
+
+| Versión | Archivo | Contenido | MD5 (archivo = `schema_migrations`) |
+|---|---|---|---|
+| `20261027002456` | `e5_alquileres_transportes_origenes` | Valores `alquiler` y `transporte` en `origen_ocupacion` y `origen_cargo` | `bd5d6803…` |
+| `20261027002539` | `e5_alquileres_transportes_estructura` | Enums `estado_alquiler`, `nivel_combustible` y `estado_transporte`; tablas `alquileres`, `cargos_adicionales_alquiler` y `transportes` (CHECK de coherencia); índices; trigger genérico de transiciones; sin DELETE ni TRUNCATE; adicionales inmutables; vistas `saldos_alquileres` y `saldos_transportes`; RLS de solo lectura | `312c950e…` |
+| `20261027002739` | `e5_alquileres_transportes_operaciones` | 17 funciones públicas `SECURITY DEFINER` con `search_path` vacío, `auth.uid()` y rol verificados; 6 auxiliares en `private` sin acceso desde la API | `0b2339e3…` |
+| `20261027002912` | `e5_avisos_horario_excedido` | Los avisos de una operación en curso pasada de horario miran también las dos horas siguientes (revisión propia, ver defectos) | `0861cf52…` |
+
+- Antes de aplicar se comprobó que ningún nombre nuevo existiera. Nada se borra ni se modifica de forma destructiva.
+- Tipos regenerados en [lib/supabase/tipos-bd.ts](../lib/supabase/tipos-bd.ts).
+- **Advisors de seguridad:** 17 avisos nuevos «SECURITY DEFINER ejecutable por authenticated», intencionales, más el aviso manual de contraseñas filtradas.
+- **Verificación por SQL:**
+  - Ninguna función es ejecutable por `anon` ni ninguna privada por `authenticated` (salvo los ayudantes de rol de E1).
+  - Todas tienen `search_path` vacío.
+  - No hay FK sin índice en las tablas nuevas.
+
+### Comandos y pruebas (2026-10-26, Node 24.22.0, Windows 11)
+
+| Comando | Resultado |
+|---|---|
+| `npm run lint` / `npm run typecheck` | OK / OK |
+| `npm test` | OK, 9 archivos, **78 pruebas** (9 nuevas: días cobrables, precio sugerido, combustible, cargos adicionales y acciones por estado y rol) |
+| `npm run build` | OK (`/alquileres`, `/alquileres/nuevo`, `/alquileres/[id]`, `/transportes`, `/transportes/nuevo`, `/transportes/[id]`) |
+| `node scripts/verificar-alquileres-transportes.mjs` (API REST, usuarios reales) | **73/73** (dos ejecuciones) |
+| `node scripts/e2e-alquileres-transportes.mjs` (Edge sin interfaz, `next start`) | **22/22** (tres ejecuciones); log del servidor sin errores. Un primer intento abortó antes de cualquier comprobación porque no encontró el formulario de login, un problema de tiempos al arrancar |
+| Regresión E1: `verificar-rls.mjs` / `e2e-navegador.mjs` | **61/61** / **43/43** |
+| Regresión E2: `verificar-finanzas.mjs` / `e2e-finanzas.mjs` | **75/75** / **28/28** |
+| Regresión E3: `verificar-membresias.mjs` / `e2e-membresias.mjs` | **92/92** / **25/25** |
+| Regresión E4: `verificar-ambulancias.mjs` / `e2e-ambulancias.mjs` | **74/74** / **21/21** (tres ejecuciones tras corregir una espera intermitente de la prueba, ver defectos) |
+| Defensas contra el propietario (SQL, revertido) | Rechazados: editar un alquiler devuelto; saltar de reservado a devuelto; reabrir un transporte completado; editar un cargo adicional; DELETE y TRUNCATE |
+| Invariantes (SQL), tras todas las corridas | 543 asientos, 0 descuadrados, libro neto 0.00; 9 alquileres devueltos = 9 cargos (importe = precio + adicionales); 9 transportes completados = 9 cargos; 0 cargos huérfanos, 0 ocupaciones colgadas, 0 entregados sin ocupación, 0 solapes planificados, 0 movimientos de dinero por cargos o aplicaciones |
+
+**Pruebas obligatorias (`verificar-alquileres-transportes.mjs`):**
+
+1. **Reserva:** reservado, L 3,600, sin cargo y una ocupación. El reintento con la misma clave no duplica. Se rechazan una ambulancia, un vehículo fuera de servicio y una devolución anterior a la entrega. La disponibilidad marca el vehículo ocupado.
+2. **Reservas incompatibles:** una reserva que se cruza se rechaza y una contigua se admite. De dos reservas simultáneas que se cruzan, solo una prospera. Sin precio se rechaza.
+3. **Entrega:** km 1,000, tanque lleno, con ocupación en curso. Exige km y combustible; no se entrega dos veces ni se cancela una vez entregado.
+4. **Devolución:** no se devuelve sin entrega. De dos devoluciones simultáneas resulta un solo cargo. Cierra la ocupación. Un cargo adicional exige concepto; con L 400 el importe final es L 4,000 en un solo cargo.
+5. **Kilometraje y combustible:** se registran 250 km recorridos y el paso de lleno a medio. Un kilometraje menor se rechaza al operador y al administrador sin motivo; el administrador lo corrige con motivo, que queda registrado.
+6. **Anticipo** de L 1,000 de finanzas, aplicado al devolver: cargo L 3,600, aplicado 1,000, pendiente 2,600 (el ejemplo de la especificación) y una sola entrada de dinero.
+7. **Cargo final** una sola vez, con asiento D 1200 / H 4300.
+8. **Abono** de L 600: pendiente L 2,000 en el alquiler y en el cliente.
+9. **Cancelación:** exige motivo; deja sin cargo y libera la ocupación; el intervalo se vuelve a reservar.
+10. **Solicitud de transporte** sin recursos. El reintento no duplica y sin destino se rechaza.
+11. **Asignación** de vehículo y conductor, con dos ocupaciones. Una ambulancia no sirve para transporte.
+12. **Conflictos de horario:** vehículo y conductor ocupados se rechazan. De dos asignaciones simultáneas solo prospera una. Reprogramar sobre un horario ocupado se rechaza sin cambios y a uno libre conserva los recursos.
+13. **Iniciar y completar:** no se inicia sin recursos; queda en curso con hora real; se completa y libera los recursos.
+14. **Cargo único:** de dos finalizaciones simultáneas resulta un solo cargo de L 800 (D 1200 / H 4400). Sin precio no se completa.
+15. **Anticipo** de L 300 aplicado: pendiente L 500, sin nueva entrada de dinero.
+16. **Cancelación** antes de iniciar: libera y no genera cargo. Un servicio en curso no se cancela; uno cancelado no se inicia.
+17. **Alquiler ↔ ambulancia** (vehículo mixto): bloqueado en ambos sentidos. Al cancelar el alquiler, el vehículo queda libre para el traslado.
+18. **Alquiler ↔ transporte:** bloqueado en ambos sentidos.
+19. **Ambulancia ↔ transporte:** no comparten vehículo ni conductor.
+20. **Horario excedido:** con un alquiler entregado y pasado de su horario, no se inicia ni un transporte ni un traslado con ese vehículo. Los avisos señalan el exceso y las operaciones afectadas, sin cambiarlas. Tras la devolución real, el transporte se inicia.
+21. **Reintentos concurrentes:** tres reservas y tres solicitudes simultáneas con la misma clave dejan un alquiler y un transporte, más los casos simultáneos de 2, 4, 12 y 14.
+22. **Permisos:** finanzas es rechazada en 10 operaciones operativas (42501); los tres roles consultan. El operador modifica una reserva con motivo y la ocupación pasa al nuevo vehículo.
+23. **RLS:** `anon` no lee las 5 tablas o vistas ni ejecuta funciones; un usuario inactivo no reserva. Nadie, ni el administrador, escribe directamente alquileres, transportes, adicionales u ocupaciones.
+24. **Contabilidad:** un cargo por cada alquiler devuelto y cada transporte completado, ninguno por cancelaciones, y los 12 asientos de la corrida balanceados.
+25. **Movimientos de dinero:** cada cobro tiene un único movimiento y nada más mueve caja.
+
+**Escenarios en navegador (`e2e-alquileres-transportes.mjs`):**
+
+- **Operador, alquiler:** reserva con disponibilidad (el vehículo ya reservado aparece ocupado y no se ofrece), 3 días a L 3,600 propuestos, entrega y devolución. Un cargo adicional sin importe se rechaza; con anticipo, quedan L 3,000 pendientes. Cancela otra reserva con motivo.
+- **Operador, transporte:** propone el precio por tarifa, registra con recursos, inicia y finaliza: cargo de L 800 pendiente.
+- **Listados** con búsqueda.
+- **Finanzas:** ve cobros e historial y puede registrar un cobro, sin acciones operativas.
+- **Móvil 390×844:** listado y detalles sin desplazamiento horizontal.
+
+### Datos en Supabase de desarrollo
+
+- Registros ficticios marcados `[PRUEBA E5]`: clientes, vehículos, conductores, cajas, tarifas, alquileres, adicionales, transportes, traslados, ocupaciones, cargos, cobros y asientos. Por diseño no se pueden borrar.
+- Los usuarios ficticios se reactivaron temporalmente y **se desactivaron de nuevo** (bitácora). Solo el administrador real queda activo.
+
+### Defectos encontrados y corregidos durante la etapa
+
+1. **Avisos de horario excedido incompletos.** Con un alquiler entregado y vencido, los avisos solo detectaban cruces hasta el momento actual, no las operaciones que empiezan poco después. Corregido con la migración `20261027002912`. El bloqueo de inicios no cambió.
+2. **Prueba de E4 intermitente** («la tarifa propone el precio…»): la espera se cumplía sobre el contenido que llega por streaming aún oculto. Se espera ahora a que sea visible (mismo patrón que en E3). No era un defecto de la aplicación.
+3. **Pruebas de E5:** una comprobación de reprogramación no tenía efecto (cualquier resultado la daba por buena); se reescribió con un conflicto real.
+4. **Interrupción de red** durante la revisión: el DNS de este equipo dejó de resolver y el MCP no respondió. Las comprobaciones SQL se repitieron completas al recuperarse.
+
+### Pendientes (configuración manual del propietario, sin cambios desde E1)
+
+1. Deshabilitar el registro público en Supabase › Authentication › Sign In / Providers.
+2. Activar la protección de contraseñas filtradas si el plan lo permite.
+
+### Limitaciones
+
+- Un anticipo no se asocia a un contrato: el operador elige cuánto saldo a favor aplicar al cerrar.
+- Las tarifas no están vinculadas a vehículos concretos: el operador elige la tarifa y el precio queda ajustable.
+- El alquiler muestra las diferencias de kilometraje y combustible, pero no calcula multas ni daños (fuera del MVP).
+- Corregir el importe de un alquiler devuelto o de un transporte completado se hace con E2: anular el cargo y registrar un cargo administrativo.
+- Los recursos de un transporte en curso no se reasignan; solo se ajusta su duración.
+- La ventana de avisos para operaciones pasadas de horario es de dos horas, solo informativa.
+- Las pruebas de navegador se ejecutaron en el puerto 3100 (el 3000 lo ocupa un `next dev` del usuario, que no se tocó).
+
+### Commit
+
+El hash del commit de E5 se informa en la entrega (no puede incluirse en el propio commit).

@@ -76,7 +76,17 @@ export const PERMISOS_AMBULANCIAS = {
   corregirTraslados: ["administrador"],
 } as const satisfies Record<string, readonly Rol[]>;
 
-const PERMISOS = { ...PERMISOS_FINANZAS, ...PERMISOS_MEMBRESIAS, ...PERMISOS_AMBULANCIAS };
+/** Espejo de las verificaciones de rol de las funciones de E5. */
+export const PERMISOS_OPERACIONES = {
+  /** Reservar, modificar, entregar, devolver y cancelar alquileres. */
+  gestionarAlquileres: ["administrador", "operador"],
+  /** Registrar, asignar, reprogramar, iniciar, finalizar y cancelar transportes. */
+  gestionarTransportes: ["administrador", "operador"],
+  /** Corregir un kilometraje de regreso menor que el de salida. */
+  corregirKilometraje: ["administrador"],
+} as const satisfies Record<string, readonly Rol[]>;
+
+const PERMISOS = { ...PERMISOS_FINANZAS, ...PERMISOS_MEMBRESIAS, ...PERMISOS_AMBULANCIAS, ...PERMISOS_OPERACIONES };
 
 export type Permiso = keyof typeof PERMISOS;
 export type PermisoFinanzas = keyof typeof PERMISOS_FINANZAS;

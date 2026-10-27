@@ -39,6 +39,7 @@ import { AvisoOperacion, FormularioOperacion } from "@/components/finanzas/opera
 import { Datos, ResumenImportes, Seccion } from "@/components/finanzas/resumen";
 import { Tabla } from "@/components/finanzas/tabla";
 import { InsigniaCobertura, InsigniaFinanciera, InsigniaTraslado } from "@/components/ambulancias/insignias";
+import { BotonAccion, Desplegable, Historial, ListaAvisos } from "@/components/operaciones";
 
 export default function PaginaTraslado({ params, searchParams }: PageProps<"/ambulancias/[id]">) {
   return (
@@ -118,13 +119,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
           aceptación del cliente, pasarlo a particular.
         </p>
       )}
-      {(avisos ?? []).length > 0 && (
-        <ul role="status" className="aviso aviso-advertencia mb-4 list-disc pl-8">
-          {(avisos ?? []).map((aviso) => (
-            <li key={aviso}>{aviso}</li>
-          ))}
-        </ul>
-      )}
+      <ListaAvisos avisos={avisos} />
 
       {(acciones.programar || acciones.iniciar || acciones.revalidar) && (
         <div className="mb-6 flex flex-wrap gap-3">
@@ -333,42 +328,9 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       )}
 
       <Seccion titulo="Historial">
-        {historial?.length ? (
-          <ul className="tarjeta divide-y divide-[var(--borde)]">
-            {historial.map((evento, indice) => (
-              <li key={`${evento.fecha}-${indice}`} className="flex flex-col gap-0.5 px-4 py-3 text-sm">
-                <span className="font-medium">{ACCIONES[evento.accion] ?? evento.accion}</span>
-                <span className="texto-tenue">
-                  {formatearFechaHora(evento.fecha)} · {evento.actor ?? "Sistema"}
-                </span>
-                {describirEvento(evento.accion, evento.despues) && <span>{describirEvento(evento.accion, evento.despues)}</span>}
-                {evento.motivo && <span className="texto-tenue">Motivo: {evento.motivo}</span>}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="tarjeta p-4 texto-tenue">Sin eventos registrados.</p>
-        )}
+        <Historial eventos={historial} acciones={ACCIONES} describir={describirEvento} />
       </Seccion>
     </>
-  );
-}
-
-function Desplegable({ titulo, children }: { titulo: string; children: ReactNode }) {
-  return (
-    <details className="tarjeta mt-4 p-4 sm:p-6">
-      <summary className="cursor-pointer font-medium">{titulo}</summary>
-      <div className="mt-4">{children}</div>
-    </details>
-  );
-}
-
-/** Acción de un clic (sin campos), con el mismo manejo de errores que los formularios. */
-function BotonAccion({ accion, texto }: { accion: Parameters<typeof FormularioOperacion>[0]["accion"]; texto: string }) {
-  return (
-    <div className="min-w-48">
-      <FormularioOperacion campos={[]} accion={accion} textoEnviar={texto} />
-    </div>
   );
 }
 

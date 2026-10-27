@@ -10,7 +10,7 @@ import { Encabezado } from "@/components/encabezado";
 import { ActualizarAlAbrir } from "@/components/membresias/actualizar";
 
 // Módulos de las etapas siguientes: se anuncian sin aparentar funcionar.
-const PROXIMAMENTE = ["Alquileres", "Transportes", "Reportes"];
+const PROXIMAMENTE = ["Reportes"];
 
 const ORDEN_PANEL: ClaveCatalogo[] = [
   "clientes",
@@ -29,7 +29,9 @@ export default async function Panel() {
 
   const tesoreria = puede("verTesoreria", usuario.rol);
   const hoy = hoyEnTegucigalpa();
-  const [conteos, clientes, gastos, cuentas, membresias, traslados] = await Promise.all([
+  const ahora = new Date();
+  const enUnaSemana = new Date(ahora.getTime() + 7 * 86_400_000);
+  const [conteos, clientes, gastos, cuentas, membresias, traslados, alquileres, transportes] = await Promise.all([
     Promise.all(
       ORDEN_PANEL.map(async (clave) => {
         const { count, error } = await tablaCatalogo(supabase, CATALOGOS[clave].tabla)
@@ -49,7 +51,37 @@ export default async function Panel() {
       .or(
         `estado.in.(solicitado,programado,en_curso),and(inicio_previsto.gte.${momentoDesdeLocal(`${hoy}T00:00`)},inicio_previsto.lte.${momentoDesdeLocal(`${hoy}T23:59`)})`,
       ),
+    supabase.from("alquileres").select("estado, entrega_prevista, devolucion_prevista").in("estado", ["reservado", "entregado"]),
+    supabase
+      .from("transportes")
+      .select("estado, inicio_previsto")
+      .or(
+        `estado.eq.en_curso,and(inicio_previsto.gte.${momentoDesdeLocal(`${hoy}T00:00`)},inicio_previsto.lte.${momentoDesdeLocal(`${hoy}T23:59`)})`,
+      ),
   ]);
+
+  const filasAlquileres = alquileres.data ?? [];
+  const filasTransportes = transportes.data ?? [];
+  const indicadoresAlquileres = [
+    { etiqueta: "Vehículos alquilados ahora", valor: String(filasAlquileres.filter((a) => a.estado === "entregado").length), href: "/alquileres?estado=entregado" },
+    {
+      etiqueta: "Devoluciones vencidas",
+      valor: String(filasAlquileres.filter((a) => a.estado === "entregado" && new Date(a.devolucion_prevista) < ahora).length),
+      href: "/alquileres?estado=entregado",
+    },
+    {
+      etiqueta: "Entregas en los próximos 7 días",
+      valor: String(filasAlquileres.filter((a) => a.estado === "reservado" && new Date(a.entrega_prevista) <= enUnaSemana).length),
+      href: "/alquileres?estado=reservado",
+    },
+    {
+      etiqueta: "Transportes de hoy · en curso",
+      valor: `${filasTransportes.filter((t) => t.estado !== "cancelado" && aFechaHoraLocal(t.inicio_previsto).startsWith(hoy)).length} · ${
+        filasTransportes.filter((t) => t.estado === "en_curso").length
+      }`,
+      href: `/transportes?estado=todos&desde=${hoy}&hasta=${hoy}`,
+    },
+  ];
 
   const filasTraslados = traslados.data ?? [];
   const sinIniciar = filasTraslados.filter((t) => t.estado === "solicitado" || t.estado === "programado");
@@ -108,6 +140,7 @@ export default async function Panel() {
       <ActualizarAlAbrir />
 
       <Indicadores id="traslados" titulo="Traslados de ambulancia" indicadores={indicadoresTraslados} />
+      <Indicadores id="alquileres" titulo="Alquileres y transporte" indicadores={indicadoresAlquileres} />
       <Indicadores id="membresias" titulo="Membresías" indicadores={indicadoresMembresias} />
       <Indicadores
         id="finanzas"
@@ -141,8 +174,7 @@ export default async function Panel() {
           Próximamente
         </h2>
         <p className="tarjeta p-4 texto-tenue">
-          {PROXIMAMENTE.join(" · ")}. Estos módulos se habilitarán en las siguientes etapas; el
-          indicador de alquileres activos aparecerá con ellos.
+          {PROXIMAMENTE.join(" · ")}: se habilitará en la siguiente etapa.
         </p>
       </section>
     </>

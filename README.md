@@ -113,20 +113,41 @@ Plantillas contables: cargo D CxC / H ingreso de la línea · cobro D caja-banco
 | Cobrar y registrar anticipos (E2) | Sí | Sí | Sí |
 | Devolver un beneficio consumido (corrección) | Sí | No | No |
 
+### Alquileres y transporte con conductor (E5)
+
+- **`/alquileres`:** reserva (cliente → fechas y tarifa → disponibilidad y precio propuesto → confirmar), entrega con kilometraje y combustible, devolución con cargos adicionales expresos y cancelación de reservas.
+  - Estados: reservado → entregado → devuelto, o cancelado (solo reservado).
+  - El precio propuesto es la tarifa diaria × días (bloques de 24 h iniciados, mínimo 1), ajustable.
+  - El cargo (D CxC / H 4300) se genera una sola vez al devolver: precio pactado + adicionales. Un kilometraje de regreso menor que el de salida solo lo admite el administrador, con motivo.
+- **`/transportes`:** solicitud con vehículo y conductor opcionales, programación, asignación, reprogramación, inicio (exige ambos recursos libres), ajuste de duración en curso, finalización con un único cargo (D CxC / H 4400) y cancelación sin iniciar.
+- **Disponibilidad compartida:** alquileres, transportes y traslados ocupan vehículos y conductores en la misma tabla `ocupaciones_recurso` de E4. La restricción de exclusión y el bloqueo del recurso impiden que se crucen. Un alquiler entregado o un servicio en curso ocupa hasta su fin real e impide nuevos inicios aunque se pase de horario; los avisos advierten de las operaciones posteriores afectadas.
+- **Vehículos:** se reutiliza `vehiculos`. Alquiler: tipo alquiler o mixto; transporte: transporte o mixto; ambulancia: ambulancia o mixto. Siempre activo y operativo.
+- **Anticipos:** son saldo a favor del cliente (E2) y se aplican al cargo al devolver o completar, sin nueva entrada de dinero.
+
+| Operación | Administrador | Operador | Finanzas |
+|---|---|---|---|
+| Consultar alquileres, transportes, disponibilidad e historial | Sí | Sí | Sí |
+| Reservar, modificar, entregar, devolver y cancelar alquileres | Sí | Sí | No |
+| Registrar, asignar, reprogramar, iniciar, finalizar y cancelar transportes | Sí | Sí | No |
+| Corregir un kilometraje de regreso menor que el de salida | Sí | No | No |
+| Cobrar y registrar anticipos (E2) | Sí | Sí | Sí |
+
 ## Verificación contra el proyecto de desarrollo
 
-Además de `npm test`, hay scripts sin dependencias adicionales que usan usuarios **ficticios** y crean registros marcados `[PRUEBA E1]` a `[PRUEBA E4]`. Se niegan a ejecutarse si `.env.local` no apunta al proyecto de desarrollo. Las credenciales de prueba van en un archivo fuera del repositorio (`E2E_ADMIN_CORREO`, `E2E_ADMIN_CLAVE`, y lo mismo para `OPERADOR`, `FINANZAS` e `INACTIVO`); el administrador, operador y finanzas de prueba deben estar activos y el usuario «inactivo», no.
+Además de `npm test`, hay scripts sin dependencias adicionales que usan usuarios **ficticios** y crean registros marcados `[PRUEBA E1]` a `[PRUEBA E5]`. Se niegan a ejecutarse si `.env.local` no apunta al proyecto de desarrollo. Las credenciales de prueba van en un archivo fuera del repositorio (`E2E_ADMIN_CORREO`, `E2E_ADMIN_CLAVE`, y lo mismo para `OPERADOR`, `FINANZAS` e `INACTIVO`); el administrador, operador y finanzas de prueba deben estar activos y el usuario «inactivo», no.
 
 ```bash
 E2E_CREDENCIALES=/ruta/credenciales.env node scripts/verificar-rls.mjs        # RLS por rol vía API REST
 E2E_CREDENCIALES=/ruta/credenciales.env node scripts/verificar-finanzas.mjs   # núcleo financiero vía API REST
 E2E_CREDENCIALES=/ruta/credenciales.env node scripts/verificar-membresias.mjs # membresías vía API REST
 E2E_CREDENCIALES=/ruta/credenciales.env node scripts/verificar-ambulancias.mjs # traslados vía API REST
+E2E_CREDENCIALES=/ruta/credenciales.env node scripts/verificar-alquileres-transportes.mjs # alquileres y transportes
 npm run build && npm start                                                     # en otra terminal
 E2E_CREDENCIALES=/ruta/credenciales.env node scripts/e2e-navegador.mjs        # navegador real (Edge/Chrome)
 E2E_CREDENCIALES=/ruta/credenciales.env node scripts/e2e-finanzas.mjs         # interfaz financiera
 E2E_CREDENCIALES=/ruta/credenciales.env node scripts/e2e-membresias.mjs       # interfaz de membresías
 E2E_CREDENCIALES=/ruta/credenciales.env node scripts/e2e-ambulancias.mjs      # interfaz de traslados
+E2E_CREDENCIALES=/ruta/credenciales.env node scripts/e2e-alquileres-transportes.mjs # interfaz de alquileres y transportes
 ```
 
 `E2E_URL` cambia la dirección de la app (por omisión `http://localhost:3000`).

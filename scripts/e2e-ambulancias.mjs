@@ -101,8 +101,10 @@ try {
   await visible("select[name=tarifa]");
   await llenar("select[name=tarifa]", tarifa);
   await pulsar("Proponer");
+  // El contenido llega por streaming oculto: se espera a que sea visible.
   comprobar("la tarifa propone el precio y avisa del saldo a favor",
-    (await esperar("document.querySelector('#campo-precio')?.value === '1200.00'")) && (await texto()).includes("a favor"));
+    (await esperar("document.querySelector('#campo-precio')?.checkVisibility() && document.querySelector('#campo-precio').value === '1200.00'")) &&
+      (await esperar("document.body.innerText.includes('a favor')")));
   await llenar("#campo-pasajero", `${MARCA} Pasajero urgente`);
   await llenar("#campo-origen", `${MARCA} Mercado Zonal Belén`);
   await pulsar("Registrar solicitud");

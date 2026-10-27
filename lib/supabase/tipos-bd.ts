@@ -1,4 +1,4 @@
-// Generado con Supabase MCP (generate_typescript_types) tras las migraciones de E4.
+// Generado con Supabase MCP (generate_typescript_types) tras las migraciones de E5.
 // No editar a mano: regenerar después de cada migración.
 
 export type Json =
@@ -17,6 +17,172 @@ export type Database = {
   }
   public: {
     Tables: {
+      alquileres: {
+        Row: {
+          actualizado_por: string | null
+          cancelado_en: string | null
+          cancelado_por: string | null
+          cargo_id: string | null
+          cliente_id: string
+          combustible_regreso:
+            | Database["public"]["Enums"]["nivel_combustible"]
+            | null
+          combustible_salida:
+            | Database["public"]["Enums"]["nivel_combustible"]
+            | null
+          creado_por: string | null
+          created_at: string
+          devolucion_prevista: string
+          devolucion_real: string | null
+          entrega_prevista: string
+          entrega_real: string | null
+          estado: Database["public"]["Enums"]["estado_alquiler"]
+          id: string
+          idempotencia: string
+          km_regreso: number | null
+          km_salida: number | null
+          motivo_cancelacion: string | null
+          motivo_correccion_km: string | null
+          notas: string | null
+          notas_devolucion: string | null
+          notas_entrega: string | null
+          precio_pactado: number
+          tarifa_id: string | null
+          updated_at: string
+          vehiculo_id: string
+        }
+        Insert: {
+          actualizado_por?: string | null
+          cancelado_en?: string | null
+          cancelado_por?: string | null
+          cargo_id?: string | null
+          cliente_id: string
+          combustible_regreso?:
+            | Database["public"]["Enums"]["nivel_combustible"]
+            | null
+          combustible_salida?:
+            | Database["public"]["Enums"]["nivel_combustible"]
+            | null
+          creado_por?: string | null
+          created_at?: string
+          devolucion_prevista: string
+          devolucion_real?: string | null
+          entrega_prevista: string
+          entrega_real?: string | null
+          estado?: Database["public"]["Enums"]["estado_alquiler"]
+          id?: string
+          idempotencia: string
+          km_regreso?: number | null
+          km_salida?: number | null
+          motivo_cancelacion?: string | null
+          motivo_correccion_km?: string | null
+          notas?: string | null
+          notas_devolucion?: string | null
+          notas_entrega?: string | null
+          precio_pactado: number
+          tarifa_id?: string | null
+          updated_at?: string
+          vehiculo_id: string
+        }
+        Update: {
+          actualizado_por?: string | null
+          cancelado_en?: string | null
+          cancelado_por?: string | null
+          cargo_id?: string | null
+          cliente_id?: string
+          combustible_regreso?:
+            | Database["public"]["Enums"]["nivel_combustible"]
+            | null
+          combustible_salida?:
+            | Database["public"]["Enums"]["nivel_combustible"]
+            | null
+          creado_por?: string | null
+          created_at?: string
+          devolucion_prevista?: string
+          devolucion_real?: string | null
+          entrega_prevista?: string
+          entrega_real?: string | null
+          estado?: Database["public"]["Enums"]["estado_alquiler"]
+          id?: string
+          idempotencia?: string
+          km_regreso?: number | null
+          km_salida?: number | null
+          motivo_cancelacion?: string | null
+          motivo_correccion_km?: string | null
+          notas?: string | null
+          notas_devolucion?: string | null
+          notas_entrega?: string | null
+          precio_pactado?: number
+          tarifa_id?: string | null
+          updated_at?: string
+          vehiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alquileres_actualizado_por_fkey"
+            columns: ["actualizado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alquileres_cancelado_por_fkey"
+            columns: ["cancelado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alquileres_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: true
+            referencedRelation: "cargos_cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alquileres_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: true
+            referencedRelation: "saldos_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alquileres_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alquileres_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "saldos_clientes"
+            referencedColumns: ["cliente_id"]
+          },
+          {
+            foreignKeyName: "alquileres_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alquileres_tarifa_id_fkey"
+            columns: ["tarifa_id"]
+            isOneToOne: false
+            referencedRelation: "tarifas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alquileres_vehiculo_id_fkey"
+            columns: ["vehiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       aplicaciones_cobro: {
         Row: {
           cargo_id: string
@@ -253,6 +419,55 @@ export type Database = {
           {
             foreignKeyName: "bitacora_actor_id_fkey"
             columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cargos_adicionales_alquiler: {
+        Row: {
+          alquiler_id: string
+          concepto: string
+          creado_por: string | null
+          created_at: string
+          id: string
+          monto: number
+        }
+        Insert: {
+          alquiler_id: string
+          concepto: string
+          creado_por?: string | null
+          created_at?: string
+          id?: string
+          monto: number
+        }
+        Update: {
+          alquiler_id?: string
+          concepto?: string
+          creado_por?: string | null
+          created_at?: string
+          id?: string
+          monto?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cargos_adicionales_alquiler_alquiler_id_fkey"
+            columns: ["alquiler_id"]
+            isOneToOne: false
+            referencedRelation: "alquileres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cargos_adicionales_alquiler_alquiler_id_fkey"
+            columns: ["alquiler_id"]
+            isOneToOne: false
+            referencedRelation: "saldos_alquileres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cargos_adicionales_alquiler_creado_por_fkey"
+            columns: ["creado_por"]
             isOneToOne: false
             referencedRelation: "perfiles"
             referencedColumns: ["id"]
@@ -1707,6 +1922,158 @@ export type Database = {
           },
         ]
       }
+      transportes: {
+        Row: {
+          actualizado_por: string | null
+          cancelado_en: string | null
+          cancelado_por: string | null
+          cargo_id: string | null
+          cliente_id: string
+          conductor_id: string | null
+          creado_por: string | null
+          created_at: string
+          destino: string
+          estado: Database["public"]["Enums"]["estado_transporte"]
+          fin_real: string | null
+          id: string
+          idempotencia: string
+          inicio_previsto: string
+          inicio_real: string | null
+          minutos_estimados: number
+          motivo_cancelacion: string | null
+          notas: string | null
+          notas_finales: string | null
+          origen: string
+          precio_pactado: number | null
+          tarifa_id: string | null
+          updated_at: string
+          vehiculo_id: string | null
+        }
+        Insert: {
+          actualizado_por?: string | null
+          cancelado_en?: string | null
+          cancelado_por?: string | null
+          cargo_id?: string | null
+          cliente_id: string
+          conductor_id?: string | null
+          creado_por?: string | null
+          created_at?: string
+          destino: string
+          estado?: Database["public"]["Enums"]["estado_transporte"]
+          fin_real?: string | null
+          id?: string
+          idempotencia: string
+          inicio_previsto: string
+          inicio_real?: string | null
+          minutos_estimados?: number
+          motivo_cancelacion?: string | null
+          notas?: string | null
+          notas_finales?: string | null
+          origen: string
+          precio_pactado?: number | null
+          tarifa_id?: string | null
+          updated_at?: string
+          vehiculo_id?: string | null
+        }
+        Update: {
+          actualizado_por?: string | null
+          cancelado_en?: string | null
+          cancelado_por?: string | null
+          cargo_id?: string | null
+          cliente_id?: string
+          conductor_id?: string | null
+          creado_por?: string | null
+          created_at?: string
+          destino?: string
+          estado?: Database["public"]["Enums"]["estado_transporte"]
+          fin_real?: string | null
+          id?: string
+          idempotencia?: string
+          inicio_previsto?: string
+          inicio_real?: string | null
+          minutos_estimados?: number
+          motivo_cancelacion?: string | null
+          notas?: string | null
+          notas_finales?: string | null
+          origen?: string
+          precio_pactado?: number | null
+          tarifa_id?: string | null
+          updated_at?: string
+          vehiculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transportes_actualizado_por_fkey"
+            columns: ["actualizado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transportes_cancelado_por_fkey"
+            columns: ["cancelado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transportes_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: true
+            referencedRelation: "cargos_cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transportes_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: true
+            referencedRelation: "saldos_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transportes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transportes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "saldos_clientes"
+            referencedColumns: ["cliente_id"]
+          },
+          {
+            foreignKeyName: "transportes_conductor_id_fkey"
+            columns: ["conductor_id"]
+            isOneToOne: false
+            referencedRelation: "conductores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transportes_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transportes_tarifa_id_fkey"
+            columns: ["tarifa_id"]
+            isOneToOne: false
+            referencedRelation: "tarifas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transportes_vehiculo_id_fkey"
+            columns: ["vehiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       traslados_ambulancia: {
         Row: {
           actualizado_por: string | null
@@ -1989,6 +2356,91 @@ export type Database = {
       }
     }
     Views: {
+      saldos_alquileres: {
+        Row: {
+          aplicado: number | null
+          cancelado_en: string | null
+          cargo_estado: Database["public"]["Enums"]["estado_cargo"] | null
+          cargo_id: string | null
+          cliente_id: string | null
+          cliente_nombre: string | null
+          combustible_regreso:
+            | Database["public"]["Enums"]["nivel_combustible"]
+            | null
+          combustible_salida:
+            | Database["public"]["Enums"]["nivel_combustible"]
+            | null
+          created_at: string | null
+          devolucion_prevista: string | null
+          devolucion_real: string | null
+          entrega_prevista: string | null
+          entrega_real: string | null
+          estado: Database["public"]["Enums"]["estado_alquiler"] | null
+          estado_financiero: string | null
+          id: string | null
+          importe_total: number | null
+          km_recorridos: number | null
+          km_regreso: number | null
+          km_salida: number | null
+          motivo_cancelacion: string | null
+          motivo_correccion_km: string | null
+          notas: string | null
+          notas_devolucion: string | null
+          notas_entrega: string | null
+          pendiente: number | null
+          precio_pactado: number | null
+          tarifa_id: string | null
+          total_adicionales: number | null
+          updated_at: string | null
+          vehiculo_codigo: string | null
+          vehiculo_id: string | null
+          vehiculo_placa: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alquileres_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: true
+            referencedRelation: "cargos_cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alquileres_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: true
+            referencedRelation: "saldos_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alquileres_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alquileres_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "saldos_clientes"
+            referencedColumns: ["cliente_id"]
+          },
+          {
+            foreignKeyName: "alquileres_tarifa_id_fkey"
+            columns: ["tarifa_id"]
+            isOneToOne: false
+            referencedRelation: "tarifas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alquileres_vehiculo_id_fkey"
+            columns: ["vehiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saldos_cargos: {
         Row: {
           actividad: Database["public"]["Enums"]["actividad"] | null
@@ -2257,6 +2709,89 @@ export type Database = {
           },
         ]
       }
+      saldos_transportes: {
+        Row: {
+          aplicado: number | null
+          cancelado_en: string | null
+          cargo_estado: Database["public"]["Enums"]["estado_cargo"] | null
+          cargo_id: string | null
+          cliente_id: string | null
+          cliente_nombre: string | null
+          conductor_id: string | null
+          conductor_nombre: string | null
+          created_at: string | null
+          destino: string | null
+          estado: Database["public"]["Enums"]["estado_transporte"] | null
+          estado_financiero: string | null
+          fin_previsto: string | null
+          fin_real: string | null
+          id: string | null
+          inicio_previsto: string | null
+          inicio_real: string | null
+          minutos_estimados: number | null
+          motivo_cancelacion: string | null
+          notas: string | null
+          notas_finales: string | null
+          origen: string | null
+          pendiente: number | null
+          precio_pactado: number | null
+          tarifa_id: string | null
+          updated_at: string | null
+          vehiculo_codigo: string | null
+          vehiculo_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transportes_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: true
+            referencedRelation: "cargos_cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transportes_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: true
+            referencedRelation: "saldos_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transportes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transportes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "saldos_clientes"
+            referencedColumns: ["cliente_id"]
+          },
+          {
+            foreignKeyName: "transportes_conductor_id_fkey"
+            columns: ["conductor_id"]
+            isOneToOne: false
+            referencedRelation: "conductores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transportes_tarifa_id_fkey"
+            columns: ["tarifa_id"]
+            isOneToOne: false
+            referencedRelation: "tarifas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transportes_vehiculo_id_fkey"
+            columns: ["vehiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saldos_traslados: {
         Row: {
           aplicado: number | null
@@ -2422,6 +2957,14 @@ export type Database = {
         Args: { p_beneficiario_id: string; p_membresia_id: string }
         Returns: string
       }
+      ajustar_duracion_transporte: {
+        Args: {
+          p_minutos_estimados: number
+          p_motivo?: string
+          p_transporte_id: string
+        }
+        Returns: string[]
+      }
       ajustar_duracion_traslado: {
         Args: {
           p_minutos_estimados: number
@@ -2442,6 +2985,15 @@ export type Database = {
         Args: { p_cargo_id: string; p_idempotencia: string; p_monto: number }
         Returns: number
       }
+      asignar_recursos_transporte: {
+        Args: {
+          p_conductor_id: string
+          p_motivo?: string
+          p_transporte_id: string
+          p_vehiculo_id: string
+        }
+        Returns: undefined
+      }
       asignar_recursos_traslado: {
         Args: {
           p_conductor_id: string
@@ -2451,9 +3003,24 @@ export type Database = {
         }
         Returns: undefined
       }
+      avisos_operacion: {
+        Args: {
+          p_origen_id: string
+          p_origen_tipo: Database["public"]["Enums"]["origen_ocupacion"]
+        }
+        Returns: string[]
+      }
       avisos_traslado: { Args: { p_traslado_id: string }; Returns: string[] }
+      cancelar_alquiler: {
+        Args: { p_alquiler_id: string; p_motivo: string }
+        Returns: undefined
+      }
       cancelar_membresia: {
         Args: { p_membresia_id: string; p_motivo: string }
+        Returns: undefined
+      }
+      cancelar_transporte: {
+        Args: { p_motivo: string; p_transporte_id: string }
         Returns: undefined
       }
       cancelar_traslado: {
@@ -2483,6 +3050,45 @@ export type Database = {
         Args: { p_motivo: string; p_precio: number; p_traslado_id: string }
         Returns: undefined
       }
+      devolver_alquiler: {
+        Args: {
+          p_adicionales?: Json
+          p_alquiler_id: string
+          p_aplicar_anticipo?: number
+          p_combustible: Database["public"]["Enums"]["nivel_combustible"]
+          p_km_regreso: number
+          p_motivo_correccion_km?: string
+          p_notas: string
+        }
+        Returns: Json
+      }
+      disponibilidad_recursos: {
+        Args: {
+          p_actividad: Database["public"]["Enums"]["actividad"]
+          p_fin: string
+          p_inicio: string
+          p_origen_id?: string
+          p_origen_tipo?: Database["public"]["Enums"]["origen_ocupacion"]
+        }
+        Returns: {
+          detalle: string
+          disponible: boolean
+          nombre: string
+          recurso_id: string
+          recurso_tipo: string
+        }[]
+      }
+      editar_transporte: {
+        Args: {
+          p_destino: string
+          p_notas: string
+          p_origen: string
+          p_precio: number
+          p_tarifa_id: string
+          p_transporte_id: string
+        }
+        Returns: undefined
+      }
       editar_traslado: {
         Args: {
           p_destino: string
@@ -2495,6 +3101,23 @@ export type Database = {
           p_traslado_id: string
         }
         Returns: undefined
+      }
+      entregar_alquiler: {
+        Args: {
+          p_alquiler_id: string
+          p_combustible: Database["public"]["Enums"]["nivel_combustible"]
+          p_km_salida: number
+          p_notas: string
+        }
+        Returns: string[]
+      }
+      finalizar_transporte: {
+        Args: {
+          p_aplicar_anticipo?: number
+          p_notas_finales: string
+          p_transporte_id: string
+        }
+        Returns: Json
       }
       finalizar_traslado: {
         Args: {
@@ -2516,6 +3139,17 @@ export type Database = {
           motivo: string
         }[]
       }
+      historial_operacion: {
+        Args: { p_entidad: string; p_registro_id: string }
+        Returns: {
+          accion: string
+          actor: string
+          antes: Json
+          despues: Json
+          fecha: string
+          motivo: string
+        }[]
+      }
       historial_traslado: {
         Args: { p_traslado_id: string }
         Returns: {
@@ -2531,7 +3165,24 @@ export type Database = {
         Args: { p_motivo: string; p_vinculo_id: string }
         Returns: undefined
       }
+      iniciar_transporte: {
+        Args: { p_transporte_id: string }
+        Returns: string[]
+      }
       iniciar_traslado: { Args: { p_traslado_id: string }; Returns: Json }
+      modificar_alquiler: {
+        Args: {
+          p_alquiler_id: string
+          p_devolucion_prevista: string
+          p_entrega_prevista: string
+          p_motivo: string
+          p_notas: string
+          p_precio: number
+          p_tarifa_id: string
+          p_vehiculo_id: string
+        }
+        Returns: undefined
+      }
       prever_cobertura: {
         Args: {
           p_beneficiario_id: string
@@ -2546,6 +3197,10 @@ export type Database = {
           periodo_inicio: string
         }[]
       }
+      programar_transporte: {
+        Args: { p_transporte_id: string }
+        Returns: undefined
+      }
       programar_traslado: {
         Args: { p_traslado_id: string }
         Returns: undefined
@@ -2559,6 +3214,19 @@ export type Database = {
           recurso_id: string
           recurso_tipo: string
         }[]
+      }
+      registrar_alquiler: {
+        Args: {
+          p_cliente_id: string
+          p_devolucion_prevista: string
+          p_entrega_prevista: string
+          p_idempotencia: string
+          p_notas: string
+          p_precio: number
+          p_tarifa_id: string
+          p_vehiculo_id: string
+        }
+        Returns: string
       }
       registrar_apertura: {
         Args: {
@@ -2643,6 +3311,23 @@ export type Database = {
         }
         Returns: string
       }
+      registrar_transporte: {
+        Args: {
+          p_cliente_id: string
+          p_conductor_id?: string
+          p_destino: string
+          p_idempotencia: string
+          p_inicio_previsto: string
+          p_minutos_estimados: number
+          p_notas: string
+          p_origen: string
+          p_precio: number
+          p_programar?: boolean
+          p_tarifa_id: string
+          p_vehiculo_id?: string
+        }
+        Returns: string
+      }
       registrar_traslado: {
         Args: {
           p_beneficiario_id: string
@@ -2664,6 +3349,15 @@ export type Database = {
           p_vehiculo_id?: string
         }
         Returns: string
+      }
+      reprogramar_transporte: {
+        Args: {
+          p_inicio_previsto: string
+          p_minutos_estimados: number
+          p_motivo: string
+          p_transporte_id: string
+        }
+        Returns: undefined
       }
       reprogramar_traslado: {
         Args: {
@@ -2706,6 +3400,7 @@ export type Database = {
     Enums: {
       actividad: "ambulancias" | "alquileres" | "transportes" | "general"
       condicion_cobertura: "valida" | "pendiente_validacion" | "no_valida"
+      estado_alquiler: "reservado" | "entregado" | "devuelto" | "cancelado"
       estado_aplicacion: "vigente" | "reversada"
       estado_asiento: "confirmado" | "reversado"
       estado_cargo: "vigente" | "anulado"
@@ -2713,6 +3408,12 @@ export type Database = {
       estado_membresia: "activa" | "suspendida" | "cancelada"
       estado_pago: "confirmado" | "reversado"
       estado_reserva: "reservada" | "consumida" | "liberada"
+      estado_transporte:
+        | "solicitado"
+        | "programado"
+        | "en_curso"
+        | "completado"
+        | "cancelado"
       estado_traslado:
         | "solicitado"
         | "programado"
@@ -2723,7 +3424,13 @@ export type Database = {
       evento_financiero: "registro" | "reverso"
       metodo_pago: "efectivo" | "transferencia" | "tarjeta" | "otro"
       modalidad_cupo: "compartido" | "individual"
-      origen_cargo: "manual" | "periodo_membresia" | "traslado_ambulancia"
+      nivel_combustible: "vacio" | "cuarto" | "medio" | "tres_cuartos" | "lleno"
+      origen_cargo:
+        | "manual"
+        | "periodo_membresia"
+        | "traslado_ambulancia"
+        | "alquiler"
+        | "transporte"
       origen_financiero:
         | "cargo"
         | "cobro"
@@ -2732,7 +3439,7 @@ export type Database = {
         | "pago_gasto"
         | "transferencia"
         | "apertura"
-      origen_ocupacion: "traslado"
+      origen_ocupacion: "traslado" | "alquiler" | "transporte"
       rol_usuario: "administrador" | "operador" | "finanzas"
       tipo_cliente: "natural" | "juridica"
       tipo_cuenta_contable:
@@ -2875,6 +3582,7 @@ export const Constants = {
     Enums: {
       actividad: ["ambulancias", "alquileres", "transportes", "general"],
       condicion_cobertura: ["valida", "pendiente_validacion", "no_valida"],
+      estado_alquiler: ["reservado", "entregado", "devuelto", "cancelado"],
       estado_aplicacion: ["vigente", "reversada"],
       estado_asiento: ["confirmado", "reversado"],
       estado_cargo: ["vigente", "anulado"],
@@ -2882,6 +3590,13 @@ export const Constants = {
       estado_membresia: ["activa", "suspendida", "cancelada"],
       estado_pago: ["confirmado", "reversado"],
       estado_reserva: ["reservada", "consumida", "liberada"],
+      estado_transporte: [
+        "solicitado",
+        "programado",
+        "en_curso",
+        "completado",
+        "cancelado",
+      ],
       estado_traslado: [
         "solicitado",
         "programado",
@@ -2893,7 +3608,14 @@ export const Constants = {
       evento_financiero: ["registro", "reverso"],
       metodo_pago: ["efectivo", "transferencia", "tarjeta", "otro"],
       modalidad_cupo: ["compartido", "individual"],
-      origen_cargo: ["manual", "periodo_membresia", "traslado_ambulancia"],
+      nivel_combustible: ["vacio", "cuarto", "medio", "tres_cuartos", "lleno"],
+      origen_cargo: [
+        "manual",
+        "periodo_membresia",
+        "traslado_ambulancia",
+        "alquiler",
+        "transporte",
+      ],
       origen_financiero: [
         "cargo",
         "cobro",
@@ -2903,7 +3625,7 @@ export const Constants = {
         "transferencia",
         "apertura",
       ],
-      origen_ocupacion: ["traslado"],
+      origen_ocupacion: ["traslado", "alquiler", "transporte"],
       rol_usuario: ["administrador", "operador", "finanzas"],
       tipo_cliente: ["natural", "juridica"],
       tipo_cuenta_contable: [
