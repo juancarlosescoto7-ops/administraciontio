@@ -63,7 +63,7 @@ async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda })
     <>
       <p className="mb-4">
         Cliente:{" "}
-        <Link href={`/finanzas/pendientes/${cliente.id}`} className="font-medium text-primario hover:underline">
+        <Link href={`/finanzas/pendientes/${cliente.id}`} className="font-medium text-enlace hover:underline">
           {cliente.nombre}
         </Link>{" "}
         · <Link href="/finanzas/cobros/nuevo" className="text-sm texto-tenue hover:underline">cambiar</Link>

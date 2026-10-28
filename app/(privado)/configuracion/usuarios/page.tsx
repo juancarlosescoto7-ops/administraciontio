@@ -58,7 +58,7 @@ async function ContenidoUsuarios() {
             <li key={perfil.id}>
               <Link
                 href={`/configuracion/usuarios/${perfil.id}`}
-                className="tarjeta flex flex-col gap-1 p-4 hover:border-primario sm:flex-row sm:items-center sm:justify-between"
+                className="tarjeta tarjeta-enlace flex flex-col gap-1 p-4 sm:flex-row sm:items-center sm:justify-between"
               >
                 <span className="flex min-w-0 flex-col">
                   <span className="font-medium break-words">

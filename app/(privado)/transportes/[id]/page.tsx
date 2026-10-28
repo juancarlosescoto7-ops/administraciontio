@@ -115,7 +115,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       <Seccion titulo="Datos del servicio">
         <Datos
           filas={[
-            ["Cliente", <Link key="c" href={`/clientes/${t.cliente_id}`} className="text-primario hover:underline">{t.cliente_nombre}</Link>],
+            ["Cliente", <Link key="c" href={`/clientes/${t.cliente_id}`} className="text-enlace hover:underline">{t.cliente_nombre}</Link>],
             ["Origen", t.origen],
             ["Destino", t.destino],
             ["Observaciones", t.notas],
@@ -189,7 +189,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
         />
         <p className="mb-4 flex flex-wrap items-center gap-3">
           {t.cargo_id && (
-            <Link href={`/finanzas/cargos/${t.cargo_id}`} className="text-sm text-primario underline">
+            <Link href={`/finanzas/cargos/${t.cargo_id}`} className="text-sm text-enlace underline">
               Ver cargo
             </Link>
           )}
@@ -212,6 +212,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
               campos={camposFinalizarTransporte(aFavor > 0)}
               accion={finalizarTransporte.bind(null, id, aFavor > 0)}
               textoEnviar="Finalizar servicio"
+              tono="exito"
               prefijo="finalizar-"
             />
           </div>
@@ -232,9 +233,9 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
             </Desplegable>
           )}
           {acciones.cancelar && (
-            <Desplegable titulo="Cancelar servicio">
+            <Desplegable titulo="Cancelar servicio" peligro>
               <p className="mb-4 text-sm texto-tenue">Libera el vehículo y el conductor. No genera cargo; los anticipos quedan como saldo a favor.</p>
-              <FormularioOperacion campos={camposCancelarTransporte()} accion={cancelarTransporte.bind(null, id)} textoEnviar="Cancelar servicio" prefijo="cancelar-" />
+              <FormularioOperacion campos={camposCancelarTransporte()} accion={cancelarTransporte.bind(null, id)} textoEnviar="Cancelar servicio" prefijo="cancelar-" tono="peligro" />
             </Desplegable>
           )}
         </Seccion>

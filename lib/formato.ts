@@ -67,3 +67,17 @@ export function hoyEnTegucigalpa(ahora: Date = new Date()): string {
     day: "2-digit",
   }).format(ahora);
 }
+
+const formatoFechaLarga = new Intl.DateTimeFormat("es-HN", {
+  timeZone: ZONA_HORARIA,
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+
+/** «Lunes 26 de octubre de 2026» en la zona horaria de la empresa. */
+export function formatearFechaLarga(ahora: Date = new Date()): string {
+  const texto = formatoFechaLarga.format(ahora);
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}

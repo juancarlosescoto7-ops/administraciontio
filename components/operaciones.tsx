@@ -2,15 +2,18 @@
 // transportes): formularios desplegables, acciones de un clic, avisos e
 // historial de la bitácora.
 import type { ReactNode } from "react";
+import { EstadoVacio } from "@/components/encabezado";
 import { formatearFechaHora } from "@/lib/formato";
 import type { Json } from "@/lib/supabase/tipos-bd";
 import { FormularioOperacion } from "@/components/finanzas/operaciones";
+import { HistorialPlegable } from "@/components/historial-plegable";
 
-export function Desplegable({ titulo, children }: { titulo: string; children: ReactNode }) {
+/** Formulario plegado; `peligro` marca cancelaciones y correcciones irreversibles. */
+export function Desplegable({ titulo, children, peligro = false }: { titulo: string; children: ReactNode; peligro?: boolean }) {
   return (
-    <details className="tarjeta mt-4 p-4 sm:p-6">
-      <summary className="cursor-pointer font-medium">{titulo}</summary>
-      <div className="mt-4">{children}</div>
+    <details className={`tarjeta desplegable mt-3 px-5 py-1.5 ${peligro ? "desplegable-peligro" : ""}`}>
+      <summary>{titulo}</summary>
+      <div className="mt-2 border-t border-borde pt-4 pb-4">{children}</div>
     </details>
   );
 }
@@ -46,23 +49,25 @@ export function Historial({
   acciones: Record<string, string>;
   describir?: (accion: string, despues: Json) => string | null;
 }) {
-  if (!eventos?.length) return <p className="tarjeta p-4 texto-tenue">Sin eventos registrados.</p>;
+  if (!eventos?.length) return <EstadoVacio mensaje="Sin eventos registrados." />;
   return (
-    <ul className="tarjeta divide-y divide-[var(--borde)]">
-      {eventos.map((evento, indice) => {
-        const detalle = describir?.(evento.accion, evento.despues) ?? null;
-        return (
-          <li key={`${evento.fecha}-${indice}`} className="flex flex-col gap-0.5 px-4 py-3 text-sm">
-            <span className="font-medium">{acciones[evento.accion] ?? evento.accion}</span>
-            <span className="texto-tenue">
-              {formatearFechaHora(evento.fecha)} · {evento.actor ?? "Sistema"}
-            </span>
-            {detalle && <span>{detalle}</span>}
-            {evento.motivo && <span className="texto-tenue">Motivo: {evento.motivo}</span>}
-          </li>
-        );
-      })}
-    </ul>
+    <HistorialPlegable total={eventos.length}>
+      <ul className="tarjeta historial py-1">
+        {eventos.map((evento, indice) => {
+          const detalle = describir?.(evento.accion, evento.despues) ?? null;
+          return (
+            <li key={`${evento.fecha}-${indice}`} className="flex flex-col gap-0.5 py-3 pr-4 text-sm">
+              <span className="font-medium">{acciones[evento.accion] ?? evento.accion}</span>
+              <span className="texto-tenue">
+                {formatearFechaHora(evento.fecha)} · {evento.actor ?? "Sistema"}
+              </span>
+              {detalle && <span>{detalle}</span>}
+              {evento.motivo && <span className="texto-tenue">Motivo: {evento.motivo}</span>}
+            </li>
+          );
+        })}
+      </ul>
+    </HistorialPlegable>
   );
 }
 
@@ -79,6 +84,12 @@ export function InsigniaEstado({
   finales?: readonly string[];
 }) {
   if (!estado) return <span className="insignia insignia-inactivo">—</span>;
-  const clase = finales.includes(estado) ? "insignia-inactivo" : atencion.includes(estado) ? "insignia-advertencia" : "insignia-activo";
+  const clase = finales.includes(estado)
+    ? "insignia-inactivo"
+    : atencion.includes(estado)
+      ? "insignia-advertencia"
+      : estado === "en_curso" || estado === "entregado"
+        ? "insignia-info"
+        : "insignia-activo";
   return <span className={`insignia ${clase}`}>{etiquetas[estado] ?? estado}</span>;
 }

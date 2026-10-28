@@ -131,7 +131,7 @@ function Revision({
 
   return (
     <>
-      <Seccion titulo="3. Condiciones del plan">
+      <Seccion titulo="3. Condiciones del plan" fija>
         <Datos
           filas={[
             ["Plan", plan.nombre],
@@ -165,7 +165,7 @@ function Revision({
         <div className="tarjeta p-4 sm:p-6">
           <p className="mb-4 text-sm">
             Marque los beneficiarios de la membresía. ¿Falta alguno?{" "}
-            <Link href="/beneficiarios/nuevo" className="text-primario underline" target="_blank">
+            <Link href="/beneficiarios/nuevo" className="text-enlace underline" target="_blank">
               Registrar beneficiario
             </Link>
             .
@@ -174,6 +174,7 @@ function Revision({
             campos={camposAltaMembresia(beneficiarios, administrador)}
             accion={registrarMembresia.bind(null, clienteId, plan.id, inicio)}
             textoEnviar="Confirmar membresía"
+            tono="exito"
             rutaCancelar="/membresias"
           />
         </div>

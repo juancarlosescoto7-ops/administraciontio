@@ -45,13 +45,17 @@ export function ActualizarAlAbrir() {
   useEffect(() => {
     if (lanzado.current) return;
     lanzado.current = true;
-    actualizarAlAbrir()
-      .then((resumen) => {
-        if (!resumen) return;
-        setMensaje(describirActualizacion(resumen));
-        router.refresh();
-      })
-      .catch(() => {});
+    const lanzar = () =>
+      actualizarAlAbrir()
+        .then((resumen) => {
+          if (!resumen) return;
+          setMensaje(describirActualizacion(resumen));
+          router.refresh();
+        })
+        .catch(() => {});
+    // Espera a que el navegador quede libre: no compite con la carga del panel.
+    if ("requestIdleCallback" in window) requestIdleCallback(lanzar, { timeout: 2000 });
+    else setTimeout(lanzar, 300);
   }, [router]);
 
   if (!mensaje) return null;

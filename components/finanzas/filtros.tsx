@@ -3,6 +3,8 @@ import type { Opcion } from "@/lib/catalogos/definiciones";
 import { primerValor } from "@/lib/catalogos/presentacion";
 import { esFechaValida, limpiarBusqueda } from "@/lib/catalogos/validacion";
 import { createClient } from "@/lib/supabase/server";
+import { EstadoVacio } from "@/components/encabezado";
+import { Plegable } from "@/components/plegable";
 
 export type ParametrosBusqueda = Promise<Record<string, string | string[] | undefined>>;
 
@@ -38,54 +40,74 @@ export function FormularioFiltros({
   /** Selectores adicionales (p. ej., tipo de servicio). */
   extras?: readonly { nombre: string; etiqueta: string; opciones: readonly Opcion[]; valor: string }[];
 }) {
-  const columnas = fechas ? "lg:grid-cols-[2fr_1fr_1fr_1fr_auto]" : "lg:grid-cols-[2fr_1fr_auto]";
+  // Filtros secundarios (tipo y fechas): plegados, salvo que alguno esté aplicado.
+  const activos =
+    extras.filter((extra) => extra.valor !== extra.opciones[0]?.valor).length +
+    (fechas && filtros.desde ? 1 : 0) +
+    (fechas && filtros.hasta ? 1 : 0);
+  // Todo el buscador queda en una barra; se abre solo si hay algo aplicado.
+  const aplicados = activos + (filtros.busqueda ? 1 : 0) + (filtros.estado !== estados[0].valor ? 1 : 0);
   return (
-    <form
-      method="get"
-      className={`tarjeta mb-4 grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 ${extras.length ? "lg:grid-cols-3" : columnas} lg:items-end`}
+    <Plegable
+      titulo="Buscar y filtrar"
+      resumen={aplicados === 0 ? "Sin filtros aplicados" : aplicados === 1 ? "1 filtro aplicado" : `${aplicados} filtros aplicados`}
+      abierta={aplicados > 0}
     >
-      <label className="campo">
-        <span className="campo-etiqueta">Buscar</span>
-        <input className="entrada" type="search" name="q" defaultValue={filtros.busqueda} placeholder={placeholder} />
-      </label>
-      <label className="campo">
-        <span className="campo-etiqueta">Estado</span>
-        <select className="entrada" name="estado" defaultValue={filtros.estado}>
-          {estados.map((opcion) => (
-            <option key={opcion.valor} value={opcion.valor}>
-              {opcion.etiqueta}
-            </option>
-          ))}
-        </select>
-      </label>
-      {extras.map((extra) => (
-        <label key={extra.nombre} className="campo">
-          <span className="campo-etiqueta">{extra.etiqueta}</span>
-          <select className="entrada" name={extra.nombre} defaultValue={extra.valor}>
-            {extra.opciones.map((opcion) => (
-              <option key={opcion.valor} value={opcion.valor}>
-                {opcion.etiqueta}
-              </option>
-            ))}
-          </select>
-        </label>
-      ))}
-      {fechas && (
-        <>
+      <form method="get" className="tarjeta p-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(12rem,16rem)_auto] sm:items-end">
           <label className="campo">
-            <span className="campo-etiqueta">Desde</span>
-            <input className="entrada" type="date" name="desde" defaultValue={filtros.desde ?? ""} />
+            <span className="campo-etiqueta">Buscar</span>
+            <input className="entrada" type="search" name="q" defaultValue={filtros.busqueda} placeholder={placeholder} />
           </label>
           <label className="campo">
-            <span className="campo-etiqueta">Hasta</span>
-            <input className="entrada" type="date" name="hasta" defaultValue={filtros.hasta ?? ""} />
+            <span className="campo-etiqueta">Estado</span>
+            <select className="entrada" name="estado" defaultValue={filtros.estado}>
+              {estados.map((opcion) => (
+                <option key={opcion.valor} value={opcion.valor}>
+                  {opcion.etiqueta}
+                </option>
+              ))}
+            </select>
           </label>
-        </>
-      )}
-      <button type="submit" className="boton boton-secundario">
-        Filtrar
-      </button>
-    </form>
+          <button type="submit" className="boton boton-secundario">
+            Filtrar
+          </button>
+        </div>
+        {(fechas || extras.length > 0) && (
+          <details className="desplegable mt-2" open={activos > 0}>
+            <summary className="w-fit justify-start text-sm font-medium text-enlace">
+              Más filtros{activos > 0 ? ` · ${activos === 1 ? "1 aplicado" : `${activos} aplicados`}` : ""}
+            </summary>
+            <div className="mt-1 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {extras.map((extra) => (
+                <label key={extra.nombre} className="campo">
+                  <span className="campo-etiqueta">{extra.etiqueta}</span>
+                  <select className="entrada" name={extra.nombre} defaultValue={extra.valor}>
+                    {extra.opciones.map((opcion) => (
+                      <option key={opcion.valor} value={opcion.valor}>
+                        {opcion.etiqueta}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ))}
+              {fechas && (
+                <>
+                  <label className="campo">
+                    <span className="campo-etiqueta">Desde</span>
+                    <input className="entrada" type="date" name="desde" defaultValue={filtros.desde ?? ""} />
+                  </label>
+                  <label className="campo">
+                    <span className="campo-etiqueta">Hasta</span>
+                    <input className="entrada" type="date" name="hasta" defaultValue={filtros.hasta ?? ""} />
+                  </label>
+                </>
+              )}
+            </div>
+          </details>
+        )}
+      </form>
+    </Plegable>
   );
 }
 
@@ -108,10 +130,10 @@ export async function BuscarCliente({ ruta, busqueda }: { ruta: string; busqueda
         </button>
       </form>
       {clientes?.length ? (
-        <ul className="tarjeta divide-y divide-[var(--borde)]">
+        <ul className="tarjeta divide-y divide-[var(--borde)] overflow-hidden">
           {clientes.map((cliente) => (
             <li key={cliente.id}>
-              <Link href={`${ruta}?cliente=${cliente.id}`} className="flex flex-col px-4 py-3 hover:bg-[var(--neutro-fondo)]">
+              <Link href={`${ruta}?cliente=${cliente.id}`} className="fila-enlace flex flex-col px-4 py-3">
                 <span className="font-medium">{cliente.nombre}</span>
                 {cliente.identificacion && <span className="text-sm texto-tenue">{cliente.identificacion}</span>}
               </Link>
@@ -119,7 +141,7 @@ export async function BuscarCliente({ ruta, busqueda }: { ruta: string; busqueda
           ))}
         </ul>
       ) : (
-        <p className="tarjeta p-4 texto-tenue">No hay clientes activos que coincidan.</p>
+        <EstadoVacio mensaje="No hay clientes activos que coincidan." />
       )}
     </div>
   );

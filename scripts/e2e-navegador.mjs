@@ -61,6 +61,7 @@ try {
   comprobar("cliente registrado", await esperar("/^\\/clientes\\/[0-9a-f-]{36}$/.test(location.pathname) && document.body.innerText.includes('Datos guardados')"), await ruta());
   const rutaCliente = await evaluar("location.pathname");
 
+  await evaluar("[...document.querySelectorAll('summary')].find((s) => s.textContent.includes('Editar datos')).click()");
   await llenar("#campo-telefono", "2222-3333");
   await llenar("#campo-tipo", "juridica");
   await pulsar("Guardar cambios");
@@ -93,6 +94,7 @@ try {
   comprobar("vehículo registrado con código en mayúsculas",
     await esperar(`document.body.innerText.includes('Datos guardados') && document.querySelector('h1')?.textContent === ${JSON.stringify(codigo.toUpperCase())}`));
   const rutaVehiculo = await evaluar("location.pathname");
+  await evaluar("[...document.querySelectorAll('summary')].find((s) => s.textContent.includes('Editar datos')).click()");
   await llenar("#campo-estado", "mantenimiento");
   await llenar("#campo-marca", "Toyota");
   await pulsar("Guardar cambios");

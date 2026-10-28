@@ -14,6 +14,7 @@ import { Cargando, Encabezado, SinPermiso } from "@/components/encabezado";
 import type { ParametrosBusqueda } from "@/components/finanzas/filtros";
 import { AvisoOperacion, FormularioCorreccion, FormularioOperacion } from "@/components/finanzas/operaciones";
 import { AsientosDocumento, Datos, InsigniaFinanciera, ResumenImportes, Seccion } from "@/components/finanzas/resumen";
+import { Desplegable } from "@/components/operaciones";
 import { Tabla } from "@/components/finanzas/tabla";
 
 export default function PaginaGasto({ params, searchParams }: PageProps<"/finanzas/gastos/[id]">) {
@@ -115,7 +116,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
                   etiqueta: "Acción",
                   celda: (p: { id: string; estado: string }) =>
                     p.estado === "confirmado" ? (
-                      <Link href={`${ruta}?pago=${p.id}`} className="text-sm text-primario hover:underline">Reversar</Link>
+                      <Link href={`${ruta}?pago=${p.id}`} className="text-sm text-enlace hover:underline">Reversar</Link>
                     ) : null,
                 }]
               : []),
@@ -124,8 +125,8 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       </Seccion>
 
       {corrige && pagoAReversar && (
-        <Seccion titulo="Reversar pago">
-          <div className="tarjeta p-4 sm:p-6">
+        <Seccion titulo="Reversar pago" abierta>
+          <div className="tarjeta desplegable-peligro p-4 sm:p-6">
             <p className="mb-4 text-sm">
               Devuelve {formatearMoneda(pagoAReversar.monto)} a {pagoAReversar.cuentas_dinero?.nombre} y el gasto vuelve a quedar
               pendiente por ese importe. El pago original se conserva como reversado.
@@ -142,13 +143,13 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       )}
 
       {corrige && registrado && !pagoAReversar && (
-        <Seccion titulo="Anular gasto">
+        <Seccion titulo="Correcciones">
           {tienePagos ? (
-            <p className="tarjeta p-4 text-sm texto-tenue">
+            <p className="aviso aviso-info text-sm">
               Para anular el gasto, reverse primero sus pagos confirmados.
             </p>
           ) : (
-            <div className="tarjeta p-4 sm:p-6">
+            <Desplegable titulo="Anular gasto" peligro>
               <FormularioCorreccion
                 tipo="gasto"
                 id={id}
@@ -156,7 +157,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
                 textoEnviar="Anular gasto"
                 confirmacion="Confirmo la anulación de este gasto"
               />
-            </div>
+            </Desplegable>
           )}
         </Seccion>
       )}

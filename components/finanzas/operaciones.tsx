@@ -21,6 +21,7 @@ export function FormularioOperacion({
   rutaCancelar = null,
   registro = null,
   prefijo,
+  tono,
 }: {
   campos: readonly Campo[];
   accion: Accion;
@@ -30,6 +31,7 @@ export function FormularioOperacion({
   registro?: Record<string, unknown> | null;
   /** Prefijo de los id si la página tiene varios formularios. */
   prefijo?: string;
+  tono?: "primario" | "exito" | "peligro";
 }) {
   return (
     <FormularioCatalogo
@@ -41,6 +43,7 @@ export function FormularioOperacion({
       hoy={hoyEnTegucigalpa()}
       ocultos={{ idempotencia: randomUUID() }}
       prefijo={prefijo}
+      tono={tono}
     />
   );
 }
@@ -70,6 +73,7 @@ export function FormularioCorreccion({
       hoy={hoyEnTegucigalpa()}
       // Una página puede mostrar dos correcciones (p. ej., cobro y aplicación).
       prefijo={`${tipo}-`}
+      tono="peligro"
     />
   );
 }

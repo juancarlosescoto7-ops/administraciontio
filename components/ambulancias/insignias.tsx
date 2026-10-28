@@ -11,7 +11,7 @@ type Cobertura = Database["public"]["Enums"]["condicion_cobertura"];
 const CLASE_ESTADO: Record<EstadoTraslado, string> = {
   solicitado: "insignia-advertencia",
   programado: "insignia-activo",
-  en_curso: "insignia-activo",
+  en_curso: "insignia-info",
   completado: "insignia-inactivo",
   cancelado: "insignia-inactivo",
 };

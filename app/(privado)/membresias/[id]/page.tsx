@@ -15,12 +15,14 @@ import {
 import { formatearFecha, formatearFechaHora, formatearMoneda, hoyEnTegucigalpa } from "@/lib/formato";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/tipos-bd";
-import { Cargando, Encabezado } from "@/components/encabezado";
+import { Cargando, Encabezado, EstadoVacio } from "@/components/encabezado";
 import type { ParametrosBusqueda } from "@/components/finanzas/filtros";
 import { AvisoOperacion, FormularioOperacion } from "@/components/finanzas/operaciones";
 import { Datos, ResumenImportes, Seccion } from "@/components/finanzas/resumen";
 import { Tabla } from "@/components/finanzas/tabla";
 import { BotonActualizarMensualidades } from "@/components/membresias/actualizar";
+import { Desplegable } from "@/components/operaciones";
+import { HistorialPlegable } from "@/components/historial-plegable";
 import { InsigniaCuota, InsigniaMembresia } from "@/components/membresias/insignia";
 
 export default function PaginaMembresia({ params, searchParams }: PageProps<"/membresias/[id]">) {
@@ -133,8 +135,8 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       <Seccion titulo="Información general">
         <Datos
           filas={[
-            ["Cliente titular", <Link key="c" href={`/clientes/${membresia.cliente_id}`} className="text-primario hover:underline">{membresia.cliente_nombre}</Link>],
-            ["Plan", <Link key="p" href={`/planes/${membresia.plan_id}`} className="text-primario hover:underline">{membresia.plan_nombre}</Link>],
+            ["Cliente titular", <Link key="c" href={`/clientes/${membresia.cliente_id}`} className="text-enlace hover:underline">{membresia.cliente_nombre}</Link>],
+            ["Plan", <Link key="p" href={`/planes/${membresia.plan_id}`} className="text-enlace hover:underline">{membresia.plan_nombre}</Link>],
             ["Fecha de afiliación", formatearFecha(membresia.fecha_inicio)],
             ["Día de renovación", `Día ${membresia.dia_ancla} de cada mes (o el último día si el mes es más corto)`],
             ["Próxima renovación", membresia.estado === "activa" ? formatearFecha(membresia.proxima_renovacion) : "— (no renueva mientras no esté activa)"],
@@ -156,8 +158,8 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
           ]}
         />
         {administrador && (
-          <details className="tarjeta mb-6 p-4 sm:p-6">
-            <summary className="cursor-pointer font-medium">Editar condiciones</summary>
+          <details className="tarjeta desplegable mb-6 px-4 py-2 open:pb-4 sm:px-6">
+            <summary>Editar condiciones</summary>
             <p className="my-4 text-sm texto-tenue">
               Se aplican desde la próxima mensualidad; los períodos ya generados conservan sus condiciones.
             </p>
@@ -193,7 +195,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
               celda: (v) =>
                 v.activo ? (
                   operador ? (
-                    <Link href={`${ruta}?vinculo=${v.id}#baja`} className="text-sm text-primario underline">
+                    <Link href={`${ruta}?vinculo=${v.id}#baja`} className="text-sm text-enlace underline">
                       Dar de baja
                     </Link>
                   ) : (
@@ -206,7 +208,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
           ]}
         />
         {operador && vigentes.some((v) => v.id === vinculoBaja) && (
-          <div id="baja" className="tarjeta mt-4 p-4 sm:p-6">
+          <div id="baja" className="tarjeta desplegable-peligro mt-4 p-4 sm:p-6">
             <p className="mb-4 text-sm">
               Dar de baja a {vigentes.find((v) => v.id === vinculoBaja)?.beneficiarios?.nombre}: deja de estar cubierto desde hoy. El
               historial se conserva.
@@ -217,12 +219,13 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
               textoEnviar="Dar de baja"
               rutaCancelar={ruta}
               prefijo="baja-"
+              tono="peligro"
             />
           </div>
         )}
         {operador && opcionesAgregar.length > 0 && (
-          <details className="tarjeta mt-4 p-4 sm:p-6">
-            <summary className="cursor-pointer font-medium">Agregar beneficiario</summary>
+          <details className="tarjeta desplegable mt-4 px-4 py-2 open:pb-4 sm:px-6">
+            <summary>Agregar beneficiario</summary>
             <div className="mt-4">
               <FormularioOperacion
                 campos={camposAgregarBeneficiario(opcionesAgregar)}
@@ -302,8 +305,8 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       </Seccion>
 
       {administrador && (
-        <Seccion titulo="Cancelar membresía">
-          <div className="tarjeta p-4 sm:p-6">
+        <Seccion titulo="Baja de la membresía">
+          <Desplegable titulo="Cancelar la membresía" peligro>
             <p className="mb-4 text-sm">
               Deja de renovar y de cubrir traslados. Las cuotas pendientes se conservan como deuda del cliente y los pagos no se
               modifican. Una membresía cancelada no se reactiva al pagar.
@@ -313,27 +316,30 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
               accion={cancelarMembresia.bind(null, id)}
               textoEnviar="Cancelar membresía"
               prefijo="cancelar-"
+              tono="peligro"
             />
-          </div>
+          </Desplegable>
         </Seccion>
       )}
 
       <Seccion titulo="Historial">
         {historial?.length ? (
-          <ul className="tarjeta divide-y divide-[var(--borde)]">
-            {historial.map((evento, indice) => (
-              <li key={`${evento.fecha}-${indice}`} className="flex flex-col gap-0.5 px-4 py-3 text-sm">
-                <span className="font-medium">{ACCIONES[evento.accion] ?? evento.accion}</span>
-                <span className="texto-tenue">
-                  {formatearFechaHora(evento.fecha)} · {evento.actor ?? "Sistema"}
-                </span>
-                {describirEvento(evento.accion, evento.despues, evento.antes) && <span>{describirEvento(evento.accion, evento.despues, evento.antes)}</span>}
-                {evento.motivo && <span className="texto-tenue">Motivo: {evento.motivo}</span>}
-              </li>
-            ))}
-          </ul>
+          <HistorialPlegable total={historial.length}>
+            <ul className="tarjeta historial py-1">
+              {historial.map((evento, indice) => (
+                <li key={`${evento.fecha}-${indice}`} className="flex flex-col gap-0.5 py-3 pr-4 text-sm">
+                  <span className="font-medium">{ACCIONES[evento.accion] ?? evento.accion}</span>
+                  <span className="texto-tenue">
+                    {formatearFechaHora(evento.fecha)} · {evento.actor ?? "Sistema"}
+                  </span>
+                  {describirEvento(evento.accion, evento.despues, evento.antes) && <span>{describirEvento(evento.accion, evento.despues, evento.antes)}</span>}
+                  {evento.motivo && <span className="texto-tenue">Motivo: {evento.motivo}</span>}
+                </li>
+              ))}
+            </ul>
+          </HistorialPlegable>
         ) : (
-          <p className="tarjeta p-4 texto-tenue">Sin eventos registrados.</p>
+          <EstadoVacio mensaje="Sin eventos registrados." />
         )}
       </Seccion>
     </>

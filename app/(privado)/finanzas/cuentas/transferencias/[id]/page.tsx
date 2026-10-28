@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Cargando, Encabezado, SinPermiso } from "@/components/encabezado";
 import type { ParametrosBusqueda } from "@/components/finanzas/filtros";
 import { AvisoOperacion, FormularioCorreccion } from "@/components/finanzas/operaciones";
+import { Desplegable } from "@/components/operaciones";
 import { AsientosDocumento, Datos, InsigniaFinanciera, ResumenImportes, Seccion } from "@/components/finanzas/resumen";
 
 export default function PaginaTransferencia({ params, searchParams }: PageProps<"/finanzas/cuentas/transferencias/[id]">) {
@@ -40,7 +41,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
 
   const ruta = `/finanzas/cuentas/transferencias/${id}`;
   const cuenta = (c: { id: string; nombre: string } | null) =>
-    c ? <Link href={`/finanzas/cuentas/${c.id}`} className="text-primario hover:underline">{c.nombre}</Link> : "—";
+    c ? <Link href={`/finanzas/cuentas/${c.id}`} className="text-enlace hover:underline">{c.nombre}</Link> : "—";
 
   return (
     <>
@@ -68,8 +69,8 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       />
 
       {puede("corregir", usuario.rol) && transferencia.estado === "confirmado" && (
-        <Seccion titulo="Reversar transferencia">
-          <div className="tarjeta p-4 sm:p-6">
+        <Seccion titulo="Correcciones">
+          <Desplegable titulo="Reversar transferencia" peligro>
             <FormularioCorreccion
               tipo="transferencia"
               id={id}
@@ -77,7 +78,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
               textoEnviar="Reversar transferencia"
               confirmacion="Confirmo el reverso de esta transferencia"
             />
-          </div>
+          </Desplegable>
         </Seccion>
       )}
 

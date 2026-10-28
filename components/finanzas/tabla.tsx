@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { EstadoVacio } from "@/components/encabezado";
 
 export type Columna<T> = {
   clave: string;
@@ -25,7 +26,7 @@ export function Tabla<T extends { id: string }>({
   totales?: Partial<Record<string, ReactNode>>;
 }) {
   if (filas.length === 0) {
-    return <p className="tarjeta p-6 text-center texto-tenue">{vacio}</p>;
+    return <EstadoVacio mensaje={vacio} />;
   }
   const [principal, ...resto] = columnas;
 
@@ -48,11 +49,11 @@ export function Tabla<T extends { id: string }>({
           return (
             <li key={fila.id}>
               {href ? (
-                <Link href={href} className="tarjeta flex flex-col gap-1 p-4">
+                <Link href={href} className="tarjeta tarjeta-enlace flex flex-col gap-1.5 p-4">
                   {contenido}
                 </Link>
               ) : (
-                <div className="tarjeta flex flex-col gap-1 p-4">{contenido}</div>
+                <div className="tarjeta flex flex-col gap-1.5 p-4">{contenido}</div>
               )}
             </li>
           );
@@ -91,7 +92,7 @@ export function Tabla<T extends { id: string }>({
                   {columnas.map((columna, indice) => (
                     <td key={columna.clave} className={columna.numerica ? "text-right tabular-nums whitespace-nowrap" : undefined}>
                       {indice === 0 && href ? (
-                        <Link href={href} className="font-medium text-primario hover:underline">
+                        <Link href={href} className="font-medium text-enlace hover:underline">
                           {columna.celda(fila)}
                         </Link>
                       ) : (

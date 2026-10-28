@@ -132,10 +132,10 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       <Seccion titulo="Datos del servicio">
         <Datos
           filas={[
-            ["Cliente", <Link key="c" href={`/clientes/${t.cliente_id}`} className="text-primario hover:underline">{t.cliente_nombre}</Link>],
+            ["Cliente", <Link key="c" href={`/clientes/${t.cliente_id}`} className="text-enlace hover:underline">{t.cliente_nombre}</Link>],
             [particular ? "Beneficiario o pasajero" : "Beneficiario", t.paciente],
             ...(membresia
-              ? ([["Membresía", <Link key="m" href={`/membresias/${membresia.id}`} className="text-primario hover:underline">{membresia.plan_nombre}</Link>]] as [string, ReactNode][])
+              ? ([["Membresía", <Link key="m" href={`/membresias/${membresia.id}`} className="text-enlace hover:underline">{membresia.plan_nombre}</Link>]] as [string, ReactNode][])
               : []),
             ["Origen", t.origen],
             ["Destino", t.destino ?? "Sin indicar (se exige para iniciar)"],
@@ -239,7 +239,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
             <p className="mb-4 flex flex-wrap items-center gap-3">
               <InsigniaFinanciera estado={t.estado_financiero} />
               {t.cargo_id && (
-                <Link href={`/finanzas/cargos/${t.cargo_id}`} className="text-sm text-primario underline">
+                <Link href={`/finanzas/cargos/${t.cargo_id}`} className="text-sm text-enlace underline">
                   Ver cargo
                 </Link>
               )}
@@ -257,7 +257,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
             )}
           </>
         ) : (
-          <p className="tarjeta p-4 text-sm">Cubierto por la membresía: no genera cargo. El ingreso es la mensualidad.</p>
+          <p className="aviso aviso-info text-sm">Cubierto por la membresía: no genera cargo. El ingreso es la mensualidad.</p>
         )}
       </Seccion>
 
@@ -273,6 +273,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
               campos={camposFinalizar(particular && aFavor > 0)}
               accion={finalizarTraslado.bind(null, id, particular && aFavor > 0)}
               textoEnviar="Finalizar traslado"
+              tono="exito"
               prefijo="finalizar-"
             />
           </div>
@@ -301,18 +302,19 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
             </Desplegable>
           )}
           {acciones.cancelar && (
-            <Desplegable titulo="Cancelar traslado">
+            <Desplegable titulo="Cancelar traslado" peligro>
               <p className="mb-4 text-sm texto-tenue">Libera la ambulancia, el conductor y la reserva del beneficio. No genera cargo.</p>
               <FormularioOperacion
                 campos={camposCancelar("Confirmo la cancelación del traslado")}
                 accion={cancelarTraslado.bind(null, id)}
                 textoEnviar="Cancelar traslado"
                 prefijo="cancelar-"
+                tono="peligro"
               />
             </Desplegable>
           )}
           {acciones.revertirConsumo && (
-            <Desplegable titulo="Devolver el beneficio consumido (corrección)">
+            <Desplegable titulo="Devolver el beneficio consumido (corrección)" peligro>
               <p className="mb-4 text-sm texto-tenue">
                 Para un traslado registrado como cubierto por error. Los importes se corrigen con los reversos de Finanzas.
               </p>
@@ -321,6 +323,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
                 accion={revertirConsumo.bind(null, id)}
                 textoEnviar="Devolver beneficio"
                 prefijo="revertir-"
+                tono="peligro"
               />
             </Desplegable>
           )}

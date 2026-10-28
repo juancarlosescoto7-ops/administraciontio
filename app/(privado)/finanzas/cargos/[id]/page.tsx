@@ -13,6 +13,7 @@ import { Cargando, Encabezado } from "@/components/encabezado";
 import type { ParametrosBusqueda } from "@/components/finanzas/filtros";
 import { AvisoOperacion, FormularioCorreccion, FormularioOperacion } from "@/components/finanzas/operaciones";
 import { AsientosDocumento, Datos, InsigniaFinanciera, ResumenImportes, Seccion } from "@/components/finanzas/resumen";
+import { Desplegable } from "@/components/operaciones";
 import { Tabla } from "@/components/finanzas/tabla";
 
 export default function PaginaCargo({ params, searchParams }: PageProps<"/finanzas/cargos/[id]">) {
@@ -79,18 +80,18 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       />
       <Datos
         filas={[
-          ["Cliente", <Link key="c" href={`/finanzas/pendientes/${cargo.cliente_id}`} className="text-primario hover:underline">{cargo.cliente_nombre}</Link>],
+          ["Cliente", <Link key="c" href={`/finanzas/pendientes/${cargo.cliente_id}`} className="text-enlace hover:underline">{cargo.cliente_nombre}</Link>],
           ["Actividad", cargo.actividad ? ETIQUETAS_ACTIVIDAD[cargo.actividad] : null],
           ["Fecha", formatearFecha(cargo.fecha)],
           ["Vencimiento", formatearFecha(cargo.vencimiento)],
           [
             "Origen",
             periodo ? (
-              <Link key="o" href={`/membresias/${periodo.membresia_id}`} className="text-primario hover:underline">
+              <Link key="o" href={`/membresias/${periodo.membresia_id}`} className="text-enlace hover:underline">
                 Mensualidad de membresía
               </Link>
             ) : operacion ? (
-              <Link key="o" href={operacion.ruta} className="text-primario hover:underline">
+              <Link key="o" href={operacion.ruta} className="text-enlace hover:underline">
                 {operacion.texto}
               </Link>
             ) : cargo.origen_tipo === "manual" ? (
@@ -139,8 +140,8 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       </Seccion>
 
       {vigente && puede("corregir", usuario.rol) && (
-        <Seccion titulo="Anular cargo">
-          <div className="tarjeta p-4 sm:p-6">
+        <Seccion titulo="Correcciones">
+          <Desplegable titulo="Anular cargo" peligro>
             <p className="mb-4 text-sm">
               Reversa el ingreso reconocido. Lo ya pagado ({formatearMoneda(cargo.aplicado)}) vuelve al saldo a favor del cliente;
               no se mueve dinero.
@@ -152,7 +153,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
               textoEnviar="Anular cargo"
               confirmacion="Confirmo la anulación de este cargo"
             />
-          </div>
+          </Desplegable>
         </Seccion>
       )}
 

@@ -94,7 +94,7 @@ async function Tesoreria({ params, searchParams }: { params: Promise<{ id: strin
         )}
         {corrige && apertura && (
           primerValor(parametros.reversar_apertura) === "1" ? (
-            <div className="tarjeta p-4 sm:p-6">
+            <div className="tarjeta desplegable-peligro p-4 sm:p-6">
               <h3 className="mb-4 font-semibold">Reversar saldo inicial de {formatearMoneda(apertura.monto_con_signo)}</h3>
               <FormularioCorreccion
                 tipo="apertura"
@@ -105,7 +105,7 @@ async function Tesoreria({ params, searchParams }: { params: Promise<{ id: strin
               />
             </div>
           ) : (
-            <Link href={`${ruta}?reversar_apertura=1`} className="text-sm text-primario hover:underline">
+            <Link href={`${ruta}?reversar_apertura=1`} className="text-sm text-enlace hover:underline">
               Corregir el saldo inicial (reverso)
             </Link>
           )

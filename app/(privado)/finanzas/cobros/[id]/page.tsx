@@ -11,6 +11,7 @@ import { Cargando, Encabezado } from "@/components/encabezado";
 import type { ParametrosBusqueda } from "@/components/finanzas/filtros";
 import { AvisoOperacion, FormularioCorreccion } from "@/components/finanzas/operaciones";
 import { AsientosDocumento, Datos, InsigniaFinanciera, ResumenImportes, Seccion } from "@/components/finanzas/resumen";
+import { Desplegable } from "@/components/operaciones";
 import { Tabla } from "@/components/finanzas/tabla";
 
 export default function PaginaCobro({ params, searchParams }: PageProps<"/finanzas/cobros/[id]">) {
@@ -65,7 +66,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       />
       <Datos
         filas={[
-          ["Cliente", <Link key="c" href={`/finanzas/pendientes/${cobro.cliente_id}`} className="text-primario hover:underline">{cobro.cliente_nombre}</Link>],
+          ["Cliente", <Link key="c" href={`/finanzas/pendientes/${cobro.cliente_id}`} className="text-enlace hover:underline">{cobro.cliente_nombre}</Link>],
           ["Fecha", formatearFecha(cobro.fecha)],
           ["Caja o banco", cobro.cuenta_nombre],
           ["Método", cobro.metodo ? ETIQUETAS_METODO[cobro.metodo] : "—"],
@@ -93,7 +94,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
                   etiqueta: "Acción",
                   celda: (a: { id: string; estado: string }) =>
                     a.estado === "vigente" ? (
-                      <Link href={`${ruta}?aplicacion=${a.id}`} className="text-sm text-primario hover:underline">Reversar</Link>
+                      <Link href={`${ruta}?aplicacion=${a.id}`} className="text-sm text-enlace hover:underline">Reversar</Link>
                     ) : null,
                 }]
               : []),
@@ -102,8 +103,8 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       </Seccion>
 
       {corrige && aplicacionAReversar && (
-        <Seccion titulo="Reversar aplicación">
-          <div className="tarjeta p-4 sm:p-6">
+        <Seccion titulo="Reversar aplicación" abierta>
+          <div className="tarjeta desplegable-peligro p-4 sm:p-6">
             <p className="mb-4 text-sm">
               {formatearMoneda(aplicacionAReversar.monto)} aplicados a «{aplicacionAReversar.cargos_cliente?.concepto}» vuelven al
               saldo a favor del cliente y el cargo queda pendiente otra vez. No se mueve dinero.
@@ -120,8 +121,8 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       )}
 
       {corrige && cobro.estado === "confirmado" && !aplicacionAReversar && (
-        <Seccion titulo="Reversar cobro">
-          <div className="tarjeta p-4 sm:p-6">
+        <Seccion titulo="Correcciones">
+          <Desplegable titulo="Reversar cobro" peligro>
             <p className="mb-4 text-sm">
               Registra la salida de {formatearMoneda(cobro.monto)} de {cobro.cuenta_nombre} y reversa sus aplicaciones (los cargos
               vuelven a quedar pendientes). El cobro original se conserva como reversado.
@@ -133,7 +134,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
               textoEnviar="Reversar cobro"
               confirmacion="Confirmo el reverso de este cobro"
             />
-          </div>
+          </Desplegable>
         </Seccion>
       )}
 

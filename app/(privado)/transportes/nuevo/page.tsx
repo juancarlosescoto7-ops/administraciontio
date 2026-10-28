@@ -71,7 +71,7 @@ async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda })
           cambiar
         </Link>
       </p>
-      <Seccion titulo="2. Precio">
+      <Seccion titulo="2. Precio" fija>
         {(tarifas ?? []).length > 0 ? (
           <form method="get" className="tarjeta mb-3 flex flex-col gap-3 p-4 sm:flex-row sm:items-end">
             <input type="hidden" name="cliente" value={cliente.id} />
@@ -96,7 +96,7 @@ async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda })
         <p className="text-sm texto-tenue">
           El precio pactado queda guardado en el servicio; el cargo se genera al completarlo.
           {aFavor > 0 && ` El cliente tiene ${formatearMoneda(aFavor)} a favor, aplicable al finalizar.`}{" "}
-          <Link href={`/finanzas/cobros/nuevo?cliente=${cliente.id}`} className="text-primario underline">
+          <Link href={`/finanzas/cobros/nuevo?cliente=${cliente.id}`} className="text-enlace underline">
             Registrar anticipo
           </Link>
         </p>

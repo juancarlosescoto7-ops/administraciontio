@@ -71,7 +71,7 @@ async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda })
           cambiar
         </Link>
       </p>
-      <Seccion titulo="2. Tipo de servicio">
+      <Seccion titulo="2. Tipo de servicio" fija>
         <ul className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           {(membresias ?? []).map((m) => (
             <li key={m.id}>
@@ -140,7 +140,7 @@ async function Cubierto({
 
   return (
     <>
-      <Seccion titulo={`3. Cobertura hoy (${formatearFecha(hoy)})`}>
+      <Seccion titulo={`3. Cobertura hoy (${formatearFecha(hoy)})`} fija>
         <p className="mb-3 text-sm texto-tenue">
           {membresia.modalidad_cupo ? ETIQUETAS_MODALIDAD[membresia.modalidad_cupo] : ""} · {membresia.cupo_pactado} traslados por período. La
           cobertura y el cupo se validan para la fecha programada al registrar; la solicitud se guarda aunque no haya cobertura.
@@ -194,7 +194,7 @@ async function Particular({
 
   return (
     <>
-      <Seccion titulo="3. Precio">
+      <Seccion titulo="3. Precio" fija>
         {(tarifas ?? []).length > 0 ? (
           <form method="get" className="tarjeta mb-3 flex flex-col gap-3 p-4 sm:flex-row sm:items-end">
             <input type="hidden" name="cliente" value={clienteId} />
@@ -220,7 +220,7 @@ async function Particular({
         <p className="text-sm texto-tenue">
           El precio pactado puede ajustarse y queda guardado en el servicio; el cargo se genera al completarlo.
           {Number(saldo?.saldo_a_favor ?? 0) > 0 && ` El cliente tiene ${formatearMoneda(saldo?.saldo_a_favor)} a favor, aplicable al finalizar.`}{" "}
-          <Link href={`/finanzas/cobros/nuevo?cliente=${clienteId}`} className="text-primario underline">
+          <Link href={`/finanzas/cobros/nuevo?cliente=${clienteId}`} className="text-enlace underline">
             Registrar anticipo
           </Link>
           {" · "}

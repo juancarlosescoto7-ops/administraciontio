@@ -71,7 +71,7 @@ async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda })
         ]}
       />
 
-      <Seccion titulo="Cuentas por cobrar">
+      <Seccion titulo="Cuentas por cobrar" fija>
         <form method="get" className="tarjeta mb-4 flex flex-col gap-3 p-4 sm:flex-row sm:items-end">
           <label className="campo flex-1">
             <span className="campo-etiqueta">Cliente</span>
@@ -100,7 +100,7 @@ async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda })
       </Seccion>
 
       {verPagar && (
-        <Seccion titulo="Cuentas por pagar">
+        <Seccion titulo="Cuentas por pagar" fija>
           <Tabla
             filas={filasGastos}
             enlace={(g) => `/finanzas/gastos/${g.id}`}

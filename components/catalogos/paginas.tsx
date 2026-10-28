@@ -17,7 +17,9 @@ import { tablaCatalogo, type Fila } from "@/lib/catalogos/tabla";
 import { filtroBusqueda, limpiarBusqueda, valoresDesdeRegistro } from "@/lib/catalogos/validacion";
 import { formatearFechaHora, hoyEnTegucigalpa } from "@/lib/formato";
 import { createClient } from "@/lib/supabase/server";
-import { Cargando, Encabezado, InsigniaEstado, SinPermiso } from "@/components/encabezado";
+import { Cargando, Encabezado, EstadoVacio, InsigniaEstado, SinPermiso } from "@/components/encabezado";
+import { Desplegable } from "@/components/operaciones";
+import { Plegable } from "@/components/plegable";
 import { FormularioCatalogo } from "./formulario-catalogo";
 
 type ParametrosBusqueda = Promise<Record<string, string | string[] | undefined>>;
@@ -88,40 +90,49 @@ async function ContenidoListado({
 
   return (
     <>
-      <form method="get" className="tarjeta mb-4 flex flex-col gap-3 p-4 sm:flex-row sm:items-end">
-        <label className="campo flex-1">
-          <span className="campo-etiqueta">Buscar</span>
-          <input
-            className="entrada"
-            type="search"
-            name="q"
-            defaultValue={busqueda}
-            placeholder={`Buscar en ${def.titulo.toLowerCase()}…`}
-          />
-        </label>
-        <label className="campo sm:w-44">
-          <span className="campo-etiqueta">Estado</span>
-          <select className="entrada" name="estado" defaultValue={filtroEstado}>
-            <option value="activos">Activos</option>
-            <option value="inactivos">Inactivos</option>
-            <option value="todos">Todos</option>
-          </select>
-        </label>
-        <button type="submit" className="boton boton-secundario">
-          Filtrar
-        </button>
-      </form>
+      {/* Buscador plegado en una barra; se abre si hay algo aplicado. */}
+      <Plegable
+        titulo="Buscar y filtrar"
+        resumen={busqueda || filtroEstado !== "activos" ? "Filtros aplicados" : "Sin filtros aplicados"}
+        abierta={Boolean(busqueda) || filtroEstado !== "activos"}
+      >
+        <form method="get" className="tarjeta flex flex-col gap-3 p-4 sm:flex-row sm:items-end">
+          <label className="campo flex-1">
+            <span className="campo-etiqueta">Buscar</span>
+            <input
+              className="entrada"
+              type="search"
+              name="q"
+              defaultValue={busqueda}
+              placeholder={`Buscar en ${def.titulo.toLowerCase()}…`}
+            />
+          </label>
+          <label className="campo sm:w-44">
+            <span className="campo-etiqueta">Estado</span>
+            <select className="entrada" name="estado" defaultValue={filtroEstado}>
+              <option value="activos">Activos</option>
+              <option value="inactivos">Inactivos</option>
+              <option value="todos">Todos</option>
+            </select>
+          </label>
+          <button type="submit" className="boton boton-secundario">
+            Filtrar
+          </button>
+        </form>
+      </Plegable>
 
       {error ? (
         <p role="alert" className="aviso aviso-error">
           No se pudo cargar el listado. Intente de nuevo.
         </p>
       ) : filas.length === 0 ? (
-        <p className="tarjeta p-6 text-center texto-tenue">
-          {busqueda || filtroEstado !== "activos"
-            ? "No hay registros que coincidan con el filtro."
-            : "Todavía no hay registros."}
-        </p>
+        <EstadoVacio
+          mensaje={
+            busqueda || filtroEstado !== "activos"
+              ? "No hay registros que coincidan con el filtro."
+              : "Todavía no hay registros."
+          }
+        />
       ) : (
         <ListadoFilas def={def} filas={filas} />
       )}
@@ -148,7 +159,7 @@ function ListadoFilas({ def, filas }: { def: DefinicionCatalogo; filas: Fila[] }
       <ul className="flex flex-col gap-2 sm:hidden">
         {filas.map((fila) => (
           <li key={fila.id}>
-            <Link href={`${def.ruta}/${fila.id}`} className="tarjeta flex flex-col gap-1 p-4">
+            <Link href={`${def.ruta}/${fila.id}`} className="tarjeta tarjeta-enlace flex flex-col gap-1 p-4">
               <span className="flex items-start justify-between gap-2">
                 <span className="font-medium break-words">
                   <Celda def={def} fila={fila} campo={principal.campo} />
@@ -185,7 +196,7 @@ function ListadoFilas({ def, filas }: { def: DefinicionCatalogo; filas: Fila[] }
                 {def.columnas.map((columna, indice) => (
                   <td key={columna.campo}>
                     {indice === 0 ? (
-                      <Link href={`${def.ruta}/${fila.id}`} className="font-medium text-primario hover:underline">
+                      <Link href={`${def.ruta}/${fila.id}`} className="font-medium text-enlace hover:underline">
                         <Celda def={def} fila={fila} campo={columna.campo} />
                       </Link>
                     ) : (
@@ -290,8 +301,29 @@ async function ContenidoDetalle({
         </p>
       )}
 
-      <div className="tarjeta p-4 sm:p-6">
-        {editable ? (
+      {/* Ficha en lectura y edición, ambas plegadas hasta que se necesiten. */}
+      <Plegable titulo="Datos">
+        <div className="tarjeta p-4 sm:p-6">
+          <dl className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
+            {def.campos.map((campo) => (
+              <div key={campo.nombre} className="flex flex-col gap-0.5">
+                <dt className="text-sm texto-tenue">{campo.etiqueta}</dt>
+                <dd className="break-words">
+                  {campo.nombre === "activo" ? (
+                    <InsigniaEstado activo={fila.activo} />
+                  ) : (
+                    mostrarValor(campo, fila[campo.nombre])
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          {!editable && <p className="aviso aviso-info mt-6 text-sm">Su rol permite consultar este registro, no modificarlo.</p>}
+        </div>
+      </Plegable>
+
+      {editable && (
+        <Desplegable titulo="Editar datos">
           <FormularioCatalogo
             campos={def.campos}
             accion={guardarRegistro.bind(null, def.clave, id)}
@@ -301,26 +333,8 @@ async function ContenidoDetalle({
             rutaBase={def.ruta}
             hoy={hoyEnTegucigalpa()}
           />
-        ) : (
-          <>
-            <dl className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
-              {def.campos.map((campo) => (
-                <div key={campo.nombre} className="flex flex-col gap-0.5">
-                  <dt className="text-sm texto-tenue">{campo.etiqueta}</dt>
-                  <dd className="break-words">
-                    {campo.nombre === "activo" ? (
-                      <InsigniaEstado activo={fila.activo} />
-                    ) : (
-                      mostrarValor(campo, fila[campo.nombre])
-                    )}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-            <p className="mt-6 text-sm texto-tenue">Su rol permite consultar este registro, no modificarlo.</p>
-          </>
-        )}
-      </div>
+        </Desplegable>
+      )}
 
       <p className="mt-3 text-sm texto-tenue">
         Registrado: {formatearFechaHora(fila.created_at as string)} · Última modificación:{" "}

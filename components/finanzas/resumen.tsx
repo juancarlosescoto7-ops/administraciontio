@@ -3,6 +3,7 @@ import { ESTADOS_FINALES, ETIQUETAS_ESTADO } from "@/lib/finanzas/definiciones";
 import { formatearMoneda } from "@/lib/formato";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/tipos-bd";
+import { Plegable } from "@/components/plegable";
 
 type Importe = { etiqueta: string; valor: number | string | null; ayuda?: string; destacado?: boolean };
 
@@ -11,7 +12,7 @@ export function ResumenImportes({ importes }: { importes: readonly Importe[] }) 
   return (
     <dl className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
       {importes.map((importe) => (
-        <div key={importe.etiqueta} className={`tarjeta flex flex-col gap-1 p-4 ${importe.destacado ? "border-primario" : ""}`}>
+        <div key={importe.etiqueta} className={`tarjeta flex flex-col gap-1 p-4 ${importe.destacado ? "border-[var(--borde-fuerte)] bg-[var(--neutro-fondo)]" : ""}`}>
           <dt className="text-sm texto-tenue">{importe.etiqueta}</dt>
           <dd className="text-lg font-semibold tabular-nums">{formatearMoneda(importe.valor ?? 0)}</dd>
           {importe.ayuda && <dd className="text-xs texto-tenue">{importe.ayuda}</dd>}
@@ -37,17 +38,39 @@ export function Datos({ filas }: { filas: readonly [string, ReactNode][] }) {
       {filas.map(([etiqueta, valor]) => (
         <div key={etiqueta} className="flex flex-col gap-0.5">
           <dt className="text-sm texto-tenue">{etiqueta}</dt>
-          <dd className="break-words">{valor ?? "—"}</dd>
+          <dd className="font-medium break-words">{valor ?? "—"}</dd>
         </div>
       ))}
     </dl>
   );
 }
 
-export function Seccion({ titulo, children }: { titulo: string; children: ReactNode }) {
+/**
+ * Sección de una página de detalle: plegada en una barra hasta que se abre.
+ * `fija` la deja siempre a la vista (pasos de un alta o grupos que ya son
+ * desplegables); `abierta` la muestra abierta al llegar.
+ */
+export function Seccion({
+  titulo,
+  children,
+  fija = false,
+  abierta = false,
+}: {
+  titulo: string;
+  children: ReactNode;
+  fija?: boolean;
+  abierta?: boolean;
+}) {
+  if (!fija) {
+    return (
+      <Plegable titulo={titulo} abierta={abierta}>
+        {children}
+      </Plegable>
+    );
+  }
   return (
     <section className="mb-8">
-      <h2 className="mb-3 text-lg font-semibold">{titulo}</h2>
+      <h2 className="mb-3 text-lg font-semibold tracking-tight">{titulo}</h2>
       {children}
     </section>
   );

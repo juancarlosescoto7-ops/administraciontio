@@ -151,6 +151,7 @@ try {
   comprobar("condiciones actualizadas: L 650 para los próximos ciclos; la cuota generada sigue en L 500",
     (await esperar("document.body.innerText.includes('Condiciones actualizadas')", 20000)) && (await contiene(L("650.00"))) &&
       (await evaluar("[...document.querySelectorAll('h2')].some((h) => h.textContent === 'Mensualidades')")) && (await contiene(L("500.00"))));
+  await evaluar("[...document.querySelectorAll('summary')].find((s) => s.textContent.includes('Cancelar la membresía')).click()");
   await llenar("#campo-cancelar-motivo", `${MARCA} el cliente se retira`);
   await pulsar("Cancelar membresía");
   comprobar("cancelar sin confirmar se rechaza", await esperar("document.body.innerText.includes('Marque la casilla')"));

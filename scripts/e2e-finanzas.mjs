@@ -124,6 +124,7 @@ try {
     (await esperar("document.body.innerText.includes('Saldo a favor aplicado')", 20000)) && (await contiene(L("800.00"))));
 
   await ir(rutaCobro);
+  await evaluar("[...document.querySelectorAll('summary')].find((s) => s.textContent.includes('Reversar cobro')).click()");
   await llenar("#campo-cobro-motivo", `${MARCA} prueba de reverso`);
   await pulsar("Reversar cobro");
   comprobar("reverso sin confirmar la casilla se rechaza", await esperar("document.body.innerText.includes('Marque la casilla')"));

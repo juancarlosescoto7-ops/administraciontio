@@ -136,7 +136,7 @@ async function Revision({
 
   return (
     <>
-      <Seccion titulo="3. Disponibilidad y precio">
+      <Seccion titulo="3. Disponibilidad y precio" fija>
         <Datos
           filas={[
             ["Entrega", formatearFechaHora(inicio)],
@@ -171,7 +171,7 @@ async function Revision({
           <p className="mb-4 text-sm texto-tenue">
             4. Confirme la reserva. La base vuelve a comprobar la disponibilidad al guardar.
             {saldoAFavor > 0 && ` El cliente tiene ${formatearMoneda(saldoAFavor)} a favor, aplicable al devolver.`}{" "}
-            <Link href={`/finanzas/cobros/nuevo?cliente=${clienteId}`} className="text-primario underline">
+            <Link href={`/finanzas/cobros/nuevo?cliente=${clienteId}`} className="text-enlace underline">
               Registrar anticipo
             </Link>
           </p>
@@ -179,6 +179,7 @@ async function Revision({
             campos={camposReserva(libres, sugerido)}
             accion={registrarAlquiler.bind(null, clienteId, inicio, fin, tarifa?.id ?? null)}
             textoEnviar="Confirmar reserva"
+            tono="exito"
             rutaCancelar="/alquileres"
           />
         </div>

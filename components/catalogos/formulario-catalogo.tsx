@@ -18,6 +18,7 @@ export function FormularioCatalogo({
   hoy,
   ocultos,
   prefijo = "",
+  tono = "primario",
 }: {
   campos: readonly Campo[];
   accion: Accion;
@@ -31,6 +32,8 @@ export function FormularioCatalogo({
   ocultos?: Record<string, string>;
   /** Prefijo de los id cuando hay varios formularios en la página (evita id repetidos). */
   prefijo?: string;
+  /** «peligro» para cancelaciones, reversos y anulaciones. */
+  tono?: "primario" | "exito" | "peligro";
 }) {
   const [estado, despachar, pendiente] = useActionState(accion, estadoInicial);
   const hidratado = useHidratado();
@@ -47,7 +50,7 @@ export function FormularioCatalogo({
         {campos.map((campo) => (
           <Fragment key={campo.nombre}>
             {campo.seccion && (
-              <h3 className="border-t border-borde pt-4 font-semibold sm:col-span-2">{campo.seccion}</h3>
+              <h3 className="border-t border-borde pt-5 font-semibold sm:col-span-2">{campo.seccion}</h3>
             )}
             <CampoFormulario
               campo={campo}
@@ -93,7 +96,7 @@ export function FormularioCatalogo({
             Cancelar
           </Link>
         )}
-        <button type="submit" className="boton boton-primario" disabled={pendiente || !hidratado}>
+        <button type="submit" className={`boton boton-${tono}`} disabled={pendiente || !hidratado}>
           {pendiente ? "Guardando…" : similares.length > 0 ? "Registrar de todos modos" : textoEnviar}
         </button>
       </div>
@@ -212,7 +215,12 @@ function CampoFormulario({
     <div className={`campo ${campo.tipo === "texto_largo" ? "sm:col-span-2" : ""}`}>
       <label htmlFor={id} className="campo-etiqueta">
         {campo.etiqueta}
-        {campo.requerido && <span aria-hidden="true"> *</span>}
+        {campo.requerido && (
+          <span aria-hidden="true" className="campo-obligatorio">
+            {" "}
+            *
+          </span>
+        )}
       </label>
       {control}
       {error ? (

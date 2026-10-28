@@ -96,7 +96,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       <Seccion titulo="Datos del alquiler">
         <Datos
           filas={[
-            ["Cliente", <Link key="c" href={`/clientes/${a.cliente_id}`} className="text-primario hover:underline">{a.cliente_nombre}</Link>],
+            ["Cliente", <Link key="c" href={`/clientes/${a.cliente_id}`} className="text-enlace hover:underline">{a.cliente_nombre}</Link>],
             ["Vehículo", `${a.vehiculo_codigo}${a.vehiculo_placa ? ` · ${a.vehiculo_placa}` : ""}`],
             ["Entrega prevista", formatearFechaHora(a.entrega_prevista)],
             ["Devolución prevista", formatearFechaHora(a.devolucion_prevista)],
@@ -146,7 +146,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
         {acciones.entregar && (
           <div className="tarjeta mt-4 p-4 sm:p-6">
             <p className="mb-4 text-sm">El vehículo queda ocupado hasta su devolución real. Puede entregarse con saldo pendiente.</p>
-            <FormularioOperacion campos={camposEntrega()} accion={entregarAlquiler.bind(null, id)} textoEnviar="Registrar entrega" prefijo="entrega-" />
+            <FormularioOperacion campos={camposEntrega()} accion={entregarAlquiler.bind(null, id)} textoEnviar="Registrar entrega" prefijo="entrega-" tono="exito" />
           </div>
         )}
       </Seccion>
@@ -192,6 +192,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
               campos={camposDevolucion(aFavor > 0, puede("corregirKilometraje", usuario.rol))}
               accion={devolverAlquiler.bind(null, id, aFavor > 0)}
               textoEnviar="Registrar devolución"
+              tono="exito"
               prefijo="devolucion-"
             />
           </div>
@@ -210,7 +211,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
         <p className="mb-4 flex flex-wrap items-center gap-3">
           <span className="text-sm texto-tenue">Saldo a favor del cliente: {formatearMoneda(aFavor)}</span>
           {a.cargo_id && (
-            <Link href={`/finanzas/cargos/${a.cargo_id}`} className="text-sm text-primario underline">
+            <Link href={`/finanzas/cargos/${a.cargo_id}`} className="text-sm text-enlace underline">
               Ver cargo
             </Link>
           )}
@@ -226,10 +227,10 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       </Seccion>
 
       {acciones.cancelar && (
-        <Seccion titulo="Cancelar reserva">
-          <Desplegable titulo="Cancelar la reserva">
+        <Seccion titulo="Cancelación de la reserva">
+          <Desplegable titulo="Cancelar la reserva" peligro>
             <p className="mb-4 text-sm texto-tenue">Libera el vehículo. No genera cargo; los anticipos quedan como saldo a favor.</p>
-            <FormularioOperacion campos={camposCancelarAlquiler()} accion={cancelarAlquiler.bind(null, id)} textoEnviar="Cancelar reserva" prefijo="cancelar-" />
+            <FormularioOperacion campos={camposCancelarAlquiler()} accion={cancelarAlquiler.bind(null, id)} textoEnviar="Cancelar reserva" prefijo="cancelar-" tono="peligro" />
           </Desplegable>
         </Seccion>
       )}

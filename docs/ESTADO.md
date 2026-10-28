@@ -813,3 +813,578 @@ E4: `b9f4c3f`.
 ### Commit
 
 El hash del commit de E5 se informa en la entrega (no puede incluirse en el propio commit).
+
+## Rediseño UI/UX — Fase 1 (shell global)
+
+- **Fecha:** 2026-10-26
+- **Referencia:** `referencias-diseno/` (línea «D — Corporativa y Operativa»). Solo interfaz: sin cambios en Supabase, migraciones, RLS, acciones de servidor, permisos ni reglas de negocio.
+- **Resultado:** implementada; pendiente de aprobación del propietario antes de la Fase 2 (dashboard).
+
+### Cambios
+
+- [app/globals.css](../app/globals.css): tokens de la guía ajustados a AA (primario `#1F6BD6` en lugar de `#2475E7`, que daba 4.40:1 con texto blanco; textos de estado oscurecidos), sombra discreta en `.tarjeta`, radios de 10 px en controles, foco de 2 px con color primario, enlace «Saltar al contenido». Se conserva el modo oscuro.
+- [components/navegacion.tsx](../components/navegacion.tsx): barra superior de 64 px (sección actual + menú de cuenta con «Cerrar sesión») y barra lateral de 264 px fija desde 1280 px; por debajo se despliega con «Menú» (ancho completo en móvil, 288 px en tablet), se cierra con Escape, con el fondo o al navegar.
+- [components/iconos.tsx](../components/iconos.tsx): iconos SVG en línea, decorativos, sin dependencias.
+- [app/(privado)/layout.tsx](../app/(privado)/layout.tsx): menú reagrupado solo con rutas existentes y las mismas reglas por rol (Gastos: tesorería; Usuarios: administrador). «Panel» pasa a llamarse «Inicio»; Proveedores pasa a Finanzas; Planes y Tarifas, a Configuración. Contenido hasta `max-w-6xl`.
+
+### Pruebas
+
+| Comando | Antes | Después |
+|---|---|---|
+| `npm run lint` | OK | OK |
+| `npm run typecheck` | OK | OK |
+| `npm test` | 78/78 | 78/78 |
+| `npm run build` | — | OK |
+
+Revisión visual con Edge sin interfaz sobre el shell renderizado de forma estática (arnés temporal fuera del repositorio) a 1440, 1280, 1024, 820 y 390 px, en claro y oscuro: sin desplazamiento horizontal y foco visible. **Pendiente:** ejecutar los e2e con sesión real (`scripts/e2e-*.mjs`); los selectores que usan (`nav a[href]`, `#menu-principal`, botones «Menú» y «Cerrar sesión») se mantuvieron.
+
+## Rediseño UI/UX — Fase 2 (panel de inicio)
+
+- **Fecha:** 2026-10-27
+- **Resultado:** implementada; pendiente de revisión del propietario. Sin cambios en Supabase, migraciones, RLS, acciones de servidor ni permisos.
+
+### Cambios
+
+- [app/(privado)/page.tsx](../app/(privado)/page.tsx):
+  - Encabezado con perfil, fecha en Tegucigalpa y una acción principal según el rol: «Nueva solicitud de traslado» (administrador y operador) o «Registrar cobro» (finanzas).
+  - Cuatro indicadores con período: traslados de hoy, transportes de hoy, vehículos alquilados ahora y membresías activas.
+  - «Servicios activos y próximos»: traslados, transportes, entregas y devoluciones sin terminar, por hora prevista.
+  - «Requiere atención»: los pendientes que ya existían, más las solicitudes de traslado y de transporte sin programar.
+  - Accesos rápidos según el rol, finanzas (los mismos saldos de antes), estado de la flota (el campo `estado` registrado del vehículo, sin inferir disponibilidad a partir de los servicios), cobros recientes y catálogos.
+- Una consulta que falla muestra «No disponible» o un aviso, nunca 0. Las listas vacías muestran su estado (por ejemplo, «Sin servicios programados»). Mientras carga se ve un esqueleto (`role="status"`).
+- Sin gráficos: no hay histórico que los justifique. Sin variaciones porcentuales.
+- [components/panel.tsx](../components/panel.tsx): componentes de presentación del panel. [lib/panel.ts](../lib/panel.ts): ordenar eventos y etiquetas de hora (pruebas en [lib/panel.test.ts](../lib/panel.test.ts)). `formatearFechaLarga` en [lib/formato.ts](../lib/formato.ts).
+- Se conservan los textos que comprueban los e2e: «Perfil: …», «Traslados de hoy», «Vehículos alquilados ahora», «Membresías activas», «Cuotas vencidas», «Por cobrar (CxC)» y «Dinero disponible».
+
+### Pruebas
+
+`npm run lint` OK · `npm run typecheck` OK · `npm test` 82/82 (4 nuevas) · `npm run build` OK. Revisión visual con un arnés temporal fuera del repositorio (Supabase simulado con datos marcados «[ARNÉS]»), en los escenarios con datos, vacío, error y carga, a 1440, 1024 y 390 px, en claro y oscuro: sin desplazamiento horizontal. **Pendiente:** ejecutar los e2e con sesión real.
+
+## Rediseño UI/UX — Fases 3 y 4 (biblioteca visual y módulos)
+
+- **Fecha:** 2026-10-27
+- **Resultado:** implementadas (el propietario aprobó hacer el rediseño completo). Sin cambios en Supabase, migraciones, RLS, acciones de servidor, permisos, campos, validaciones ni textos de los flujos.
+
+### Biblioteca (componentes compartidos, misma API)
+
+- [components/encabezado.tsx](../components/encabezado.tsx):
+  - `Encabezado` (título, descripción y una acción principal; «volver» con icono).
+  - `Cargando` (esqueleto; «Cargando…» queda para lectores de pantalla).
+  - `SinPermiso` con icono.
+  - `EstadoVacio`, nuevo.
+- [components/finanzas/tabla.tsx](../components/finanzas/tabla.tsx): estado vacío, cabecera de columnas, totales e importes a la derecha; tarjetas enlazadas en móvil.
+- [components/operaciones.tsx](../components/operaciones.tsx): `Desplegable` con flecha y variante `peligro`; `Historial` como línea de tiempo.
+- [components/catalogos/formulario-catalogo.tsx](../components/catalogos/formulario-catalogo.tsx): marca de obligatorio y propiedad `tono="peligro"` para el botón de envío (también en `FormularioOperacion`). `FormularioCorreccion` (reversos y anulaciones) siempre usa `peligro`.
+- [app/globals.css](../app/globals.css):
+  - Campos con hover, foco y error visibles.
+  - Selector con flecha; casillas con color primario.
+  - Botón `boton-peligro`.
+  - Avisos con borde lateral y nuevo `aviso-info`.
+  - Insignias con punto más texto.
+  - Tablas con cabecera tintada.
+  - Contraste AA verificado en claro y oscuro.
+- [components/marca.tsx](../components/marca.tsx): distintivo común para la barra lateral, el login, la página 404 y «sin acceso». Pantalla de error con icono.
+
+### Módulos
+
+- Catálogos, traslados, alquileres, transportes, membresías, finanzas y usuarios heredan la biblioteca. Además:
+  - Las cancelaciones, bajas, reversos y anulaciones se marcan como zona de peligro, con botón rojo y texto explícito. Sus formularios de confirmación no cambian.
+  - Los desplegables de membresías usan el mismo patrón.
+  - Las notas informativas usan `aviso-info`.
+  - Los historiales y listas vacías usan los componentes comunes.
+- No se añadieron diálogos modales ni toasts: las confirmaciones irreversibles siguen siendo la casilla «Confirmo…» con motivo dentro del formulario, y los resultados, el aviso `role="status"` existente. Cambiarlos alteraría los flujos.
+- Se respetaron los selectores de los e2e: `ul.sm:hidden`, la estructura `main table`, `summary`, `h1` y `h2` solo con texto, ids `campo-*`, textos de botones y avisos. No se usa `text-transform`, que alteraría `innerText`.
+
+### Pruebas
+
+`npm run lint` OK · `npm run typecheck` OK · `npm test` 82/82 · `npm run build` OK. El diff de las páginas de módulos solo cambia clases y las propiedades `peligro` y `tono`. Revisión visual de la biblioteca con el arnés temporal a 1280 y 390 px, sin desplazamiento horizontal. **Pendiente:** ejecutar los e2e de los módulos con sesión real (`scripts/e2e-*.mjs`).
+
+## Rediseño UI/UX — Ajuste de fidelidad a la referencia
+
+- **Fecha:** 2026-10-27
+- **Motivo:** el propietario indicó que el resultado no se parecía en tono ni en estilo a `referencias-diseno/dashboard-aprobado.png`.
+- **Causas:**
+  - La app seguía el modo oscuro del sistema; la referencia es clara.
+  - Inter no estaba disponible y se usaba Segoe UI.
+  - Los iconos tenían un solo color de acento.
+  - El panel no seguía la estructura de la referencia.
+
+### Cambios
+
+- **Tema:** siempre claro (`color-scheme: light`, sin `prefers-color-scheme: dark`). Se añaden acentos azul, verde, morado y naranja para los iconos, con contraste ≥3:1 como marcas gráficas, e `insignia-info` azul para «En curso» y «Entregado». Las insignias son píldoras sin punto.
+- **Tipografía:** Inter mediante `@fontsource-variable/inter@5.3.0` (OFL-1.1). Los archivos de la fuente se sirven desde el propio proyecto, sin llamadas de red en tiempo de ejecución ni en el build. Era la única dependencia nueva necesaria: la referencia usa Inter y E0 descartó Google Fonts. `npm audit`: 0 vulnerabilidades.
+- **Barra lateral:** grupos plegables con flecha (los enlaces siguen en el DOM) y subtítulo «Gestión de servicios» bajo la marca.
+- **Panel ([app/(privado)/page.tsx](../app/(privado)/page.tsx)):**
+  - Desde 1536 px: columna principal y columna lateral, como la referencia.
+  - Columna principal: cuatro indicadores con iconos de color (Cobrado hoy, Traslados de hoy, Vehículos alquilados ahora y Membresías activas), gráfico de cobros de 7 días junto a «Requiere atención», tarjetas de módulo con dos cifras reales, finanzas y tabla de cobros recientes.
+  - Columna lateral: botón principal, «Próximos servicios» en línea de tiempo, «Estado de vehículos», accesos rápidos en mosaico y catálogos.
+  - En pantallas más estrechas las piezas se reordenan por prioridad.
+  - Contenido hasta 1440 px.
+- **Datos nuevos, solo lectura y con las mismas reglas de acceso:**
+  - Cobrado hoy y gráfico: `saldos_cobros` confirmados por `fecha` (los reversados se excluyen); los días sin cobros quedan en cero (`serieUltimosDias`, probado).
+  - Estado de vehículos: `vehiculos` activos con su `estado` registrado.
+- **Gráfico:** una serie sin leyenda; columnas de 24 px como máximo con la punta redondeada; líneas guía finas; cada columna enfocable con su importe en una burbuja y en `aria-label`; el valor de hoy rotulado en escritorio.
+
+### Pruebas
+
+`npm run lint` OK · `npm run typecheck` OK · `npm test` 83/83 · `npm run build` OK. Revisión visual con el arnés temporal (Inter cargada) a 1536, 1280 y 390 px, sin desplazamiento horizontal. Los textos que comprueban los e2e se mantienen. **Pendiente:** e2e con sesión real.
+
+## Rediseño UI/UX — Tipografía compacta y botones de porcelana
+
+- **Fecha:** 2026-10-27 · Solo [app/globals.css](../app/globals.css) y tamaños de títulos en `encabezado.tsx`, `panel.tsx`, `navegacion.tsx` y `layout.tsx`.
+- **Tipografía más pequeña:**
+  - Base de 14 px.
+  - Escala de Tailwind redefinida: `text-xs` 11 px, `sm` 13 px, `base` 14 px, `lg` 16 px, `xl` 18 px, `2xl` 22 px.
+  - Botones, tablas, avisos, insignias, etiquetas de campo y menú reducidos un paso.
+  - Los espacios no cambian, así que los componentes tienen más aire.
+  - En móvil los campos siguen a 16 px (evita el zoom de iOS) y los controles a 44 px de alto.
+- **Botones de porcelana:**
+  - Degradado vertical suave, brillo interior en el borde superior, sombra tenue que crece al pasar el puntero y hundimiento de 1 px al pulsar.
+  - Variantes: primario azul (`#2A74DC`→`#1A5FC4`, mínimo 4.54:1 con texto blanco), secundario blanco porcelana (`#FFFFFF`→`#EEF2F7`) y peligro rojo (`#C74444`→`#A83535`).
+- **Pruebas:** lint OK · `npm test` 83/83 · build OK; revisión visual del panel y de los botones con el arnés.
+
+## Rediseño UI/UX — Modernidad e intuición (tras investigación)
+
+- **Fecha:** 2026-10-27
+- **Investigación (fuentes de la industria, no normas):** tendencias de dashboards SaaS 2026 (diseños sobrios, jerarquía escaneable, acción sobre reporte, barra lateral contraíble) y patrones de navegación:
+  - Paleta Ctrl/⌘+K solo con rutas permitidas y nunca como única vía.
+  - Menú contraíble a iconos que recuerda su estado.
+  - Avisos en línea en lugar de mensajes emergentes para todo.
+  - Esqueletos de carga.
+  - Antipatrones evitados: colores por sección en el menú, degradados en la estructura e ilustraciones grandes.
+
+### Cambios
+
+- **Paleta de comandos** ([components/paleta.tsx](../components/paleta.tsx)):
+  - Botón «Buscar página o acción… Ctrl K» en la barra superior; Ctrl/⌘+K la abre o cierra.
+  - Ofrece las páginas del menú del rol y las acciones rápidas que el rol puede iniciar. No busca registros.
+  - Accesible: diálogo modal con combobox y listbox, `aria-activedescendant`, flechas, Enter, Esc con retorno del foco, búsqueda sin tildes ni mayúsculas.
+- **Acciones rápidas compartidas** ([lib/accesos.ts](../lib/accesos.ts)) entre el panel y la paleta, con pruebas por rol y de búsqueda.
+- **Menú contraíble a iconos** (≥1280 px):
+  - Botón «Contraer menú» al pie de la barra lateral; el ancho pasa de 264 a 72 px.
+  - Las etiquetas quedan para lectores de pantalla y se muestran como `title`; pulsar un grupo vuelve a expandir el menú.
+  - La preferencia se guarda en `localStorage` y la aplica un script del layout raíz antes de pintar (sin parpadeo; `suppressHydrationWarning` en `<html>`).
+- **Barra superior translúcida** con desenfoque.
+- **Microinteracciones:**
+  - Las tarjetas enlazadas se elevan 2 px con sombra al pasar el puntero.
+  - Las filas cambian de fondo con transición.
+  - El contenido entra con un fundido de 220 ms (`app/(privado)/template.tsx`).
+  - Todo se anula con `prefers-reduced-motion`.
+- **Avisos con icono** por tipo (éxito, error, advertencia, información) en los avisos de párrafo; las listas conservan sus viñetas.
+- **Saludo según la hora** de Tegucigalpa en el panel.
+
+### Pruebas
+
+- `npm run lint` OK · `npm run typecheck` OK · `npm test` 85/85 (2 nuevas: `lib/accesos.test.ts`).
+- Prueba interactiva de la paleta en Edge sin interfaz (componente compilado con Vite y el CSS servido por `next dev`): 10 comprobaciones. 9 OK; la restante falló por un error del script de prueba (la expresión regular perdió la barra invertida). Su resultado real, una opción «Cajas y bancos», es el esperado.
+- Capturas del panel con el menú amplio y contraído a 1536 px y en móvil, sin desplazamiento horizontal.
+- No se ejecutó `npm run build` para no congelar el `next dev` del propietario.
+
+## Rediseño UI/UX — Estilo «vidrio azulado»
+
+- **Fecha:** 2026-10-27
+- **Pedido:** quitar los colores saturados y pasar a un diseño glass moderno, con azules tenues y toques de degradado.
+
+### Cambios ([app/globals.css](../app/globals.css) y clases en `navegacion.tsx`, `marca.tsx`, `paleta.tsx` y `layout.tsx`)
+
+- **Fondo:** degradado claro con cuatro halos azules suaves, fijo al desplazar.
+- **Tarjetas de vidrio:**
+  - Degradado translúcido blanco (80 % → 56 %) con `backdrop-filter: blur(16px) saturate(1.35)`.
+  - Borde claro de cristal, anillo azul muy tenue y brillo interior.
+  - Ventanas flotantes (menú de cuenta, paleta y burbujas) más opacas para leerse bien.
+- **Barra superior y menú lateral:** vidrio (`.vidrio-barra`). La opción activa del menú pasa de azul sólido a un degradado azul tenue con texto `#2C5290`.
+- **Paleta atenuada:** primario `#3A64A8`. Botón principal en degradado `#4A74B8` → `#3A619F` (4.69:1). Secundario en vidrio blanco. Peligro `#B65555` → `#9C4545`.
+- **Estados atenuados:** éxito, advertencia, error e información, todos ≥4.9:1.
+- **Acentos de iconos:** todos en la familia azul (azul, cian, índigo y pizarra), con fondos en degradado. Las barras del gráfico, en degradado `#6A92CF` → `#4A74B8` (≥3:1).
+- **Distintivo, avatar y opción activa de la paleta:** degradado azul (`.fondo-degradado`).
+- **Corrección:** el diálogo de la paleta se renderiza en un portal sobre `<body>`. Con `backdrop-filter` en la barra superior, un `fixed` dentro de ella quedaba recortado a la barra; verificado que ahora cubre la ventana.
+
+### Pruebas
+
+- `npm run lint` OK · `npm run typecheck` OK · `npm test` 85/85.
+- Capturas del panel (1536 px y móvil) y del muestrario con el CSS compilado por un `next dev` temporal en el puerto 3100, detenido al terminar. Sin desplazamiento horizontal.
+- Prueba de teclado de la paleta repetida.
+
+## Rediseño UI/UX — Composición del panel como sistema
+
+- **Fecha:** 2026-10-27
+- **Pedido:** último análisis de diseño para que la composición se lea como un sistema elegante.
+
+### Diagnóstico
+
+- La columna lateral terminaba unos 400 px por debajo de la principal y dejaba un hueco.
+- Medianiles mezclados (16 px y 24 px), y la columna lateral arrancaba por debajo del saludo.
+- «Requiere atención» medía 258 px de ancho, así que sus filas se partían en dos o tres líneas.
+- Cabeceras de sección dispares (unas con subtítulo y otras no) y tarjetas dentro de tarjetas en Finanzas.
+
+### Cambios ([app/(privado)/page.tsx](../app/(privado)/page.tsx), [components/panel.tsx](../components/panel.tsx), [components/encabezado.tsx](../components/encabezado.tsx))
+
+- **Retícula con un único medianil de 1.25 rem** entre todas las piezas: indicadores, módulos, columnas y filas.
+- **En 2xl:**
+  - El encabezado pasa a la columna principal, y la lateral arranca a su altura con la acción principal.
+  - Las dos columnas cierran a la misma línea: la última pieza de cada una se estira con `[&>:last-child]:flex-1`.
+- **Gráfico y «Requiere atención» en proporción 3:2** (antes 2:1). Las filas de atención se compactaron.
+- **Todas las secciones llevan título y subtítulo**, para que el contenido de una misma fila arranque a la misma altura. Se añadieron textos descriptivos; no hay datos nuevos.
+- **Finanzas:** cifras con divisores en lugar de tarjetas anidadas, en cuadrícula 2×2 entre `lg` y `2xl` para no dejar hueco junto a «Estado de vehículos».
+- **Catálogos:** franja a todo el ancho que cierra la página, con el mismo patrón etiqueta-cifra que Finanzas.
+- **`Encabezado`** admite `className`; el margen por defecto `mb-6` no cambia en las demás páginas.
+- **Sin cambios** en consultas, permisos, cálculos ni textos que leen las pruebas e2e.
+
+### Pruebas
+
+- `npm run typecheck` OK · `npm run lint` OK · `npm test` 85/85.
+- Capturas a 1536, 1280 y 390 px con el CSS servido por el `next dev` del usuario: sin desplazamiento horizontal y con las bases de las columnas alineadas en 2xl.
+- **Pendiente:** e2e con credenciales y `npm run build` sin un `next dev` activo.
+
+## Rediseño UI/UX — Vidrio visible
+
+- **Fecha:** 2026-10-27
+- **Pedido:** «no veo el efecto anterior de glass».
+- **Causa:** el CSS sí se servía (desenfoque, transparencia y borde), pero el fondo era casi liso y muy claro. Un vidrio esmerilado sobre un fondo uniforme no deja ver nada detrás, así que las tarjetas parecían blancas.
+
+### Cambios ([app/globals.css](../app/globals.css))
+
+- **Fondo:** cinco manchas difusas en azul, cielo y lavanda tenues, con tamaños en porcentaje para escalar con la ventana, sobre un degradado base `#EAF0FA` → `#DFE6F5`.
+- **Tarjetas más translúcidas:**
+  - Blanco entre 68 % y 46 %, con un brillo radial en la esquina superior.
+  - `blur(22px) saturate(1.7)`.
+  - Línea de luz interior en el borde superior.
+- **Contraste:** se midió el píxel más oscuro del fondo renderizado por Edge (`rgb(189,197,239)`, a 1536, 1280 y 390 px). Para cumplir AA incluso sobre el fondo sin vidrio:
+  - `--tenue` pasa de `#56677F` a `#415068` (4.82:1 sobre ese píxel; 6.22:1 sobre las tarjetas).
+  - `--primario` pasa de `#3A64A8` a `#2C4F88` (4.80:1 sobre ese píxel; 6.19:1 sobre las tarjetas).
+  - `--primario-hover` pasa a `#233F6D`.
+  - El botón principal conserva su degradado.
+
+### Pruebas
+
+- Capturas del panel (1536 y 390 px) y del muestrario (1440 px) con el CSS servido por el `next dev` del usuario. Sin desplazamiento horizontal.
+
+## Rediseño UI/UX — Detalles de porcelana
+
+- **Fecha:** 2026-10-27
+- **Pedido:** los botones y detalles en porcelana, con líneas azul oscuro en degradado; el vidrio queda para los componentes (menú lateral, barra y tarjetas). Las acciones que requieren atención van en verde (positivas) y rojo (negativas).
+
+### Cambios
+
+- **Botones ([app/globals.css](../app/globals.css)):**
+  - Cuerpo blanco esmaltado (`--porcelana`) con brillo interior y sombra tenue.
+  - La línea del borde es un degradado (capa `border-box` bajo la porcelana).
+  - Variantes:
+    - `.boton-primario`: línea azul marino `#3A5F9E` → `#0F2142`, texto `#1B3461` (10.6:1).
+    - `.boton-secundario`: línea gris perla, texto oscuro.
+    - `.boton-exito` (nueva): línea verde, texto `#1D6146` (6.3:1).
+    - `.boton-peligro`: línea roja, texto `#8E2C2C` (7.1:1).
+- **Acciones positivas en verde** (`tono="exito"` en `FormularioOperacion` y `FormularioCatalogo`): Confirmar reserva, Confirmar membresía, Registrar entrega, Registrar devolución, Finalizar traslado y Finalizar servicio. Las acciones de cancelar, anular, reversar y dar de baja ya estaban en `tono="peligro"`.
+- **Detalles de porcelana** (`.porcelana`, que reemplaza a `.fondo-degradado`): distintivo, avatar, opción activa de la paleta y opción activa del menú lateral. El buscador de la barra y las teclas (Ctrl K) también son de porcelana.
+- **Sin cambios** en textos, acciones, permisos ni lógica.
+
+### Pruebas
+
+- `npm run typecheck` OK · `npm run lint` OK · `npm test` 85/85.
+- Capturas del panel (1536 y 390 px) y del muestrario (1440 px, con fila de botones) con el CSS servido por el `next dev` del usuario.
+
+## Rediseño UI/UX — Porcelana blanca (sustituye al vidrio)
+
+- **Fecha:** 2026-10-27
+- **Pedido:**
+  - Todo blanco, incluido el fondo.
+  - Fondo sin vidrio, con degradado de blanco a un gris o café muy tenue, imitando porcelana.
+  - Botones de porcelana sin redondeado.
+
+### Cambios ([app/globals.css](../app/globals.css))
+
+- **Fondo:** `linear-gradient(170deg, #FFFFFF → #FBFAF8 → #F3F0EB → #ECE7E0)`, sin manchas de color.
+- **Sin vidrio:**
+  - Se eliminan los tokens `--vidrio*` y todo `backdrop-filter`.
+  - Tarjetas, barra superior y menú lateral en blanco sólido con línea fina `#E7E2DB`.
+  - La clase `.vidrio-barra` pasa a llamarse `.superficie-barra`.
+  - La paleta usa un velo cálido sin desenfoque.
+- **Sombras:** cálidas y tenues (`rgb(60 48 36 / …)`).
+- **Neutros cálidos:** texto tenue `#5C5852` y texto del menú `#3D3A36`. Bordes, cabeceras de tabla, estados de paso y fondos neutros en gris cálido.
+- **Gráfico:** barras en degradado azul marino, la misma familia que las líneas de los botones.
+- **Esquinas rectas** (`border-radius: 0`) en botones, campos, buscador, teclas, elementos del menú, botón de usuario y distintivo. Las tarjetas conservan su radio. El avatar sigue circular.
+- **Porcelana cálida:** degradado `#FFFFFF` → `#FBFAF8` → `#EFEBE6` en botones, detalles y cuadros de iconos (con línea fina).
+- **Accesos rápidos del panel:** pasan a ser botones de porcelana (`boton boton-secundario`).
+- **Líneas de color sin cambios:** azul marino (principal), verde (positivo) y rojo (negativo).
+- **Foco:** `--foco` pasa a `#2C4F88`.
+- **Contraste:** medido sobre el tono más oscuro del fondo renderizado (`rgb(236,231,224)`).
+  - Texto tenue: 5.74:1.
+  - Primario: 6.61:1.
+  - Texto: 11.53:1.
+
+### Pruebas
+
+- `npm run typecheck` OK · `npm run lint` OK · `npm test` 85/85.
+- Capturas del panel (1536 y 390 px) y del muestrario (1440 px) con el CSS servido por el `next dev` del usuario. Sin desplazamiento horizontal.
+
+## Rediseño UI/UX — Sistema inspirado en Stripe (sustituye porcelana y vidrio)
+
+- **Fecha:** 2026-10-27
+- **Pedido:**
+  - «No me gusta el resultado»: analizar todos los cambios y quedarse con lo mejor.
+  - «El diseño perfecto es algo como https://stripe.com/es-us».
+- **Fuente de los valores:** el CSS público de stripe.com (sistema «hds»), descargado y leído; los colores no se tomaron de memoria.
+
+### Se conserva de las etapas anteriores
+
+- Estructura de la referencia D y composición en retícula con columnas equilibradas.
+- Tipografía compacta.
+- Paleta Ctrl K, menú compacto y microinteracciones.
+- Botones casi rectos.
+- Verde para acciones positivas y rojo para negativas.
+- Vidrio solo en la barra superior y el menú lateral.
+
+### Cambios ([app/globals.css](../app/globals.css))
+
+- **Paleta:**
+  - Lienzo `#F8FAFD`, superficies blancas, bordes `#E5EDF5` / `#D4DEE9`.
+  - Texto `#061B31`, secundario `#50617A`, texto del menú `#3C4F69`.
+  - Acento índigo `#533AFD` (al pasar el ratón, `#4032C8`).
+- **Franja superior:** degradado pastel (índigo, cielo, rosa y durazno) cortado en diagonal (`body::before`). Se desplaza con la página y mide 20 rem, o 26 rem desde 1024 px. Su intensidad está limitada para que el texto encima mantenga AA.
+- **Tarjetas:** blancas, radio de 8 px, borde fino y sombra en dos capas con tinte azul tinta, según la escala de sombras de Stripe.
+- **Botones:** sólidos, con radio de 4 px (el `button-radius` de Stripe):
+  - Principal: índigo.
+  - Neutro: blanco con borde.
+  - `.boton-exito`: verde `#006F3A`.
+  - `.boton-peligro`: rojo `#D8351E`.
+  - Texto blanco ≥4.7:1.
+- **Campos y controles:** campos con radio de 4 px y anillo de foco índigo. Elementos del menú y buscador con 6 px.
+- **Opción activa del menú:** texto índigo sobre `#F5F5FF`.
+- **Distintivo:** `.distintivo` reemplaza a `.porcelana`. Es un degradado índigo en el logo, el avatar y la opción activa de la paleta.
+- **Estados:**
+  - Éxito `#006F3A`/`#E9F8EF`, error `#A01400`/`#FFF1EE`, advertencia `#7A4F14`/`#FFF4DD`, información `#4032C8`/`#F2F2FF`.
+  - Insignias con radio de 5 px.
+- **Acentos de iconos tintados:** índigo, verde, magenta `#A51D85` y naranja `#AB3500`.
+- **Tipografía:** pesos más ligeros. Los títulos pasan de `font-bold` a `font-semibold`; el título de página mide 26 px con tracking −0.02em. Inter sustituye a Söhne, que no es libre.
+
+### Pruebas
+
+- `npm run typecheck` OK · `npm run lint` OK · `npm test` 85/85.
+- **Contraste** medido sobre el píxel más oscuro de la franja renderizada (`rgb(223,221,254)`): texto secundario 4.78:1, índigo 4.69:1, texto 13.16:1.
+- **Capturas** del panel (1536 y 390 px) y del muestrario (1440 px) con el CSS servido por el `next dev` del usuario. Sin desplazamiento horizontal.
+
+## Rediseño UI/UX — Cinta animada y vistas plegables
+
+Objetivo: páginas más limpias, que muestran primero lo esencial y dejan lo secundario a un clic, con una cinta en degradado animada como firma visual (referencia: portada de stripe.com).
+
+### Cinta animada
+
+- **Componente:** [components/cinta.tsx](../components/cinta.tsx), montado en [app/layout.tsx](../app/layout.tsx). Reemplaza la franja `body::before`.
+- **Dibujo:** SVG decorativo (`aria-hidden`), sin bibliotecas. Son tres capas de hebras con degradados celeste, violeta, rosa y naranja.
+- **Animación:** cada capa ondula despacio (19, 25 y 31 s) moviéndose solo con `transform`, sin repintar. Con «reducir movimiento» queda quieta.
+- **Máscara (contraste AA):**
+  - Escritorio: intensa tras la barra de vidrio y en la esquina superior derecha, donde solo hay títulos y botones opacos. Se desvanece donde van descripciones y textos secundarios.
+  - Móvil: solo tras la barra superior.
+- **Fecha del panel:** pasa a una etiqueta con fondo propio para leerse sobre la cinta.
+
+### Contenido plegable
+
+Regla: a la vista lo de uso diario (estado, importes, acción principal y lo que se consulta a menudo). Plegado lo secundario.
+
+- **Inicio** ([app/(privado)/page.tsx](../app/(privado)/page.tsx)):
+  - El saludo pasa a una cabecera ancha y despejada, con la fecha y la acción principal.
+  - «Estado de vehículos», «Catálogos» y «Cobros recientes» quedan plegados al final (`Seccion plegable` en [components/panel.tsx](../components/panel.tsx)).
+- **Historial** (traslados, alquileres, transportes y membresías): se ven los tres eventos más recientes y el botón «Ver N eventos anteriores» despliega el resto ([components/historial-plegable.tsx](../components/historial-plegable.tsx)). Los anteriores solo se ocultan a la vista; los lectores de pantalla leen el historial completo.
+- **Asientos contables:** plegados en cobros, cargos, gastos y transferencias (`Seccion plegable` en [components/finanzas/resumen.tsx](../components/finanzas/resumen.tsx)).
+- **Correcciones:** «Reversar cobro», «Anular cargo», «Anular gasto», «Reversar transferencia» y «Cancelar la membresía» pasan a desplegables de peligro, como ya estaban las cancelaciones de traslados, alquileres y transportes.
+  - El aviso «reverse primero sus pagos» sigue visible.
+  - Los reversos que se abren desde un enlace explícito (`?aplicacion=`, `?pago=`) siguen abiertos.
+- **Fichas de catálogo** (clientes, beneficiarios, vehículos, conductores, proveedores, planes, tarifas, cajas y bancos): los datos se muestran en modo lectura y el formulario pasa a «Editar datos».
+- **Filtros de listados:** búsqueda y estado a la vista. Tipo y fechas pasan a «Más filtros», que se abre solo si alguno está aplicado e indica cuántos lo están.
+- **Sin cambios:** los formularios de alta muestran todos sus campos (cada uno se usa al registrar). Las acciones operativas principales (iniciar, finalizar, entregar, devolver, registrar pago, aplicar saldo) siguen a la vista.
+- No se eliminó ningún campo, acción, mensaje ni permiso.
+
+### Pruebas e2e actualizadas
+
+Antes de usarlos, las pruebas abren los nuevos desplegables, como ya hacían con «Editar datos» o «Cancelar traslado»:
+
+- `e2e-finanzas`: «Reversar cobro».
+- `e2e-membresias`: «Cancelar la membresía».
+- `e2e-navegador`: «Editar datos» en clientes y vehículos.
+
+Siguen pendientes de ejecutar contra el entorno real (requieren `E2E_CREDENCIALES`).
+
+### Verificación
+
+- `npm run typecheck` OK · `npm run lint` OK · `npm test` 85/85.
+- **Contraste medido texto por texto** sobre el fondo real (cinta, vidrio y tarjetas) en seis instantes de la animación, a 1536, 1280, 1024 y 390 px:
+  - Panel y muestrario: mínimo 4.53:1.
+  - Única excepción: el título de la barra superior en móvil, recortado con «…». Su rectángulo sin recortar pasa bajo el avatar; es un artefacto de la medición y no depende de la cinta.
+- **Capturas** con el CSS servido por el `next dev` del usuario. Sin desplazamiento horizontal.
+
+## Rediseño UI/UX — Todo plegado en barras y velocidad
+
+### Barras plegables ([components/plegable.tsx](../components/plegable.tsx))
+
+- **Barra:** una tarjeta con título y, si hace falta, una línea de resumen. Toda la barra es el botón (`aria-expanded`) y se abre con una transición de altura.
+- **Contenido cerrado:** queda `inert`, así que no recibe foco ni lo leen los lectores de pantalla.
+- **Comprobado en Edge:** con la sección cerrada se pueden abrir sus desplegables, rellenar campos y pulsar botones por código, y el texto sigue en `innerText`. Las pruebas e2e no necesitan pasos nuevos para esto. Algunas comprobaciones de texto ahora validan contenido que está dentro de barras cerradas.
+- **Inicio:** quedan a la vista la cabecera (saludo, fecha y acción principal) y los cuatro indicadores. Lo demás va en un mosaico de barras cerradas:
+  - Requiere atención, Próximos servicios, Cobros de 7 días, Finanzas.
+  - Resumen por servicio, Accesos rápidos, Estado de vehículos, Catálogos, Cobros recientes.
+  - La barra que se abre ocupa todo el ancho.
+- **Detalles** (`Seccion` de [components/finanzas/resumen.tsx](../components/finanzas/resumen.tsx)):
+  - Cada sección es una barra cerrada.
+  - `fija` deja a la vista los pasos numerados de las altas y los grupos que ya son desplegables (cambios, correcciones, cancelar).
+  - `abierta` abre al llegar los reversos pedidos por enlace y las listas de Pendientes.
+- **Listados:** el buscador pasa a la barra «Buscar y filtrar», que indica cuántos filtros hay aplicados y se abre sola si hay alguno.
+- **Fichas de catálogo:** «Datos» y «Editar datos» quedan plegados.
+
+### Velocidad
+
+Mediciones del 2026-10-27:
+
+| Qué se midió | Resultado |
+| --- | --- |
+| Supabase, primer byte | 110–140 ms |
+| Verificación de la sesión | Local, con claves ES256: sin llamada extra a Auth |
+| Avisos de rendimiento de la base | Ninguno, salvo índices sin usar |
+| JavaScript de `/login` en `next dev` | 3.6 MB sin minificar |
+
+La lentitud que se percibe viene sobre todo del modo desarrollo:
+- compila cada ruta la primera vez que se visita;
+- usa React en modo depuración;
+- no precarga los enlaces (eso solo ocurre en producción).
+
+Cambios en el código:
+- **Navegación:** se elimina `app/(privado)/template.tsx`. Volvía a montar la página en cada navegación y la animaba durante 220 ms.
+- **Puesta al día de mensualidades del inicio:** se lanza cuando el navegador queda libre (`requestIdleCallback`) y ya no compite con la carga. Su lógica no cambia.
+
+### Verificación
+
+- `npm run typecheck` OK · `npm run lint` OK · `npm test` 85/85.
+- **Capturas** con el CSS servido, incluidas barras abiertas de forma simulada.
+
+## Rediseño UI/UX — Cajas de íconos, sin colores decorativos y medición de velocidad
+
+### Cajas de íconos ([components/plegable.tsx](../components/plegable.tsx))
+
+Sustituyen a las barras plegables:
+
+- **Aspecto:** cada sección es una caja con ícono y nombre (y una línea breve opcional). El ícono se elige según el título.
+- **Apertura:** al pulsarla, su contenido aparece debajo de su fila de cajas, con el título y un botón «Cerrar». Solo hay una abierta a la vez (`CajasProvider` en el layout privado). La selección se reinicia al cambiar de página.
+- **Colocación:** la retícula `.cajas` del contenedor de página reparte las cajas en columnas. `dense` agrupa las cajas en filas y deja su contenido debajo. El resto del contenido ocupa todo el ancho.
+- **Sin animación.** Lo cerrado queda `inert`: no recibe foco ni lo leen los lectores de pantalla, pero las pruebas e2e pueden rellenar y pulsar por código.
+- **Títulos que coincidían con botones de las pruebas e2e:**
+  - «Cancelar reserva» pasa a «Cancelación de la reserva».
+  - «Cancelar membresía» pasa a «Baja de la membresía».
+- **Siempre a la vista:** los pasos numerados de las altas y las listas de Pendientes.
+
+### Sin colores decorativos
+
+- Íconos teñidos, opción activa del menú, logo y avatar, columnas del gráfico y puntos del historial pasan a gris tinta.
+- Se conservan los colores con significado: botón principal, enlaces, verde y rojo de las acciones, e insignias de estado.
+
+### Cinta
+
+- **Color:** grises.
+- **Movimiento:** quieta. Solo se acomoda una vez (900 ms) al cambiar de página: [components/cinta.tsx](../components/cinta.tsx), con la ruta como clave. Ya no hay animación continua bajo la barra de vidrio.
+- **Contraste:** mínimo 6.03:1 en todos los textos de la parte superior (1536, 1280, 1024 y 390 px).
+
+### Velocidad (medida el 2026-10-27)
+
+**Traza del `next dev` del usuario** (`.next/dev/trace`, 352 peticiones):
+
+- Compilaciones de hasta 20 s en la primera visita.
+- Con el código ya compilado, las páginas tardan entre 0.3 y 2.8 s en renderizarse en modo depuración.
+
+**Base de datos** (`pg_stat_statements`):
+
+- Las lecturas no figuran entre las consultas lentas; las operaciones más pesadas promedian menos de 35 ms.
+- Las tablas tienen como mucho unas mil filas.
+
+**Supabase:** 110–140 ms por petición; la sesión se verifica localmente (ES256).
+
+**Producción vs. desarrollo:** la copia de producción compila sin errores con `next build` y se probó en el puerto 3200.
+
+| Medida | Desarrollo | Producción |
+| --- | --- | --- |
+| Respuesta de `/login` | 94–270 ms | 10–55 ms |
+| JavaScript de `/login` | 3.6 MB | 0.57 MB |
+
+Todas las rutas son de prerenderizado parcial: la estructura es inmediata y los datos llegan en streaming.
+
+**Conclusión:** la lentitud viene del modo desarrollo. Para el uso diario, `npm run build` y luego `npm start`.
+
+### Verificación
+
+- `npm run typecheck` OK · `npm run lint` OK · `npm test` 85/85.
+- `next build` OK en la copia.
+
+### Ajuste: tipografía gris y más pequeña
+
+- **Color:** el texto índigo de enlaces, «Ver…» y filas de tablas pasa a gris tinta `--enlace` `#2C3D55` (11:1 sobre blanco). Lo mismo para:
+  - las insignias informativas («En curso», «Entregado»): `#26364D` sobre `#EAEEF4`;
+  - el importe destacado;
+  - la opción activa de la paleta.
+  
+  El botón principal conserva su color.
+- **Escala tipográfica** (un punto menor, para dejar más aire en cada elemento):
+  - Base 13 px; `sm` 12 px; `lg` 15 px; `xl` 17 px; `2xl` 20 px.
+  - Título de página 22 px; cifras de los indicadores 20 px.
+  - Botones, avisos, tablas y etiquetas de campo 12 px.
+  - Los campos de formulario siguen en 16 px en móvil, para evitar el zoom de iOS.
+- `npm run typecheck` OK · `npm run lint` OK · `npm test` 85/85.
+
+### Ajuste: contenido al tamaño del menú lateral
+
+- Desde 1280 px (donde se ve el menú lateral, a 12 px), el texto general, los nombres de las cajas y los campos también pasan a 12 px, igual que tablas, avisos, botones y descripciones.
+- Por debajo de 1280 px el texto general sigue en 13 px, como el menú desplegable.
+- Títulos y cifras de importes mantienen su tamaño mayor para conservar la jerarquía.
+- Comprobado con los tamaños calculados en el navegador (1440 y 1100 px). `npm run lint` OK · `npm test` 85/85.
+
+### Ajuste: la cinta se desplaza entre pantallas
+
+- **Posición propia por pantalla** ([components/cinta.tsx](../components/cinta.tsx)): desplazamiento, giro y escala se derivan de la ruta con un hash FNV-1a. La misma pantalla siempre tiene la misma posición.
+- **Rangos:** desplazamiento −24…8 % (horizontal) y −14…8 % (vertical), giro −13…10°, escala 1.05…1.45.
+- **Profundidad:** las capas de atrás se desplazan hasta un 44 % más.
+- **Movimiento:** al navegar, la cinta se desliza hasta la nueva posición como una pieza grande (transición de `transform` de 1.4 s, con entrada rápida y llegada lenta, y 50 ms de desfase entre capas). El resto del tiempo está quieta. Con «reducir movimiento» cambia sin transición.
+- **Trazos:** las hebras se prolongan por arriba y a la derecha, para que al moverse no se vea dónde terminan.
+- **Color:** grises algo más marcados.
+- **Contraste:** medido con la posición de 11 rutas, todos los textos de la parte superior quedan en 5.28:1 o más.
+- **Comprobación:** `npm run typecheck` OK · `npm run lint` OK · `npm test` 85/85.
+
+### Ajuste: órbitas en lugar de la cinta
+
+- **Se elimina** `components/cinta.tsx` y sus estilos.
+- **Nuevo elemento:** [components/orbitas.tsx](../components/orbitas.tsx), montado en [app/layout.tsx](../app/layout.tsx). En la esquina superior derecha hay:
+  - seis anillos concéntricos de línea fina en gris, uno de ellos punteado;
+  - una malla de puntos que se desvanece;
+  - cinco nodos sobre los anillos, macizos o huecos.
+- **Por qué:** llama la atención por la geometría, no por el color ni por el tamaño, y la máscara radial lo desvanece hacia el contenido.
+- **Movimiento:** cada pantalla da a los nodos un ángulo propio, derivado de la ruta. Al navegar, se deslizan por su anillo durante 1.4 s (los exteriores avanzan menos). El resto del tiempo todo está quieto. Con «reducir movimiento», cambian sin transición.
+- **Pantallas de menos de 1024 px:** sin nodos y con anillos más tenues, porque el título ocupa todo el ancho.
+- **Contraste:** medido texto por texto con la posición de 11 rutas, a 1536, 1280, 1024 y 390 px. Mínimo 5.26:1. Solo falla el título recortado de la barra en móvil, un artefacto ya conocido de la medición.
+- `npm run typecheck` OK · `npm run lint` OK · `npm test` 85/85.
+
+### Ajuste: trazos curvos en lugar de órbitas
+
+- **Se elimina** `components/orbitas.tsx` y sus estilos.
+- **Nuevo elemento:** [components/trazos.tsx](../components/trazos.tsx). Es un haz de 16 líneas curvas finas que fluye por la esquina superior derecha, en grises, con una línea de acento algo más marcada. Es abstracto y de formas orgánicas.
+- **Movimiento:** cada pantalla da al haz una posición propia (desplazamiento, giro y escala derivados de la ruta). Al navegar, sus dos grupos de líneas se deslizan hasta ella en 1.4 s, con desfase y giro contrario, de modo que el haz se abre y se ondula. El resto del tiempo está quieto. Con «reducir movimiento», cambia sin transición.
+- **Pantallas de menos de 1024 px:** al 30 % de opacidad.
+- **Contraste:** medido texto por texto con la posición de 11 rutas, a 1536, 1280, 1024 y 390 px. Mínimo 4.84:1.
+
+### Cierre del rediseño: verificación para la integración
+
+- **Funcionalidad:** cada archivo modificado por el rediseño se comparó con `HEAD`: textos visibles, cadenas, acciones del servidor (`accion=`), permisos (`puede…`), consultas (`from`/`rpc`) e importaciones de `@/lib`.
+  - No falta ninguna acción, permiso, consulta ni mensaje.
+  - Al reorganizar el panel se habían perdido tres accesos directos filtrados. Se restauraron como cifras enlazadas en «Resumen por servicio» ([components/panel.tsx](../components/panel.tsx), `TarjetaModulo`):
+    - `/ambulancias?estado=en_curso`;
+    - `/alquileres?estado=reservado`;
+    - transportes de hoy (`/transportes?estado=todos&desde=…&hasta=…`).
+  
+    Se añadieron también `/ambulancias?estado=solicitado` y `/transportes?estado=en_curso`.
+  - Lo demás son renombres de la composición aprobada; los datos se conservan.
+- **Pantallas financieras** (cobros, cargos, gastos, cuentas, transferencias, pendientes y sus componentes): el mismo número de formularios, permisos, enlaces, consultas y secciones que en `HEAD`. La única diferencia es la consulta de categorías del listado de gastos, que añadió E6.
+- **Comprobaciones** en una copia idéntica del árbol actual, incluido E6, para no tocar `.next` del `next dev` en uso:
+  - `npm run lint` OK;
+  - `npm run typecheck` OK;
+  - `npm test` 99/99 (12 archivos);
+  - `npm run build` OK (59 páginas).
+- **Archivos compartidos con E6:**
+  - `app/(privado)/layout.tsx`: el enlace «Reportes» es de E6.
+  - `app/(privado)/page.tsx`: «Resultado del mes», `reporte_resumen` y la retirada de «Próximamente» son de E6.
+  - este archivo: la sección de E6 está a continuación.
+  
+  No se revirtió ni sobrescribió ningún cambio de E6.
