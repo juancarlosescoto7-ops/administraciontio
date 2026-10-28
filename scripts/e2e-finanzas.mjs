@@ -28,7 +28,10 @@ const cargo = (await api(adminApi.token, "POST", "rpc/registrar_cargo", {
 
 const { evaluar, esperar, ruta, texto, ir, llenar, pulsar, capturar, vista, iniciarSesion, cerrar } = await abrirNavegador();
 const marcar = (selector) => evaluar(`document.querySelector(${JSON.stringify(selector)}).click()`);
-const contiene = async (fragmento) => (await texto()).includes(fragmento);
+// El contenido llega por streaming: lo presente se espera; lo ausente se comprueba
+// después de haber esperado algo presente en la misma página.
+const contiene = (fragmento) => esperar(`document.body.innerText.includes(${JSON.stringify(fragmento)})`, 8000);
+const falta = async (fragmento) => !(await texto()).includes(fragmento);
 const L = (importe) => `L ${importe}`;
 
 try {
@@ -62,7 +65,7 @@ try {
   const rutaCobro = (await ruta()).split("?")[0];
   comprobar("detalle del cobro: recibido L 500, aplicado L 500, saldo a favor L 0",
     (await contiene(L("500.00"))) && (await contiene("Aplicado a cargos")) && (await contiene(L("0.00"))));
-  comprobar("el operador no ve asientos ni puede reversar", !(await contiene("Asientos contables")) && !(await contiene("Reversar cobro")));
+  comprobar("el operador no ve asientos ni puede reversar", (await falta("Asientos contables")) && (await falta("Reversar cobro")));
 
   await ir(`/finanzas/pendientes/${cliente}`);
   comprobar("estado de cuenta: total L 1,500, pagado L 500, pendiente L 1,000",
@@ -70,7 +73,7 @@ try {
   await ir("/finanzas/gastos");
   comprobar("operador no consulta gastos", await contiene("consultan el administrador y finanzas"));
   await ir("/finanzas/cuentas");
-  comprobar("operador ve las cuentas sin saldos", !(await contiene("Dinero disponible")) && (await contiene(`Caja N ${sufijo}`)));
+  comprobar("operador ve las cuentas sin saldos", (await contiene(`Caja N ${sufijo}`)) && (await falta("Dinero disponible")));
 
   // 2. Finanzas: gasto con abono y transferencia
   await iniciarSesion(env.E2E_FINANZAS_CORREO, env.E2E_FINANZAS_CLAVE);
@@ -101,7 +104,7 @@ try {
   comprobar("saldo de Caja N: L 1,200 (movimientos confirmados)", (await contiene(L("1,200.00"))) && (await contiene("Saldo inicial")));
   await ir(`/finanzas/cuentas/${banco}`);
   comprobar("saldo de Banco N: L 1,000", await contiene(L("1,000.00")));
-  comprobar("finanzas no registra saldos iniciales", !(await contiene("Registrar saldo inicial")));
+  comprobar("finanzas no registra saldos iniciales", await falta("Registrar saldo inicial"));
   await ir("/finanzas/cuentas");
   comprobar("finanzas ve el dinero disponible", await contiene("Dinero disponible"));
 
@@ -124,6 +127,10 @@ try {
     (await esperar("document.body.innerText.includes('Saldo a favor aplicado')", 20000)) && (await contiene(L("800.00"))));
 
   await ir(rutaCobro);
+  // Como un usuario: tras hidratar, abre la caja «Correcciones» y luego el desplegable.
+  await esperar("[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Reversar cobro' && !b.disabled)");
+  await evaluar("(() => { const caja = [...document.querySelectorAll('button.caja')].find((b) => b.textContent.includes('Correcciones')); if (caja.getAttribute('aria-expanded') !== 'true') caja.click(); })()");
+  await esperar("!document.querySelector('#campo-cobro-motivo').closest('[inert]')");
   await evaluar("[...document.querySelectorAll('summary')].find((s) => s.textContent.includes('Reversar cobro')).click()");
   await llenar("#campo-cobro-motivo", `${MARCA} prueba de reverso`);
   await pulsar("Reversar cobro");

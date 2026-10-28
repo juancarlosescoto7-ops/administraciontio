@@ -132,9 +132,20 @@ Plantillas contables: cargo D CxC / H ingreso de la línea · cobro D caja-banco
 | Corregir un kilometraje de regreso menor que el de salida | Sí | No | No |
 | Cobrar y registrar anticipos (E2) | Sí | Sí | Sí |
 
+### Gastos y reportes (E6)
+
+- **`/finanzas/gastos`:** proveedor opcional, categoría, actividad, vencimiento, pagos parciales e historial de abonos (E2), con filtros de categoría y actividad.
+- **`/reportes`:** resumen, resultados por actividad (los gastos generales aparte y dentro del consolidado), ingresos, gastos, por cobrar, por pagar y caja y bancos. Períodos: mes actual, mes anterior, año actual o rango personalizado, en hora de Tegucigalpa y con ambos días incluidos.
+- **Cálculo:** funciones `public.reporte_*` en PostgreSQL a partir del libro. Los ingresos y gastos se reconocen por la fecha del asiento; los cobros, anticipos, abonos y transferencias no son ingresos ni gastos; los reversos restan en su fecha. Los saldos actuales coinciden con las cuentas 1100, 1200, 2100 y 2200. El resultado es un informe gerencial, no utilidad fiscal.
+
+| Operación | Administrador | Operador | Finanzas |
+|---|---|---|---|
+| Consultar reportes, resultados y saldos de caja y bancos | Sí | No | Sí |
+| Registrar gastos y sus pagos (E2) | Sí | No | Sí |
+
 ## Verificación contra el proyecto de desarrollo
 
-Además de `npm test`, hay scripts sin dependencias adicionales que usan usuarios **ficticios** y crean registros marcados `[PRUEBA E1]` a `[PRUEBA E5]`. Se niegan a ejecutarse si `.env.local` no apunta al proyecto de desarrollo. Las credenciales de prueba van en un archivo fuera del repositorio (`E2E_ADMIN_CORREO`, `E2E_ADMIN_CLAVE`, y lo mismo para `OPERADOR`, `FINANZAS` e `INACTIVO`); el administrador, operador y finanzas de prueba deben estar activos y el usuario «inactivo», no.
+Además de `npm test`, hay scripts sin dependencias adicionales que usan usuarios **ficticios** y crean registros marcados `[PRUEBA E1]` a `[PRUEBA E6]`. Se niegan a ejecutarse si `.env.local` no apunta al proyecto de desarrollo. Las credenciales de prueba van en un archivo fuera del repositorio (`E2E_ADMIN_CORREO`, `E2E_ADMIN_CLAVE`, y lo mismo para `OPERADOR`, `FINANZAS` e `INACTIVO`); el administrador, operador y finanzas de prueba deben estar activos y el usuario «inactivo», no.
 
 ```bash
 E2E_CREDENCIALES=/ruta/credenciales.env node scripts/verificar-rls.mjs        # RLS por rol vía API REST
@@ -142,12 +153,14 @@ E2E_CREDENCIALES=/ruta/credenciales.env node scripts/verificar-finanzas.mjs   # 
 E2E_CREDENCIALES=/ruta/credenciales.env node scripts/verificar-membresias.mjs # membresías vía API REST
 E2E_CREDENCIALES=/ruta/credenciales.env node scripts/verificar-ambulancias.mjs # traslados vía API REST
 E2E_CREDENCIALES=/ruta/credenciales.env node scripts/verificar-alquileres-transportes.mjs # alquileres y transportes
+E2E_CREDENCIALES=/ruta/credenciales.env node scripts/verificar-reportes.mjs   # reportes contra el libro
 npm run build && npm start                                                     # en otra terminal
 E2E_CREDENCIALES=/ruta/credenciales.env node scripts/e2e-navegador.mjs        # navegador real (Edge/Chrome)
 E2E_CREDENCIALES=/ruta/credenciales.env node scripts/e2e-finanzas.mjs         # interfaz financiera
 E2E_CREDENCIALES=/ruta/credenciales.env node scripts/e2e-membresias.mjs       # interfaz de membresías
 E2E_CREDENCIALES=/ruta/credenciales.env node scripts/e2e-ambulancias.mjs      # interfaz de traslados
 E2E_CREDENCIALES=/ruta/credenciales.env node scripts/e2e-alquileres-transportes.mjs # interfaz de alquileres y transportes
+E2E_CREDENCIALES=/ruta/credenciales.env node scripts/e2e-reportes.mjs         # interfaz de reportes
 ```
 
 `E2E_URL` cambia la dirección de la app (por omisión `http://localhost:3000`).

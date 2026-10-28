@@ -1,4 +1,4 @@
-// Generado con Supabase MCP (generate_typescript_types) tras las migraciones de E5.
+// Generado con Supabase MCP (generate_typescript_types) tras las migraciones de E6.
 // No editar a mano: regenerar después de cada migración.
 
 export type Json =
@@ -3349,6 +3349,112 @@ export type Database = {
           p_vehiculo_id?: string
         }
         Returns: string
+      }
+      reporte_caja: {
+        Args: { p_desde: string; p_hasta: string }
+        Returns: {
+          activo: boolean
+          aperturas: number
+          cobros: number
+          cuenta_dinero_id: string
+          nombre: string
+          pagos: number
+          saldo_actual: number
+          saldo_final: number
+          saldo_inicial: number
+          tipo: Database["public"]["Enums"]["tipo_cuenta_dinero"]
+          transferencias: number
+        }[]
+      }
+      reporte_gastos: {
+        Args: {
+          p_actividad?: Database["public"]["Enums"]["actividad"]
+          p_desde: string
+          p_hasta: string
+        }
+        Returns: {
+          actividad: Database["public"]["Enums"]["actividad"]
+          asiento_id: string
+          categoria: string
+          concepto: string
+          cuenta_codigo: string
+          estado: Database["public"]["Enums"]["estado_gasto"]
+          evento: Database["public"]["Enums"]["evento_financiero"]
+          fecha: string
+          gasto_id: string
+          importe: number
+          pagado: number
+          pendiente: number
+          proveedor: string
+          vencimiento: string
+        }[]
+      }
+      reporte_gastos_agrupados: {
+        Args: { p_desde: string; p_hasta: string }
+        Returns: {
+          agrupacion: string
+          clave: string
+          importe: number
+          nombre: string
+        }[]
+      }
+      reporte_ingresos: {
+        Args: {
+          p_actividad?: Database["public"]["Enums"]["actividad"]
+          p_desde: string
+          p_hasta: string
+        }
+        Returns: {
+          actividad: Database["public"]["Enums"]["actividad"]
+          asiento_id: string
+          cargo_id: string
+          cliente_id: string
+          cliente_nombre: string
+          concepto: string
+          cuenta_codigo: string
+          cuenta_nombre: string
+          evento: Database["public"]["Enums"]["evento_financiero"]
+          fecha: string
+          importe: number
+        }[]
+      }
+      reporte_movimientos: {
+        Args: { p_cuenta_dinero_id: string; p_desde: string; p_hasta: string }
+        Returns: {
+          concepto: string
+          evento: Database["public"]["Enums"]["evento_financiero"]
+          fecha: string
+          importe: number
+          movimiento_id: string
+          saldo: number
+          tipo: Database["public"]["Enums"]["tipo_movimiento"]
+        }[]
+      }
+      reporte_resultados_actividad: {
+        Args: { p_desde: string; p_hasta: string }
+        Returns: {
+          actividad: Database["public"]["Enums"]["actividad"]
+          gastos: number
+          ingresos: number
+          resultado: number
+        }[]
+      }
+      reporte_resumen: {
+        Args: { p_desde: string; p_hasta: string }
+        Returns: {
+          anticipos: number
+          cobros_periodo: number
+          dinero_disponible: number
+          fecha_corte: string
+          gastos: number
+          ingresos: number
+          pagos_periodo: number
+          por_cobrar: number
+          por_cobrar_vencido: number
+          por_pagar: number
+          por_pagar_vencido: number
+          resultado: number
+        }[]
       }
       reprogramar_transporte: {
         Args: {

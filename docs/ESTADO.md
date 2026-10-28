@@ -1388,3 +1388,157 @@ Todas las rutas son de prerenderizado parcial: la estructura es inmediata y los 
   - este archivo: la sección de E6 está a continuación.
   
   No se revirtió ni sobrescribió ningún cambio de E6.
+
+## E6 — Gastos y reportes financieros
+
+- **Fecha:** 2026-10-27 (America/Tegucigalpa)
+- **Resultado:** APROBADO. Todo se verificó contra Supabase Cloud de desarrollo (`cgohbizokewvivxmvbij`) por API REST con usuarios reales, por SQL independiente y en navegador real.
+
+### Funcionalidad entregada
+
+- **Gastos (`/finanzas/gastos`):** ya tenía de E2 proveedor opcional, categoría, actividad, importe, fecha, vencimiento, pendiente, pagos parciales e historial de abonos. Se añadieron los filtros de **categoría** y **actividad** en el listado. Las actividades se rotulan como en la especificación: «Ambulancias y membresías», «Alquileres», «Transporte con conductor» y «General».
+- **Reportes (`/reportes`, administrador y finanzas):** siete vistas en pestañas con un selector de período (mes actual, mes anterior, año actual o rango personalizado; días en hora de Tegucigalpa, ambos extremos incluidos).
+  1. **Resumen:** ingresos y gastos reconocidos, resultado operativo básico (rotulado como informe gerencial, no utilidad fiscal); aparte, cobros recibidos y pagos a proveedores del período; aparte, saldos actuales a la fecha de corte (por cobrar y vencido, por pagar y vencido, anticipos sin aplicar, caja y bancos).
+  2. **Por actividad:** cuatro filas siempre presentes (la general sin repartir) y el consolidado como total. Si la suma no cuadrara con el consolidado, la página lo avisa.
+  3. **Ingresos:** fecha, actividad, concepto, cliente e importe; una anulación aparece en negativo en su fecha; total de la base. Filtro por actividad.
+  4. **Gastos:** fecha, concepto, categoría, proveedor, actividad, importe y estado de pago (pendiente, parcial, pagado, anulado); totales por categoría y por actividad. Filtro por actividad.
+  5. **Por cobrar:** cliente, concepto, original, pagado, pendiente, vencimiento y estado, con filtros «con saldo», «vencidos» y «todos». El saldo a favor se muestra en una sección aparte.
+  6. **Por pagar:** vencidas y no vencidas por separado, con sus totales.
+  7. **Caja y bancos:** por cuenta, saldo inicial (al cierre del día anterior al período), entradas, salidas, transferencias, saldos iniciales, saldo final (al cierre del último día) y saldo actual; los negativos se muestran resaltados. Al elegir una cuenta, sus movimientos del período con el saldo acumulado.
+- **Panel:** caja «Resultado del mes» (ingresos, gastos y resultado del mes en curso) para administrador y finanzas; desaparece el aviso «Próximamente: Reportes».
+- **Navegación:** «Reportes» en el grupo Finanzas, solo para administrador y finanzas (permiso `verReportes`).
+
+### Decisiones (opción más simple compatible con la especificación)
+
+- **Fuente única:** ingresos y gastos se leen del libro (líneas de cuentas `ingreso` y `gasto`, por la fecha y la actividad del asiento). Así un gasto cuenta una vez aunque tenga varios abonos, los cobros y anticipos nunca son ingreso (tocan 1100/2200), las aplicaciones no duplican (2200/1200) y las transferencias no son ni ingreso ni gasto (1100/1100). Los reversos de E2 se fechan el día en que se registran: restan en ese período y el histórico no cambia.
+- **Saldos actuales** (por cobrar, por pagar, anticipos, dinero): vistas de saldos de E2, que coinciden con las cuentas 1200, 2100, 2200 y 1100 del libro (comprobado). No dependen del período y se rotulan con su fecha.
+- **Funciones en lugar de vistas:** como el período es un parámetro, se usan siete funciones `SECURITY DEFINER` con `search_path` vacío y `exigir_rol('administrador', 'finanzas')`. El rango se valida en la base (sin nulos, final ≥ inicial, como máximo diez años).
+- **Totales:** los de cada informe vienen de la base. Solo las tablas de por cobrar, por pagar y caja suman las filas mostradas, y únicamente cuando la lista está completa (máximo 500 filas por consulta, con aviso si se recorta).
+- **Vencido:** con saldo y vencimiento anterior a hoy; el día del vencimiento aún no vence. Sin vencimiento cuenta como no vencido.
+- Sin gráficos, sin dependencias nuevas y sin exportar a PDF o Excel. No se tocó ninguna función de E1–E5.
+
+### Archivos principales
+
+- Migración: [20261027222743_e6_reportes.sql](../supabase/migrations/20261027222743_e6_reportes.sql).
+- Aplicación:
+  - [lib/reportes/periodo.ts](../lib/reportes/periodo.ts) (períodos) y [lib/reportes/definiciones.ts](../lib/reportes/definiciones.ts) (vistas, estado de pago, vencimiento y enlaces).
+  - [components/reportes/vistas.tsx](../components/reportes/vistas.tsx) y [app/(privado)/reportes/page.tsx](../app/(privado)/reportes/page.tsx).
+  - Cambios en [app/(privado)/finanzas/gastos/page.tsx](../app/(privado)/finanzas/gastos/page.tsx) (filtros), [app/(privado)/page.tsx](../app/(privado)/page.tsx) (resultado del mes), [app/(privado)/layout.tsx](../app/(privado)/layout.tsx) (menú), [lib/auth/roles.ts](../lib/auth/roles.ts) (`verReportes`) y [lib/finanzas/definiciones.ts](../lib/finanzas/definiciones.ts) (rótulos de actividad).
+- Verificación: [scripts/verificar-reportes.mjs](../scripts/verificar-reportes.mjs), [scripts/e2e-reportes.mjs](../scripts/e2e-reportes.mjs) y [lib/reportes/reportes.test.ts](../lib/reportes/reportes.test.ts).
+
+### Cambios de esquema / migraciones (aplicadas en `cgohbizokewvivxmvbij` por MCP)
+
+| Versión | Archivo | Contenido | MD5 (archivo = `schema_migrations`) |
+|---|---|---|---|
+| `20261027222743` | `e6_reportes` | Funciones públicas `reporte_resumen`, `reporte_resultados_actividad`, `reporte_ingresos`, `reporte_gastos`, `reporte_gastos_agrupados`, `reporte_caja` y `reporte_movimientos` (`SECURITY DEFINER`, `search_path` vacío, rol verificado, `numeric(14,2)`); auxiliares `private.exigir_rango` y `private.lineas_resultado` sin acceso desde la API. Sin tablas nuevas ni escrituras | `9cc36b20…` |
+
+- Migración aditiva: solo crea funciones. Tipos regenerados en [lib/supabase/tipos-bd.ts](../lib/supabase/tipos-bd.ts).
+- **Advisors de seguridad:** 7 avisos nuevos «SECURITY DEFINER ejecutable por authenticated», intencionales (validan rol dentro), más el aviso manual de contraseñas filtradas.
+- **Verificación por SQL:** ninguna de las 7 es ejecutable por `anon` ni por `PUBLIC`; las dos auxiliares no son ejecutables por `anon` ni `authenticated`; las 9 tienen `search_path` vacío.
+
+### Comandos y pruebas (2026-10-27, Node 24.22.0, Windows 11)
+
+| Comando | Resultado |
+|---|---|
+| `npm run lint` / `npm run typecheck` | OK / OK |
+| `npm test` | OK, 12 archivos, **99 pruebas** (16 nuevas: períodos con febrero, bisiestos, cambio de año y zona de Tegucigalpa; rangos inválidos; estado de pago; vencimiento; enlaces; permiso `verReportes`) |
+| `next build` | OK, incluida `/reportes`. Compilado en una copia del proyecto (el `next dev` del usuario ocupa el 3000 y su `.next`; no se tocó) |
+| `node scripts/verificar-reportes.mjs` (API REST, usuarios reales) | **64/64** (dos ejecuciones, meses aislados octubre de 2012 y junio de 2015). La primera abortó por un defecto del propio script, ver defectos |
+| `node scripts/e2e-reportes.mjs` (Edge sin interfaz, `next start` en el 3100) | **29/29** |
+| Regresión E1: `verificar-rls.mjs` / `e2e-navegador.mjs` | **61/61** / **43/43** |
+| Regresión E2: `verificar-finanzas.mjs` / `e2e-finanzas.mjs` | **75/75** / antes de la integración, intermitente (ver «Integración con el rediseño») |
+| Regresión E3: `verificar-membresias.mjs` / `e2e-membresias.mjs` | **92/92** / **25/25** |
+| Regresión E4: `verificar-ambulancias.mjs` / `e2e-ambulancias.mjs` | **74/74** / **21/21** |
+| Regresión E5: `verificar-alquileres-transportes.mjs` / `e2e-alquileres-transportes.mjs` | **73/73** / **22/22** |
+| Libro (SQL), tras todas las corridas | 585 asientos, 0 descuadrados, Σ debe = Σ haber |
+
+**Pruebas obligatorias (`verificar-reportes.mjs`).** El script elige al azar un mes entre 2001 y 2019, mide antes y después y contrasta cada cifra con un cálculo independiente desde `asientos` y `lineas_asiento`:
+
+1–4. Gastos de ambulancias (L 1,000), alquileres (L 800, pagado al registrar), transporte (L 600, sin proveedor) y general (L 400, el último día del mes): cada actividad sube exactamente lo suyo y el general no se reparte.
+5. **Pago parcial** de L 300: el gasto sigue siendo L 1,000, con pagado L 300 y pendiente L 700. Los gastos del mes suben L 2,800, no L 3,100.
+6. **Ingreso con pago parcial:** cargo de alquiler de L 2,000 con cobro de L 500. El ingreso es L 2,000 y la CxC queda en L 1,500.
+7. **Anticipo** de L 1,000 sin cargo: suben los cobros, no los ingresos.
+8. **Aplicación posterior** del anticipo a un cargo de membresía de L 700: el saldo a favor baja L 700 y el ingreso aparece una sola vez (mes del cargo + hoy, fecha de la aplicación).
+9. **Transferencias** (caja → banco y desde una cuenta sin fondos): fuera de ingresos y gastos, y suman cero entre cuentas.
+10. Resultado = ingresos − gastos.
+11. Las cuatro actividades suman el consolidado (ingresos, gastos y resultado), en el mes aislado y en el año actual. Σ categorías = Σ actividades = gastos.
+12. Por cobrar = cuenta 1200, por pagar = 2100, anticipos = 2200 y caja y bancos = 1100 del libro. Los vencidos coinciden con un cálculo independiente sobre las vistas de saldos.
+13. **Reversos** (anular cargo y gasto, reversar el pago parcial): restan con fecha de hoy y el mes histórico no cambia. El cargo anulado suma cero entre ambos períodos, la CxP cambia −600 +300 y la caja conserva el saldo al cierre del mes y actualiza el actual.
+14. **Filtros:** un rango de un solo día incluye ese día; el último día del mes entra en el mes y sale de un rango que termina antes; nada pasa al mes siguiente; el filtro por actividad funciona; un rango invertido, nulo o de más de diez años se rechaza (22023).
+15. **Permisos:** administrador y finanzas consultan los 7 reportes (con las mismas cifras); el operador recibe 42501 en los 7.
+16. **RLS y acceso:** el usuario inactivo recibe 42501 y la petición sin sesión se rechaza. Las funciones auxiliares no se exponen. El operador sigue sin ver movimientos ni saldos bancarios y nadie escribe en `asientos`.
+17. Ningún asiento descuadrado en el mes aislado ni hoy (y 0 en todo el libro, por SQL).
+18. **Regresión de E1 a E5:** ver la tabla.
+
+Además, para caja y bancos: saldo inicial, movimientos y saldo final cuadran (L 10,250); el saldo inicial del mes siguiente es el saldo final del mes; el saldo actual coincide con la vista de E2; una cuenta negativa se muestra en −L 100. Los 7 movimientos del mes terminan con el saldo final.
+
+**Escenarios en navegador (`e2e-reportes.mjs`):**
+
+- **Finanzas:** «Reportes» en el menú; por omisión, el mes actual en Tegucigalpa. Desde el formulario elige un rango personalizado, y el resumen, la vista por actividad, los ingresos y los gastos muestran las mismas cifras que las funciones de la base.
+- **Detalle:** CxC vencidos con el cargo parcial (pendiente L 1,000) y el saldo a favor aparte; CxP con el gasto en «Vencidas»; caja con los movimientos de la cuenta y su saldo final.
+- **Gastos:** filtros de categoría y actividad del listado, y detalle del gasto.
+- **Operador:** sin enlace, sin resultado del mes en el panel y con un aviso de permiso en `/reportes`, sin cifras.
+- **Administrador:** ve «Reportes» y el resultado del mes; ya no aparece «Próximamente».
+- **Móvil 390×844:** resumen, actividades, gastos y caja sin desplazamiento horizontal.
+
+### Revisión propia
+
+- Se contrastaron los totales con consultas independientes al libro (mes aislado y año actual), las vistas de saldos con las cuentas 1200, 2100, 2200 y 1100, y los vencidos con las vistas.
+- Duplicados: un gasto con abonos y un cargo con aplicaciones aparecen una sola vez; los pagos y las aplicaciones no tocan cuentas de resultado.
+- Anticipos: ni el cobro ni su aplicación son ingreso.
+- Generales: fila propia, sin reparto, dentro del consolidado.
+- Saldos: los actuales se rotulan con su fecha; el saldo al corte se calcula a esa fecha.
+- Filtros: los límites del período se incluyen; el rango se valida en la base y en la página (con aviso si no es válido).
+- Permisos: se validan en el servidor (página) y en PostgreSQL (función).
+
+### Datos en Supabase de desarrollo
+
+- Registros ficticios marcados `[PRUEBA E6]` en meses pasados (2006, 2012, 2015 y los de cada ejecución) y reversos con fecha de hoy: clientes, cajas y bancos, un proveedor, cargos, cobros, gastos, pagos, transferencias y asientos. Por diseño no se pueden borrar.
+- Los usuarios ficticios se reactivaron temporalmente y **se desactivaron de nuevo** (bitácora). Solo el administrador real queda activo.
+
+### Defectos encontrados y corregidos durante la etapa
+
+1. **Ambigüedad de nombres en plpgsql:** las columnas de salida (`resultado`, `actividad`…) podían confundirse con las de las consultas. Se corrigió antes de aplicar con `#variable_conflict use_column` y alias propios.
+2. **Totales por categoría:** el borrador agrupaba por cuenta contable y no por categoría del gasto. Se corrigió antes de aplicar.
+3. **Script de verificación:** consultaba «del mes aislado a hoy», un rango de más de diez años que la base rechaza (correctamente). Se dividió en dos consultas.
+4. **Prueba de navegador:** leía la copia oculta de los totales (la tabla se pinta para móvil y escritorio). Ahora lee la visible. No era un defecto de la aplicación.
+
+No se encontró ningún defecto en las funciones financieras de E2, así que no se modificaron.
+
+### Pendientes (configuración manual del propietario, sin cambios desde E1)
+
+1. Deshabilitar el registro público en Supabase › Authentication › Sign In / Providers.
+2. Activar la protección de contraseñas filtradas si el plan lo permite.
+
+### Limitaciones
+
+- Informes gerenciales: el resultado no es utilidad fiscal ni sustituye estados financieros.
+- El estado de pago de un gasto o cargo es el actual, también en los reportes de períodos pasados.
+- Las anulaciones restan el día en que se registran (comportamiento de E2), no en la fecha del documento original.
+- Los totales por categoría y por actividad de la vista de gastos cubren todas las actividades aunque se filtre el detalle.
+- Máximo 500 filas de detalle por vista (con aviso); los totales siempre son completos.
+
+### Integración con el rediseño (2026-10-27)
+
+E6 se desarrolló sobre el rediseño UI/UX, que estaba sin commit y en curso en otra sesión. Al cerrarse el rediseño:
+
+- **Separación:** se revisaron `git status` y todos los diffs.
+  - Solo de E6: los archivos nuevos de reportes, la migración, `README.md`, `finanzas/gastos/page.tsx`, `roles.ts`, `definiciones.ts`, `finanzas.test.ts` y `tipos-bd.ts`. Ninguno lo tocó el rediseño.
+  - Mixtos: `app/(privado)/page.tsx` («Resultado del mes» y retirada de «Próximamente»), `app/(privado)/layout.tsx` (enlace «Reportes») y este archivo (sección E6).
+  - Para el commit del rediseño, los tres mixtos se llevaron al índice sin los bloques de E6, generados por script (cada bloque debía aparecer exactamente una vez) y sin tocar el árbol de trabajo. `.vscode/` no se versiona; `referencias-diseno/` va con el rediseño, que la cita.
+- **Nada sobrescrito:** todos los bloques de E6 seguían en los archivos mixtos, aunque el rediseño editó `page.tsx` después (18:35), y la migración conserva su MD5 (`9cc36b20…`).
+- **El commit del rediseño, por sí solo** (árbol exportado del índice): `lint` OK, `typecheck` OK, `npm test` **85/85** y `build` OK.
+- **Integrado (rediseño + E6),** en una copia del árbol (el `next dev` del usuario sigue en el 3000):
+  - `lint` OK, `typecheck` OK, `npm test` **99/99** y `build` OK, con `/reportes`.
+  - API: `verificar-reportes` **64/64** (mes aislado enero de 2012); regresión **61/61**, **75/75**, **92/92**, **74/74** y **73/73**.
+  - Navegador: `e2e-reportes` **29/29**, `e2e-navegador` **43/43**, `e2e-membresias` **25/25**, `e2e-ambulancias` **21/21**, `e2e-alquileres-transportes` **22/22** y `e2e-finanzas` **28/28** (tres ejecuciones seguidas tras la corrección).
+  - Libro (SQL): 888 asientos, 0 descuadrados.
+- **Error de integración corregido** en [scripts/e2e-finanzas.mjs](../scripts/e2e-finanzas.mjs). Fallaba de forma intermitente (27/28) por dos motivos:
+  - leía el texto sin esperar el contenido que llega por streaming;
+  - enviaba el reverso dentro de la caja «Correcciones» cerrada (inerte), a veces antes de la hidratación.
+
+  Ahora `contiene()` espera, las ausencias se comprueban tras una presencia en la misma página, y el reverso espera la hidratación y abre la caja como un usuario. Un diagnóstico aislado del paso (8/8) descartó un fallo de la aplicación.
+
+### Commit
+
+El rediseño (`Rediseño UI/UX: shell, panel de inicio y biblioteca visual`) y E6 van en commits separados, en ese orden. Los hashes se informan en la entrega (no pueden incluirse en el propio commit).

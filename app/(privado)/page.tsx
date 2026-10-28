@@ -18,6 +18,7 @@ import {
   momentoDesdeLocal,
 } from "@/lib/formato";
 import { inicioUltimosDias, ordenarProximos, recorrido, serieUltimosDias, type ServicioProximo } from "@/lib/panel";
+import { describirPeriodo, resolverPeriodo } from "@/lib/reportes/periodo";
 import { createClient } from "@/lib/supabase/server";
 import { Encabezado } from "@/components/encabezado";
 import { InsigniaFinanciera } from "@/components/finanzas/resumen";
@@ -36,9 +37,6 @@ import {
   TarjetaIndicador,
   TarjetaModulo,
 } from "@/components/panel";
-
-// Módulos de las etapas siguientes: se anuncian sin aparentar funcionar.
-const PROXIMAMENTE = ["Reportes"];
 
 const ORDEN_PANEL: ClaveCatalogo[] = [
   "clientes",
@@ -108,6 +106,7 @@ async function ContenidoPanel() {
 
   const tesoreria = puede("verTesoreria", rol);
   const hoy = hoyEnTegucigalpa();
+  const mesActual = resolverPeriodo({}, hoy);
   const ahora = new Date();
   const enUnaSemana = new Date(ahora.getTime() + 7 * 86_400_000);
   const inicioHoy = momentoDesdeLocal(`${hoy}T00:00`);
@@ -129,6 +128,7 @@ async function ContenidoPanel() {
     proximasDevoluciones,
     cobros,
     cobrosSemana,
+    resultadoMes,
   ] = await Promise.all([
     Promise.all(
       ORDEN_PANEL.map(async (clave) => {
@@ -192,6 +192,8 @@ async function ContenidoPanel() {
       .eq("estado", "confirmado")
       .gte("fecha", inicioUltimosDias(hoy))
       .lte("fecha", hoy),
+    // Resultado del mes en curso (mismo cálculo que /reportes).
+    tesoreria ? supabase.rpc("reporte_resumen", { p_desde: mesActual.desde, p_hasta: mesActual.hasta }).single() : null,
   ]);
 
   // --- Operación -------------------------------------------------------
@@ -405,6 +407,32 @@ async function ContenidoPanel() {
             ))}
           </ul>
         </Seccion>
+        {resultadoMes && (
+          <Seccion
+            id="resultado-mes"
+            titulo="Resultado del mes"
+            descripcion={describirPeriodo(mesActual)}
+            enlace={{ href: "/reportes", etiqueta: "Ver reportes" }}
+          >
+            {resultadoMes.error || !resultadoMes.data ? (
+              <p role="alert" className="aviso aviso-error mx-5 mb-5">No se pudo calcular el resultado del mes.</p>
+            ) : (
+              <ul className="grid grid-cols-1 gap-1 px-3 pb-1 sm:grid-cols-3">
+                {[
+                  { etiqueta: "Ingresos reconocidos", valor: resultadoMes.data.ingresos },
+                  { etiqueta: "Gastos reconocidos", valor: resultadoMes.data.gastos },
+                  { etiqueta: "Resultado operativo básico", valor: resultadoMes.data.resultado },
+                ].map((cifra, indice) => (
+                  <li key={cifra.etiqueta} className={`flex flex-col gap-1 px-3 py-2.5 ${indice > 0 ? "sm:border-l sm:border-borde" : ""}`}>
+                    <span className="text-sm texto-tenue">{cifra.etiqueta}</span>
+                    <span className="text-lg font-bold tracking-tight">{formatearMoneda(cifra.valor)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="mx-5 mb-2 text-xs texto-tenue">Informe gerencial; no es utilidad fiscal. Los cobros del mes no son ingresos.</p>
+          </Seccion>
+        )}
         <Seccion id="modulos" titulo="Resumen por servicio" descripcion="Ambulancias, alquileres y transporte" sinTarjeta>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
             <TarjetaModulo
@@ -522,10 +550,6 @@ async function ContenidoPanel() {
           )}
         </Seccion>
       </div>
-
-      <p className="mt-6 text-sm texto-tenue">
-        Próximamente: {PROXIMAMENTE.join(" · ")}. Se habilitará en una etapa siguiente.
-      </p>
     </>
   );
 }

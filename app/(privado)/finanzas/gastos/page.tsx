@@ -2,16 +2,26 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { puede } from "@/lib/auth/roles";
 import { requerirUsuario } from "@/lib/auth/sesion";
+import type { Opcion } from "@/lib/catalogos/definiciones";
+import { primerValor } from "@/lib/catalogos/presentacion";
 import { filtroBusqueda } from "@/lib/catalogos/validacion";
 import { LIMITE_LISTADO } from "@/lib/finanzas/consultas";
 import { ETIQUETAS_ACTIVIDAD } from "@/lib/finanzas/definiciones";
 import { sumarMontos } from "@/lib/finanzas/montos";
 import { formatearFecha, formatearMoneda } from "@/lib/formato";
 import { createClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/supabase/tipos-bd";
 import { Cargando, Encabezado, SinPermiso } from "@/components/encabezado";
 import { FormularioFiltros, leerFiltros, type ParametrosBusqueda } from "@/components/finanzas/filtros";
 import { InsigniaFinanciera } from "@/components/finanzas/resumen";
 import { Tabla } from "@/components/finanzas/tabla";
+
+type Actividad = Database["public"]["Enums"]["actividad"];
+
+const OPCIONES_ACTIVIDAD: readonly Opcion[] = [
+  { valor: "todas", etiqueta: "Todas" },
+  ...Object.entries(ETIQUETAS_ACTIVIDAD).map(([valor, etiqueta]) => ({ valor, etiqueta })),
+];
 
 const ESTADOS = [
   { valor: "pendientes", etiqueta: "Con saldo pendiente" },
@@ -54,8 +64,18 @@ async function Listado({ searchParams }: { searchParams: ParametrosBusqueda }) {
   if (!puede("verTesoreria", usuario.rol)) {
     return <SinPermiso mensaje="Los gastos los consultan el administrador y finanzas." />;
   }
-  const filtros = leerFiltros(await searchParams, ESTADOS);
+  const parametros = await searchParams;
+  const filtros = leerFiltros(parametros, ESTADOS);
   const supabase = await createClient();
+  const { data: categorias } = await supabase.from("categorias_gasto").select("id, nombre").order("nombre");
+  const opcionesCategoria: Opcion[] = [
+    { valor: "todas", etiqueta: "Todas" },
+    ...(categorias ?? []).map((c) => ({ valor: c.id, etiqueta: c.nombre })),
+  ];
+  const categoriaParametro = primerValor(parametros.categoria);
+  const categoria = opcionesCategoria.some((c) => c.valor === categoriaParametro) ? categoriaParametro! : "todas";
+  const actividadParametro = primerValor(parametros.actividad);
+  const actividad = OPCIONES_ACTIVIDAD.some((a) => a.valor === actividadParametro) ? actividadParametro! : "todas";
 
   let consulta = supabase
     .from("saldos_gastos")
@@ -66,6 +86,8 @@ async function Listado({ searchParams }: { searchParams: ParametrosBusqueda }) {
   if (filtros.estado === "pendientes") consulta = consulta.eq("estado", "registrado").gt("pendiente", 0);
   if (filtros.estado === "pagados") consulta = consulta.eq("estado", "registrado").eq("pendiente", 0);
   if (filtros.estado === "anulados") consulta = consulta.eq("estado", "anulado");
+  if (categoria !== "todas") consulta = consulta.eq("categoria_id", categoria);
+  if (actividad !== "todas") consulta = consulta.eq("actividad", actividad as Actividad);
   if (filtros.busqueda) consulta = consulta.or(filtroBusqueda(["concepto", "proveedor_nombre"], filtros.busqueda));
   if (filtros.desde) consulta = consulta.gte("fecha", filtros.desde);
   if (filtros.hasta) consulta = consulta.lte("fecha", filtros.hasta);
@@ -74,7 +96,15 @@ async function Listado({ searchParams }: { searchParams: ParametrosBusqueda }) {
   const filas = (data ?? []).slice(0, LIMITE_LISTADO).map((fila) => ({ ...fila, id: fila.id! }));
   return (
     <>
-      <FormularioFiltros filtros={filtros} estados={ESTADOS} placeholder="Concepto o proveedor…" />
+      <FormularioFiltros
+        filtros={filtros}
+        estados={ESTADOS}
+        placeholder="Concepto o proveedor…"
+        extras={[
+          { nombre: "categoria", etiqueta: "Categoría", opciones: opcionesCategoria, valor: categoria },
+          { nombre: "actividad", etiqueta: "Actividad", opciones: OPCIONES_ACTIVIDAD, valor: actividad },
+        ]}
+      />
       {error ? (
         <p role="alert" className="aviso aviso-error">No se pudo cargar el listado.</p>
       ) : (

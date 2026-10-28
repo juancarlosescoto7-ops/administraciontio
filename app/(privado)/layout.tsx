@@ -48,6 +48,7 @@ function gruposNavegacion(rol: Rol): GrupoNavegacion[] {
         ...(puede("verTesoreria", rol) ? [{ href: "/finanzas/gastos", etiqueta: "Gastos" }] : []),
         { href: "/finanzas/cuentas", etiqueta: "Cajas y bancos" },
         { href: "/proveedores", etiqueta: "Proveedores" },
+        ...(puede("verReportes", rol) ? [{ href: "/reportes", etiqueta: "Reportes" }] : []),
       ],
     },
     {

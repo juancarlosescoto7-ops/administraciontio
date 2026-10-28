@@ -4,9 +4,9 @@ import type { Database } from "@/lib/supabase/tipos-bd";
 type Enums = Database["public"]["Enums"];
 
 export const ETIQUETAS_ACTIVIDAD: Record<Enums["actividad"], string> = {
-  ambulancias: "Ambulancias",
+  ambulancias: "Ambulancias y membresías",
   alquileres: "Alquileres",
-  transportes: "Transportes",
+  transportes: "Transporte con conductor",
   general: "General",
 };
 
@@ -49,9 +49,9 @@ export const OPCIONES_LINEA_INGRESO: readonly Opcion[] = [
 ];
 
 const OPCIONES_ACTIVIDAD_GASTO: readonly Opcion[] = [
-  { valor: "ambulancias", etiqueta: "Ambulancias" },
+  { valor: "ambulancias", etiqueta: "Ambulancias y membresías" },
   { valor: "alquileres", etiqueta: "Alquileres" },
-  { valor: "transportes", etiqueta: "Transportes" },
+  { valor: "transportes", etiqueta: "Transporte con conductor" },
   { valor: "general", etiqueta: "General (no se reparte entre actividades)" },
 ];
 

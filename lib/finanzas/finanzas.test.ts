@@ -44,8 +44,8 @@ describe("permisos financieros (espejo de las funciones SQL)", () => {
     expect(puede("corregir", "finanzas")).toBe(false);
   });
 
-  it("gastos, transferencias y tesorería: administrador y finanzas", () => {
-    for (const permiso of ["gestionarGastos", "transferir", "verTesoreria"] as const) {
+  it("gastos, transferencias, tesorería y reportes: administrador y finanzas", () => {
+    for (const permiso of ["gestionarGastos", "transferir", "verTesoreria", "verReportes"] as const) {
       expect(puede(permiso, "administrador")).toBe(true);
       expect(puede(permiso, "finanzas")).toBe(true);
       expect(puede(permiso, "operador")).toBe(false);

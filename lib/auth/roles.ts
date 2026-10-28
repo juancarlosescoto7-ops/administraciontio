@@ -54,6 +54,8 @@ export const PERMISOS_FINANZAS = {
   /** Saldos y movimientos de caja/banco, gastos y asientos. */
   verTesoreria: ["administrador", "finanzas"],
   transferir: ["administrador", "finanzas"],
+  /** Reportes consolidados: resultados, CxC/CxP, caja y bancos (public.reporte_*). */
+  verReportes: ["administrador", "finanzas"],
   /** Reversos, anulaciones y saldos iniciales. */
   corregir: ["administrador"],
 } as const satisfies Record<string, readonly Rol[]>;
