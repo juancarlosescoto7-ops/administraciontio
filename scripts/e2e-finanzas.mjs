@@ -47,19 +47,14 @@ try {
   await pulsar("Buscar");
   await esperar(`[...document.querySelectorAll('a')].some((a) => a.textContent.includes(${JSON.stringify(nombreCliente)}))`);
   await evaluar(`[...document.querySelectorAll('a')].find((a) => a.textContent.includes(${JSON.stringify(nombreCliente)})).click()`);
-  comprobar("buscar y elegir cliente muestra el formulario con el cargo pendiente",
-    await esperar(`document.querySelector('#campo-aplicar_${cargo}')`));
+  comprobar("buscar y elegir cliente muestra el formulario de aplicación automática",
+    await contiene("El cobro cubrirá automáticamente"));
   await capturar("e2-01-cobro-formulario");
 
   await llenar("#campo-monto", "500");
   await llenar("#campo-cuenta_dinero_id", caja);
-  await llenar(`#campo-aplicar_${cargo}`, "600");
-  await pulsar("Registrar cobro");
-  comprobar("aplicar más que lo recibido se rechaza y conserva lo escrito",
-    (await esperar("document.body.innerText.includes('supera el importe recibido')")) &&
-    (await evaluar(`document.querySelector('#campo-aplicar_${cargo}').value`)) === "600");
-
-  await llenar(`#campo-aplicar_${cargo}`, "500");
+  comprobar("no requiere ni permite seleccionar cargos o importes manuales",
+    await evaluar("document.querySelectorAll('input[name^=aplicar_]').length === 0"));
   await pulsar("Registrar cobro");
   comprobar("cobro de L 500 registrado", await esperar("location.pathname.startsWith('/finanzas/cobros/') && document.body.innerText.includes('Cobro registrado')", 20000));
   const rutaCobro = (await ruta()).split("?")[0];
@@ -108,7 +103,7 @@ try {
   await ir("/finanzas/cuentas");
   comprobar("finanzas ve el dinero disponible", await contiene("Dinero disponible"));
 
-  // 3. Administrador: anticipo, aplicación de saldo a favor y reverso
+  // 3. Administrador: segundo abono automático y reverso
   await iniciarSesion(env.E2E_ADMIN_CORREO, env.E2E_ADMIN_CLAVE);
   await esperar("location.pathname === '/'");
   comprobar("panel con indicadores financieros",
@@ -117,14 +112,10 @@ try {
   await llenar("#campo-monto", "200");
   await llenar("#campo-cuenta_dinero_id", caja);
   await pulsar("Registrar cobro");
-  comprobar("cobro de L 200 sin aplicar queda como saldo a favor",
+  comprobar("segundo cobro de L 200 aplicado automáticamente",
     (await esperar("document.body.innerText.includes('Cobro registrado')", 20000)) && (await contiene(L("200.00"))));
   await ir(`/finanzas/cargos/${cargo}`);
-  comprobar("el cargo ofrece aplicar el saldo a favor", await contiene("Aplicar saldo a favor"));
-  await llenar("#campo-monto", "200");
-  await pulsar("Aplicar saldo");
-  comprobar("saldo a favor aplicado: el cargo queda con L 800 pendientes",
-    (await esperar("document.body.innerText.includes('Saldo a favor aplicado')", 20000)) && (await contiene(L("800.00"))));
+  comprobar("el cargo queda con L 800 pendientes sin selección manual", await contiene(L("800.00")));
 
   await ir(rutaCobro);
   // Como un usuario: tras hidratar, abre la caja «Correcciones» y luego el desplegable.

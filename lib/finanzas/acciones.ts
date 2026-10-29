@@ -1,6 +1,5 @@
 "use server";
 
-import type { Campo } from "@/lib/catalogos/definiciones";
 import type { EstadoFormulario } from "@/lib/catalogos/estado";
 import { esUuid } from "@/lib/catalogos/presentacion";
 import { hoyEnTegucigalpa } from "@/lib/formato";
@@ -16,7 +15,7 @@ import {
   camposPagoGasto,
   camposTransferencia,
 } from "./definiciones";
-import { aCentavos, centavosATexto, decimal, opcional } from "./montos";
+import { aCentavos, decimal, opcional } from "./montos";
 
 type Enums = Database["public"]["Enums"];
 
@@ -37,27 +36,13 @@ export async function registrarCobro(
   anterior: EstadoFormulario,
   formData: FormData,
 ): Promise<EstadoFormulario> {
-  // Un campo de importe por cargo pendiente: aplicar_<id del cargo>.
-  const camposAplicacion: Campo[] = [...formData.keys()]
-    .filter((nombre) => nombre.startsWith("aplicar_") && esUuid(nombre.slice("aplicar_".length)))
-    .map((nombre) => ({ nombre, etiqueta: "Aplicar", tipo: "monto" }));
-  const campos = [...camposCobro([], hoyEnTegucigalpa()), ...camposAplicacion];
+  const campos = camposCobro([], hoyEnTegucigalpa());
 
   return procesar(anterior, formData, campos, "registrarCobro", async (datos, supabase) => {
     const idempotencia = clave(formData);
     if (!idempotencia || !esUuid(clienteId)) return SIN_CLAVE;
 
-    const aplicaciones = camposAplicacion
-      .map((campo) => ({ cargo_id: campo.nombre.slice("aplicar_".length), monto: texto(datos[campo.nombre]) }))
-      .filter((a): a is { cargo_id: string; monto: string } => a.monto !== null && aCentavos(a.monto)! > 0);
-    const totalAplicado = aplicaciones.reduce((suma, a) => suma + aCentavos(a.monto)!, 0);
-    if (totalAplicado > aCentavos(texto(datos.monto))!) {
-      return fallo("La suma aplicada a los cargos supera el importe recibido.", {
-        monto: `Lo aplicado suma L ${centavosATexto(totalAplicado)}.`,
-      });
-    }
-
-    const { data, error } = await supabase.rpc("registrar_cobro", {
+    const { data, error } = await supabase.rpc("registrar_cobro_automatico", {
       p_idempotencia: idempotencia,
       p_cliente_id: clienteId,
       p_cuenta_dinero_id: String(datos.cuenta_dinero_id),
@@ -65,7 +50,6 @@ export async function registrarCobro(
       p_metodo: datos.metodo as Enums["metodo_pago"],
       p_referencia: opcional(texto(datos.referencia)),
       p_monto: decimal(String(datos.monto)),
-      p_aplicaciones: aplicaciones,
     });
     if (error) return traducir(error);
     await actualizarMembresiasDe(supabase, clienteId);

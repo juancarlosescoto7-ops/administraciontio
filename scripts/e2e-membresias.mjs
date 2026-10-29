@@ -102,10 +102,9 @@ try {
   comprobar("filtro por estado: solo la suspendida", (await contiene("Cliente moroso")) && !(await contiene(nombreCliente)));
 
   // 2. Finanzas: panel, cobro de la deuda vencida y reactivación automática
-  const cargoPanel = (await api(adminApi.token, "GET", `saldos_periodos?membresia_id=eq.${morosaPanel}&select=cargo_id`)).datos[0].cargo_id;
   await api(adminApi.token, "POST", "rpc/registrar_cobro", {
     p_idempotencia: randomUUID(), p_cliente_id: clientePanel, p_cuenta_dinero_id: caja, p_fecha: hoy, p_metodo: "efectivo",
-    p_referencia: null, p_monto: "500.00", p_aplicaciones: [{ cargo_id: cargoPanel, monto: "500.00" }],
+    p_referencia: null, p_monto: "500.00",
   });
   await iniciarSesion(env.E2E_FINANZAS_CORREO, env.E2E_FINANZAS_CLAVE, `/login?siguiente=/membresias/${morosaPanel}`);
   await esperar(`location.pathname === '/membresias/${morosaPanel}'`);
@@ -122,11 +121,9 @@ try {
   comprobar("finanzas no gestiona beneficiarios ni condiciones", !(await contiene("Agregar beneficiario")) && !(await contiene("Editar condiciones")));
   await pulsar("Registrar cobro");
   await esperar("location.pathname === '/finanzas/cobros/nuevo'");
-  await esperar("document.querySelector('input[name^=aplicar_]')");
-  const cargoVencido = await evaluar("document.querySelector('input[name^=aplicar_]').name");
+  await esperar("document.querySelector('#campo-monto')");
   await llenar("#campo-monto", "500");
   await llenar("#campo-cuenta_dinero_id", caja);
-  await llenar(`#campo-${cargoVencido}`, "500");
   await pulsar("Registrar cobro");
   comprobar("cobro de la cuota vencida registrado",
     await esperar("location.pathname.startsWith('/finanzas/cobros/') && document.body.innerText.includes('Cobro registrado')", 20000));

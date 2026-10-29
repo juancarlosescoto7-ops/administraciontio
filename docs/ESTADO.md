@@ -1,5 +1,35 @@
 # Estado del proyecto
 
+## Ajuste de cobros — aplicación automática por antigüedad (2026-10-28)
+
+- **Resultado:** implementación y verificación local terminadas; **pendiente aplicar y verificar en Supabase Cloud de desarrollo**. No se inicia E7.
+- Regla acordada: cada cobro nuevo recorre los cargos vigentes del cliente por `fecha`, `created_at`, `id`; liquida cada pendiente y abona el remanente al siguiente. El excedente sobre la deuda queda a favor. No busca combinaciones de importes ni requiere selección manual.
+- Se conservan cobros históricos, anticipos anteriores, aplicaciones de saldo a favor a cargos nuevos, permisos y reversos. La distribución se calcula en PostgreSQL, con importes `numeric(14,2)`, bloqueos en orden fijo y consulta de saldos después del bloqueo.
+- Formulario sin campos por cuota; la Server Action ignora campos de distribución inyectados y conserva la actualización de membresías después de confirmar el cobro. La entrada `registrar_cobro_automatico` impide que la UI nueva utilice silenciosamente el comportamiento antiguo si falta la migración.
+- **Migración local:** `supabase/migrations/20261029004533_cobros_automaticos_antiguedad.sql`, generada mediante Supabase CLI. Reemplaza `registrar_cobro` conservando la firma para reintentos históricos y añade la entrada automática sin distribución manual. No crea tablas ni modifica registros históricos. **No aplicada a Cloud.** La fecha del nombre es UTC; corresponde al 28 de octubre en Honduras.
+- Se ajustaron las pruebas API/navegador que enviaban distribuciones manuales y se añadió un caso de dos cobros distintos simultáneos en `scripts/verificar-finanzas.mjs`.
+
+### Evidencia local
+
+| Verificación | Resultado |
+|---|---|
+| `npm.cmd test` | **111/111**; incluye 4 pruebas nuevas de la Server Action: permisos, validación, distribución inyectada y fallo sin reactivar membresías |
+| `node scripts/verificar-cobros-automaticos.mjs` | **35/35** en PostgreSQL temporal PGlite 0.5.13; ejecuta migraciones reales E1/E2 y este ajuste, con usuarios ficticios y Auth simulado |
+| `npm.cmd run lint` | OK, sin avisos tras retirar variables de pruebas obsoletas |
+| `npm.cmd run typecheck` | OK; también TypeScript pasó en el build posterior con la nueva entrada RPC |
+| `npm.cmd run build` | OK, 61 páginas |
+
+Los 35 casos SQL verifican prioridad incluso si el importe coincide con un cargo reciente, pago completo/parcial, saldo previamente abonado, desempates, centavos, excedente, cliente sin deuda, aislamiento, anulaciones, idempotencia histórica/nueva, rechazo de reparto manual, reversos, rol inactivo/anon y escritura directa denegada. Una falla inducida en la segunda aplicación revierte también la primera y el cobro completo. Se comprueban partida doble, una sola entrada en caja y ausencia de sobreaplicaciones.
+
+### Revisión y límites pendientes
+
+- Corregido durante revisión: sin una entrada RPC nueva, el formulario actualizado podía invocar la implementación antigua y dejar el dinero sin aplicar mientras faltara migrar. Ahora falla sin registrar dinero.
+- El MCP disponible devuelve **sin permiso** al consultar el proyecto de desarrollo configurado `cgohbizokewvivxmvbij`. No se cambiaron proyectos ni se usó producción. Se solicitó reconectar la cuenta autorizada.
+- No se ejecutaron las regresiones API/navegador ni la prueba concurrente contra Cloud; tampoco sus advisors. PGlite no verifica concurrencia real entre conexiones ni Supabase Auth/PostgREST. No se declaran aprobadas esas comprobaciones.
+- Para terminar: recuperar acceso al proyecto de desarrollo, aplicar exactamente la migración local, verificar migraciones/advisors y ejecutar las regresiones API/navegador adaptadas, incluida la concurrencia. Las credenciales de prueba se suministran por `E2E_CREDENCIALES`, nunca por Git.
+- La dependencia de prueba está aislada en `supabase/.temp/pruebas-cobros` (ignorado). Preparación reproducible en la cabecera del script; no se añadieron dependencias a la aplicación ni se utilizó Docker.
+- Los cambios locales previos de otras tareas se conservaron. El commit de este ajuste incluye únicamente sus cambios, con selección de bloques en los archivos compartidos.
+
 ## E0 — Arranque técnico
 
 - **Fecha:** 2026-10-25

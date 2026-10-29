@@ -68,10 +68,10 @@ const cobertura = async (sesion, m, b, f = hoy) =>
   (await rpc(sesion, "consultar_cobertura", { p_membresia_id: m, p_beneficiario_id: b, p_fecha: f })).datos?.[0];
 const registrar = (sesion, args) =>
   rpc(sesion, "registrar_membresia", { p_idempotencia: randomUUID(), p_condiciones: null, ...args });
-const cobrar = (sesion, cliente, monto, aplicaciones = []) =>
+const cobrar = (sesion, cliente, monto) =>
   rpc(sesion, "registrar_cobro", {
     p_idempotencia: randomUUID(), p_cliente_id: cliente, p_cuenta_dinero_id: caja, p_fecha: hoy,
-    p_metodo: "efectivo", p_referencia: null, p_monto: monto, p_aplicaciones: aplicaciones,
+    p_metodo: "efectivo", p_referencia: null, p_monto: monto,
   });
 
 // --- Datos ficticios ---------------------------------------------------
@@ -248,8 +248,7 @@ let mRenovacion;
 
 // --- 8. Pago completo (finanzas) -----------------------------------------
 {
-  const [p] = await periodos(m1);
-  const r = await cobrar(finanzas, clientes["Titular 1"], "500.00", [{ cargo_id: p.cargo_id, monto: "500.00" }]);
+  const r = await cobrar(finanzas, clientes["Titular 1"], "500.00");
   const [pagado] = await periodos(m1);
   const movs = await movimientosDe("cobro", r.datos);
   comprobar("8. pago completo: cuota L 500 aplicada, pendiente 0", ok(r) && c(pagado.aplicado) === 50000 && c(pagado.pendiente) === 0);
@@ -262,7 +261,7 @@ let m3;
 {
   m3 = (await registrar(operador, { p_cliente_id: clientes["Titular 3"], p_plan_id: planCompartido, p_fecha_inicio: hoy, p_beneficiarios: [b2] })).datos;
   const [p] = await periodos(m3);
-  const r = await cobrar(operador, clientes["Titular 3"], "300.00", [{ cargo_id: p.cargo_id, monto: "300.00" }]);
+  const r = await cobrar(operador, clientes["Titular 3"], "300.00");
   const [parcial] = await periodos(m3);
   const cargo = await uno(admin, `saldos_cargos?id=eq.${p.cargo_id}&select=monto,aplicado,pendiente`);
   const movs = await movimientosDe("cobro", r.datos);
@@ -309,8 +308,7 @@ let m3;
   const cob = await cobertura(finanzas, id, b1);
   comprobar("11. suspendida no habilita traslados cubiertos", cob && cob.cubierto === false && /suspendida/.test(cob.motivo));
 
-  const [p] = await periodos(id);
-  await cobrar(finanzas, clientes.Gracia, "500.00", [{ cargo_id: p.cargo_id, monto: "500.00" }]);
+  await cobrar(finanzas, clientes.Gracia, "500.00");
   const a = await rpc(finanzas, "actualizar_mensualidades", { p_cliente_id: clientes.Gracia });
   m = await membresia(id);
   comprobar("13. saldada antes de la renovación: se reactiva y el ciclo sigue igual",
@@ -332,8 +330,7 @@ let m3;
   comprobar("12. actualizar mientras está suspendida no crea períodos", ok(repetir) && repetir.datos.periodos === 0 && (await periodos(id)).length === 1);
   comprobar("12. la deuda vencida se conserva", c((await membresia(id)).vencido) === 50000);
 
-  const [p] = await periodos(id);
-  const pago = await cobrar(operador, cliente, "500.00", [{ cargo_id: p.cargo_id, monto: "500.00" }]);
+  const pago = await cobrar(operador, cliente, "500.00");
   // 7. Tres actualizaciones simultáneas de la misma membresía.
   const simultaneas = await Promise.all([1, 2, 3].map(() => rpc(finanzas, "actualizar_mensualidades", { p_membresia_id: id })));
   m = await membresia(id);
@@ -381,8 +378,7 @@ let m3;
   comprobar("14. no se cancela dos veces", (await rpc(admin, "cancelar_membresia", { p_membresia_id: m3, p_motivo: "otra" })).codigo === "22023");
   const a = await rpc(admin, "actualizar_mensualidades", { p_membresia_id: m3 });
   comprobar("14. cancelada: actualizar no la revisa ni genera renovaciones", ok(a) && a.datos.revisadas === 0 && (await periodos(m3)).length === 1);
-  const [p] = await periodos(m3);
-  await cobrar(operador, clientes["Titular 3"], "200.00", [{ cargo_id: p.cargo_id, monto: "200.00" }]);
+  await cobrar(operador, clientes["Titular 3"], "200.00");
   await rpc(operador, "actualizar_mensualidades", { p_cliente_id: clientes["Titular 3"] });
   comprobar("14. pagar la deuda no reactiva una membresía cancelada", (await membresia(m3)).estado === "cancelada");
   const cob = await cobertura(admin, m3, b2);

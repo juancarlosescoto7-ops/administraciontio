@@ -147,7 +147,7 @@ const cAlq = exigir(await cargo(clienteX, "4300", "2000.00", dia(5), dia(15)), "
 exigir(
   await rpc(operador, "registrar_cobro", {
     p_idempotencia: randomUUID(), p_cliente_id: clienteX, p_cuenta_dinero_id: caja6, p_fecha: dia(6), p_metodo: "efectivo",
-    p_referencia: null, p_monto: "500.00", p_aplicaciones: [{ cargo_id: cAlq, monto: "500.00" }],
+    p_referencia: null, p_monto: "500.00",
   }),
   "cobro parcial",
 );

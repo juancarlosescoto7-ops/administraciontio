@@ -3262,6 +3262,18 @@ export type Database = {
         }
         Returns: string
       }
+      registrar_cobro_automatico: {
+        Args: {
+          p_cliente_id: string
+          p_cuenta_dinero_id: string
+          p_fecha: string
+          p_idempotencia: string
+          p_metodo: Database["public"]["Enums"]["metodo_pago"]
+          p_monto: number
+          p_referencia: string
+        }
+        Returns: string
+      }
       registrar_gasto: {
         Args: {
           p_actividad: Database["public"]["Enums"]["actividad"]

@@ -35,13 +35,13 @@ const cliente = exigir(await api(adminApi.token, "POST", "clientes", { nombre: n
 const caja = exigir(await api(adminApi.token, "POST", "cuentas_dinero", { nombre: `${MARCA} Caja N ${sufijo}`, tipo: "caja" }), "caja")[0].id;
 exigir(await api(adminApi.token, "POST", "rpc/registrar_apertura", { p_idempotencia: randomUUID(), p_cuenta_dinero_id: caja, p_fecha: dia(1), p_monto: "3000.00" }), "apertura");
 const conceptoCargo = `${MARCA} Transporte navegador ${sufijo}`;
-const cargo = exigir(await api(adminApi.token, "POST", "rpc/registrar_cargo", {
+exigir(await api(adminApi.token, "POST", "rpc/registrar_cargo", {
   p_idempotencia: randomUUID(), p_cliente_id: cliente, p_cuenta_ingreso: "4400", p_concepto: conceptoCargo,
   p_fecha: dia(3), p_vencimiento: dia(10), p_monto: "1234.56",
 }), "cargo");
 exigir(await api(adminApi.token, "POST", "rpc/registrar_cobro", {
   p_idempotencia: randomUUID(), p_cliente_id: cliente, p_cuenta_dinero_id: caja, p_fecha: dia(4), p_metodo: "efectivo",
-  p_referencia: null, p_monto: "234.56", p_aplicaciones: [{ cargo_id: cargo, monto: "234.56" }],
+  p_referencia: null, p_monto: "234.56",
 }), "cobro");
 const categoria = (await api(adminApi.token, "GET", "categorias_gasto?activo=eq.true&select=id,nombre&order=nombre&limit=1")).datos[0];
 const conceptoGasto = `${MARCA} Gasto general navegador ${sufijo}`;

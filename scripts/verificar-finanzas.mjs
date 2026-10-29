@@ -99,7 +99,6 @@ let cobro500;
   const cobro = await rpc(operador, "registrar_cobro", {
     p_idempotencia: randomUUID(), p_cliente_id: clienteA, p_cuenta_dinero_id: caja, p_fecha: hoy,
     p_metodo: "efectivo", p_referencia: null, p_monto: "500.00",
-    p_aplicaciones: [{ cargo_id: cargo1500, monto: "500.00" }],
   });
   cobro500 = cobro.datos;
   const cargo = await uno(admin, `saldos_cargos?id=eq.${cargo1500}&select=monto,aplicado,pendiente`);
@@ -257,7 +256,7 @@ let transferencia;
     p_idempotencia: clave, p_cliente_id: clienteC, p_cuenta_dinero_id: caja, p_fecha: hoy, p_metodo: "efectivo",
     p_referencia: null, p_monto: "100.00", p_aplicaciones: [{ cargo_id: cargoGrande, monto: "150.00" }],
   });
-  comprobar("6. aplicar más que el importe del cobro es rechazado y no se registra el cobro",
+  comprobar("6. distribución manual rechazada y no se registra el cobro",
     sobre.codigo === "22023" && (await leer(admin, `cobros_cliente?idempotencia=eq.${clave}&select=id`)).length === 0, JSON.stringify(sobre.datos));
 
   // Dos aplicaciones simultáneas de L 300 contra un saldo a favor de L 300.
@@ -272,6 +271,28 @@ let transferencia;
     JSON.stringify(intentos.map((r) => r.datos)));
 }
 
+// Cobros distintos simultáneos: ambos deben recalcular tras adquirir bloqueos.
+{
+  const cliente = await crearCliente("Cobros simultáneos FIFO");
+  const cargos = [];
+  for (const [monto, fecha] of [["400.00", "2026-01-01"], ["600.00", "2026-02-01"], ["500.00", "2026-03-01"]]) {
+    cargos.push((await rpc(admin, "registrar_cargo", {
+      p_idempotencia: randomUUID(), p_cliente_id: cliente, p_cuenta_ingreso: "4100",
+      p_concepto: `${MARCA} FIFO`, p_fecha: fecha, p_vencimiento: null, p_monto: monto,
+    })).datos);
+  }
+  const cobros = await Promise.all(["1000.00", "200.00"].map((monto) => rpc(operador, "registrar_cobro_automatico", {
+    p_idempotencia: randomUUID(), p_cliente_id: cliente, p_cuenta_dinero_id: caja,
+    p_fecha: hoy, p_metodo: "efectivo", p_referencia: null, p_monto: monto,
+  })));
+  comprobar("6b. dos cobros distintos simultáneos se confirman sin duplicados", cobros.every(ok) && cobros[0].datos !== cobros[1].datos);
+  const pendientes = await Promise.all(cargos.map(async (id) => c((await uno(admin, `saldos_cargos?id=eq.${id}&select=pendiente`))?.pendiente)));
+  comprobar("6b. concurrencia respeta antigüedad: 400 y 600 saldados, 200 abonados al siguiente",
+    JSON.stringify(pendientes) === JSON.stringify([0, 0, 30000]));
+  const saldo = await uno(admin, `saldos_clientes?cliente_id=eq.${cliente}&select=pendiente,saldo_a_favor`);
+  comprobar("6b. concurrencia no deja saldo a favor ni sobreaplica", c(saldo?.pendiente) === 30000 && c(saldo?.saldo_a_favor) === 0);
+}
+
 // --- 7. Aislamiento entre clientes -----------------------------------------
 {
   // clienteA tiene cargo con L 1,000 pendientes; clienteB no tiene saldo a favor.
@@ -280,11 +301,12 @@ let transferencia;
     p_idempotencia: clave, p_cliente_id: clienteB, p_cuenta_dinero_id: caja, p_fecha: hoy, p_metodo: "efectivo",
     p_referencia: null, p_monto: "100.00", p_aplicaciones: [{ cargo_id: cargo1500, monto: "100.00" }],
   });
-  comprobar("7. el cobro de un cliente no se aplica al cargo de otro", ajeno.codigo === "22023" && /otro/.test(ajeno.mensaje ?? ""), JSON.stringify(ajeno.datos));
+  comprobar("7. no permite seleccionar un cargo ajeno manualmente", ajeno.codigo === "22023", JSON.stringify(ajeno.datos));
   comprobar("7. … y el cobro rechazado no deja rastro", (await leer(admin, `cobros_cliente?idempotencia=eq.${clave}&select=id`)).length === 0);
-  const anticipoB = await rpc(finanzas, "registrar_cobro", { p_idempotencia: randomUUID(), p_cliente_id: clienteB, p_cuenta_dinero_id: caja, p_fecha: hoy, p_metodo: "efectivo", p_referencia: null, p_monto: "50.00" });
+  const clienteAnticipo = await crearCliente("Anticipo aislado");
+  const anticipoB = await rpc(finanzas, "registrar_cobro", { p_idempotencia: randomUUID(), p_cliente_id: clienteAnticipo, p_cuenta_dinero_id: caja, p_fecha: hoy, p_metodo: "efectivo", p_referencia: null, p_monto: "50.00" });
   const usarAjeno = await rpc(operador, "aplicar_saldo_a_favor", { p_idempotencia: randomUUID(), p_cargo_id: cargo1500, p_monto: "50.00" });
-  const saldoB = await uno(admin, `saldos_clientes?cliente_id=eq.${clienteB}&select=saldo_a_favor`);
+  const saldoB = await uno(admin, `saldos_clientes?cliente_id=eq.${clienteAnticipo}&select=saldo_a_favor`);
   comprobar("7. el saldo a favor de un cliente no paga cargos de otro",
     anticipoB.estado === 200 && usarAjeno.codigo === "22023" && c(saldoB?.saldo_a_favor) === 5000, JSON.stringify(usarAjeno.datos));
 }
@@ -347,16 +369,17 @@ let transferencia;
     p_aplicaciones: [{ cargo_id: cargoA2, monto: "100.00" }, { cargo_id: cargo1500, monto: "1200.00" }],
   });
   const ap = await leer(admin, `aplicaciones_cobro?operacion_id=eq.${claveCobro}&select=id`);
-  comprobar("10. cobro cuya segunda aplicación falla: sin cobro, sin aplicaciones y sin dinero",
+  comprobar("10. cobro con distribución manual rechazada: sin cobro, sin aplicaciones y sin dinero",
     r2.codigo === "22023" && (await leer(admin, `cobros_cliente?idempotencia=eq.${claveCobro}&select=id`)).length === 0 &&
     ap.length === 0 && (await saldoCuenta(caja)) === saldoAntes, JSON.stringify(r2.datos));
   const reintento = await rpc(operador, "registrar_cobro", {
     p_idempotencia: claveCobro, p_cliente_id: clienteA, p_cuenta_dinero_id: caja, p_fecha: hoy, p_metodo: "efectivo",
-    p_referencia: null, p_monto: "500.00", p_aplicaciones: [{ cargo_id: cargoA2, monto: "100.00" }],
+    p_referencia: null, p_monto: "500.00",
   });
   comprobar("10. corregido el error, el reintento con la misma clave registra una sola vez",
     reintento.estado === 200 && (await saldoCuenta(caja)) - saldoAntes === 50000 &&
-    c((await uno(admin, `saldos_cargos?id=eq.${cargoA2}&select=pendiente`)).pendiente) === 0);
+    c((await uno(admin, `saldos_cargos?id=eq.${cargo1500}&select=pendiente`)).pendiente) === 50000 &&
+    c((await uno(admin, `saldos_cargos?id=eq.${cargoA2}&select=pendiente`)).pendiente) === 10000);
 }
 
 // --- 11. Reversos: historial conservado -------------------------------------
@@ -372,8 +395,8 @@ let transferencia;
   const movs = await movimientosDe("cobro", cobro500);
   const cargo = await uno(admin, `saldos_cargos?id=eq.${cargo1500}&select=pendiente`);
   comprobar("11. el cobro reversado se conserva con motivo y autor", ok(rev) && cobro?.estado === "reversado" && cobro.reversado_por === admin.id, JSON.stringify(rev.datos));
-  comprobar("11. sus aplicaciones se conservan como reversadas y el cargo vuelve a L 1,500 pendientes",
-    aplicaciones.length === 1 && aplicaciones[0].estado === "reversada" && c(cargo?.pendiente) === 150000);
+  comprobar("11. aplicaciones reversadas; queda L 1,000 pendiente al conservar el segundo cobro",
+    aplicaciones.length === 1 && aplicaciones[0].estado === "reversada" && c(cargo?.pendiente) === 100000);
   comprobar("11. asiento original marcado y asiento espejo registrado",
     asientos.length === 2 && asientos.some((a) => a.evento === "registro" && a.estado === "reversado") &&
     asientos.some((a) => a.evento === "reverso" && plantilla(a) === "1100H50000 2200D50000"));

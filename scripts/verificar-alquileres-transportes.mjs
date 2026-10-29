@@ -70,10 +70,10 @@ const traslado = (sesion, args) =>
     p_pasajero: `${MARCA} Paciente`, p_inicio_previsto: null, p_minutos_estimados: 90, p_origen: "Colonia Kennedy", p_destino: "Hospital Escuela",
     p_motivo: null, p_precio: "1000.00", p_tarifa_id: null, p_notas: null, p_vehiculo_id: null, p_conductor_id: null, p_programar: false, ...args,
   });
-const cobrar = (sesion, cliente, monto, aplicaciones = []) =>
+const cobrar = (sesion, cliente, monto) =>
   rpc(sesion, "registrar_cobro", {
     p_idempotencia: randomUUID(), p_cliente_id: cliente, p_cuenta_dinero_id: caja, p_fecha: hoy,
-    p_metodo: "efectivo", p_referencia: null, p_monto: monto, p_aplicaciones: aplicaciones,
+    p_metodo: "efectivo", p_referencia: null, p_monto: monto,
   });
 
 // --- Datos ficticios ---------------------------------------------------
@@ -212,7 +212,7 @@ let rA;
   comprobar("transición: un devuelto no se cancela", (await cancelarAlquiler(operador, rA)).codigo === "22023");
 
   // 8. Abono posterior.
-  const abono = await cobrar(finanzas, clientes.Alquiler, "600.00", [{ cargo_id: cargos[0].id, monto: "600.00" }]);
+  const abono = await cobrar(finanzas, clientes.Alquiler, "600.00");
   a = await alquiler(rA);
   const saldo = await uno(admin, `saldos_clientes?cliente_id=eq.${clientes.Alquiler}&select=pendiente`);
   comprobar("8. abono de L 600: aplicado L 1,600, pendiente L 2,000 en el alquiler y en el cliente",

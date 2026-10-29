@@ -54,10 +54,10 @@ const iniciar = (sesion, id) => rpc(sesion, "iniciar_traslado", { p_traslado_id:
 const finalizar = (sesion, id, anticipo = null) =>
   rpc(sesion, "finalizar_traslado", { p_traslado_id: id, p_notas_finales: `${MARCA} sin novedad`, p_aplicar_anticipo: anticipo });
 const cancelar = (sesion, id, motivo = `${MARCA} el cliente desiste`) => rpc(sesion, "cancelar_traslado", { p_traslado_id: id, p_motivo: motivo });
-const cobrar = (sesion, cliente, monto, aplicaciones = []) =>
+const cobrar = (sesion, cliente, monto) =>
   rpc(sesion, "registrar_cobro", {
     p_idempotencia: randomUUID(), p_cliente_id: cliente, p_cuenta_dinero_id: caja, p_fecha: hoy,
-    p_metodo: "efectivo", p_referencia: null, p_monto: monto, p_aplicaciones: aplicaciones,
+    p_metodo: "efectivo", p_referencia: null, p_monto: monto,
   });
 
 // --- Datos ficticios ---------------------------------------------------
@@ -377,7 +377,7 @@ let tPart;
     JSON.stringify([fin1.datos, fin2.datos]));
   const [asiento] = await asientosDe("cargo", cargos[0].id);
   comprobar("19. asiento D 1200 CxC / H 4200 Ingreso ambulancias particulares", asiento && plantilla(asiento) === "1200D150000 4200H150000");
-  const pago = await cobrar(finanzas, clientes.Particular, "500.00", [{ cargo_id: cargos[0].id, monto: "500.00" }]);
+  const pago = await cobrar(finanzas, clientes.Particular, "500.00");
   const tras = await traslado(tPart);
   comprobar("20. cobro parcial por finanzas: pagado L 500, pendiente L 1,000, estado financiero parcial",
     ok(pago) && c(tras.aplicado) === 50000 && c(tras.pendiente) === 100000 && tras.estado_financiero === "parcial" && tras.estado === "completado");
