@@ -2,11 +2,11 @@
 
 ## Ajuste de cobros — aplicación automática por antigüedad (2026-10-28)
 
-- **Resultado:** implementación y verificación local terminadas; **pendiente aplicar y verificar en Supabase Cloud de desarrollo**. No se inicia E7.
+- **Resultado:** implementación y migración aplicadas en Supabase Cloud de desarrollo; verificación SQL local y remota, regresiones API (incluida la concurrencia) y navegador aprobadas. No se inicia E7.
 - Regla acordada: cada cobro nuevo recorre los cargos vigentes del cliente por `fecha`, `created_at`, `id`; liquida cada pendiente y abona el remanente al siguiente. El excedente sobre la deuda queda a favor. No busca combinaciones de importes ni requiere selección manual.
 - Se conservan cobros históricos, anticipos anteriores, aplicaciones de saldo a favor a cargos nuevos, permisos y reversos. La distribución se calcula en PostgreSQL, con importes `numeric(14,2)`, bloqueos en orden fijo y consulta de saldos después del bloqueo.
 - Formulario sin campos por cuota; la Server Action ignora campos de distribución inyectados y conserva la actualización de membresías después de confirmar el cobro. La entrada `registrar_cobro_automatico` impide que la UI nueva utilice silenciosamente el comportamiento antiguo si falta la migración.
-- **Migración local:** `supabase/migrations/20261029004533_cobros_automaticos_antiguedad.sql`, generada mediante Supabase CLI. Reemplaza `registrar_cobro` conservando la firma para reintentos históricos y añade la entrada automática sin distribución manual. No crea tablas ni modifica registros históricos. **No aplicada a Cloud.** La fecha del nombre es UTC; corresponde al 28 de octubre en Honduras.
+- **Migración aplicada:** [20261029011014_cobros_automaticos_antiguedad.sql](../supabase/migrations/20261029011014_cobros_automaticos_antiguedad.sql). Generada originalmente mediante Supabase CLI como `20261029004533`; renombrada al identificador asignado por MCP al aplicarla, sin cambiar el SQL. Reemplaza `registrar_cobro` conservando la firma para reintentos históricos y añade la entrada automática sin distribución manual. No crea tablas ni modifica registros históricos. MD5 del archivo y del SQL en `supabase_migrations.schema_migrations`: **`6a31f2de714ba1d0fed1f013f8887aba`**. La fecha del nombre es UTC; corresponde al 28 de octubre en Honduras.
 - Se ajustaron las pruebas API/navegador que enviaban distribuciones manuales y se añadió un caso de dos cobros distintos simultáneos en `scripts/verificar-finanzas.mjs`.
 
 ### Evidencia local
@@ -24,11 +24,43 @@ Los 35 casos SQL verifican prioridad incluso si el importe coincide con un cargo
 ### Revisión y límites pendientes
 
 - Corregido durante revisión: sin una entrada RPC nueva, el formulario actualizado podía invocar la implementación antigua y dejar el dinero sin aplicar mientras faltara migrar. Ahora falla sin registrar dinero.
-- El MCP disponible devuelve **sin permiso** al consultar el proyecto de desarrollo configurado `cgohbizokewvivxmvbij`. No se cambiaron proyectos ni se usó producción. Se solicitó reconectar la cuenta autorizada.
-- No se ejecutaron las regresiones API/navegador ni la prueba concurrente contra Cloud; tampoco sus advisors. PGlite no verifica concurrencia real entre conexiones ni Supabase Auth/PostgREST. No se declaran aprobadas esas comprobaciones.
-- Para terminar: recuperar acceso al proyecto de desarrollo, aplicar exactamente la migración local, verificar migraciones/advisors y ejecutar las regresiones API/navegador adaptadas, incluida la concurrencia. Las credenciales de prueba se suministran por `E2E_CREDENCIALES`, nunca por Git.
+- El bloqueo de acceso MCP quedó resuelto al continuar desde `425bc49`: se comprobó acceso al proyecto configurado `cgohbizokewvivxmvbij` y se aplicó únicamente esta migración allí. No se cambiaron proyectos ni se usó producción.
+- Las regresiones API/navegador y la concurrencia real se ejecutaron después contra Cloud (sección siguiente).
 - La dependencia de prueba está aislada en `supabase/.temp/pruebas-cobros` (ignorado). Preparación reproducible en la cabecera del script; no se añadieron dependencias a la aplicación ni se utilizó Docker.
 - Los cambios locales previos de otras tareas se conservaron. El commit de este ajuste incluye únicamente sus cambios, con selección de bloques en los archivos compartidos.
+
+### Continuación de `425bc49`: aplicación y verificación Cloud (2026-10-28)
+
+| Verificación | Resultado |
+|---|---|
+| MCP: inspección del esquema y funciones existentes | La implementación anterior era manual; la entrada automática no existía y la migración no figuraba en el historial |
+| MCP: aplicación y comprobación de contenido | Aplicada como `20261029011014`; SQL idéntico al archivo local (MD5 indicado arriba) |
+| Históricos antes/después de migrar | Mismos conteos y MD5 de todos los registros en cobros (2), aplicaciones (0), asientos (6) y movimientos (4) |
+| [verificar-cobros-cloud.sql](../scripts/verificar-cobros-cloud.sql), por MCP | **28/28**, PostgreSQL 17.11 real; usuarios ficticios y datos dentro de `BEGIN`/`ROLLBACK`, sin residuos |
+| Privilegios de ambas funciones | `anon` y `PUBLIC` sin ejecución; `authenticated` con ejecución; `search_path` vacío. Entrada nueva `SECURITY INVOKER`, función interna pública con validación de perfil/rol |
+| Libro tras pruebas SQL remotas | 6 asientos, **0 descuadrados**; mismos MD5 de cobros y asientos; 0 clientes de la prueba persistidos |
+| `npm.cmd test` | **111/111**, 13 archivos |
+| `node scripts/verificar-cobros-automaticos.mjs` | **35/35**, también tras actualizar la ruta al nombre aplicado |
+| `npm.cmd run typecheck` | OK |
+
+Los 28 casos remotos cubren prioridad por fecha pese a coincidencia de importe, abono parcial, cliente ajeno, cargo anulado, reintentos y ausencia de duplicados, roles operador/finanzas, excedente, una sola entrada en caja, anticipo previo intacto, centavos, rechazo atómico de reparto manual, reverso de cada cuota, partida doble, ausencia de sobreaplicaciones, perfil inactivo, RLS y rechazo de escritura directa/anon. Se usa el rol PostgreSQL `authenticated` con claims de usuarios ficticios; esto no equivale a iniciar sesión por Supabase Auth.
+
+**Advisors de seguridad:** 72 avisos de [funciones `SECURITY DEFINER` ejecutables por usuarios autenticados](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable), coherentes con las RPC protegidas del sistema, y el aviso existente de [protección de contraseñas filtradas](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection). La función de cobro valida perfil activo y rol antes de escribir; la entrada nueva es `SECURITY INVOKER`. No se alteró la configuración Auth.
+
+No se modificó código de la aplicación en esta continuación: se alineó el nombre de la migración con Cloud, se actualizó su referencia en la prueba local y se añadió la prueba SQL remota reproducible. El build aprobado en el commit original sigue siendo evidencia de esa implementación; no se repitió en esta continuación.
+
+### Regresiones API y navegador contra Cloud (2026-10-28)
+
+Usuarios ficticios `prueba.*@example.com` existentes, con contraseñas nuevas en un archivo `E2E_CREDENCIALES` fuera del repositorio. Estaban todos inactivos: se activaron administrador, operador y finanzas para las pruebas y al terminar se dejaron otra vez inactivos. Navegador contra el `next dev` del usuario (`:3000`).
+
+| Verificación | Resultado |
+|---|---|
+| `verificar-finanzas.mjs` (incluye dos cobros simultáneos) | **78/78** |
+| `verificar-rls.mjs` | **61/61**. Un primer intento dio 60/61 porque los perfiles se activaron por SQL antes de correrlo: `actualizar_perfil` no registró bitácora al no haber cambio. Con la precondición original (operador y finanzas inactivos), 61/61 |
+| `verificar-membresias.mjs` / `verificar-ambulancias.mjs` / `verificar-alquileres-transportes.mjs` | **92/92** / **74/74** / **73/73** |
+| `verificar-reportes.mjs` / `verificar-membresia-contrato.mjs` | **64/64** / **31/31** |
+| `e2e-membresias.mjs` / `e2e-reportes.mjs` | **26/26** / **29/29** |
+| `e2e-finanzas.mjs` | **27/27**, tras ajustar la prueba: con las ventanas emergentes, el botón que abre y el de envío se llaman «Reversar cobro» y `pulsar` tomaba el primero. Ahora se pulsa el de `dialog[open]`. El ajuste queda junto con los cambios sin confirmar de las ventanas emergentes en ese archivo |
 
 ## E0 — Arranque técnico
 

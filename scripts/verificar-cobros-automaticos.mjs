@@ -70,7 +70,7 @@ try {
   const cobroHistorico = await cobro(historico, "80.00", claveHistorica, aplicacionesHistoricas);
   await rechaza(() => cobro(historico, "1.00"), "42883", "sin migración, la UI nueva no registra cobros manuales accidentalmente");
   await db.exec("reset role");
-  await db.exec(readFileSync("supabase/migrations/20261029004533_cobros_automaticos_antiguedad.sql", "utf8"));
+  await db.exec(readFileSync("supabase/migrations/20261029011014_cobros_automaticos_antiguedad.sql", "utf8"));
   await sesion(admin);
   igual(await pendiente(cargoHistorico), "60.00", "la migración no redistribuye cobros anteriores");
   igual(await cobro(historico, "80.00", claveHistorica, aplicacionesHistoricas), cobroHistorico, "reintento histórico conserva identificador y distribución");
