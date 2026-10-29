@@ -1,6 +1,31 @@
 # Estado del proyecto
 
+## Simulación visual del sistema — sustitución de la demo (2026-10-29)
+
+- **Resultado:** se reemplaza la demo explicativa anterior según la corrección del usuario. `/demo-construccion` muestra únicamente el sistema a pantalla completa y controles de video discretos. Se retiran editor, terminal, navegador decorativo, títulos narrativos y capítulos explicativos.
+- **Secuencia, 72 segundos:** HTML con estilos nativos (0–5 s), distribución (5–10 s), tipografía (10–15 s), colores/tarjetas (15–20 s), cifras/barras/entradas animadas (20–27 s), navegación y alta de cliente (27–39 s), membresía (39–51 s), cobro (51–63 s), panel actualizado (63–72 s).
+- El mismo árbol del panel recibe las capas de diseño; se reutilizan marca e iconos del ERP y se reproducen su navegación, buscador, accesos, tarjetas, tablas y formularios. El cursor sigue elementos de la interfaz y usa el reloj del reproductor, igual que la escritura y la apertura de ventanas.
+- Datos ilustrativos deterministas: cliente inicial con cargos de alquiler/transporte por L 2,300.00; alta de Ana Demo, mensualidad de L 500.00 y cobro de L 500.00. Panel final: ingresos L 2,800.00, cobros L 500.00, pendiente L 2,300.00, 2 clientes y 1 membresía. Buscar hacia atrás deshace los registros; reiniciar restaura HTML sin estilos.
+- Se conservan pausa/reanudación, reinicio, línea de tiempo, velocidades y pantalla completa. La simulación es inerte; solo los controles de reproducción son interactivos. Movimiento reducido elimina transiciones/cursor y muestra campos completos. Indicador discreto de datos ficticios en el reproductor de escritorio.
+- **Seguridad/esquema:** sin cambios en autenticación, permisos, consultas o acciones de negocio. Sin migraciones ni acceso a Supabase. No se inicia E7 ni se publica el ERP. Cambios previos de otras tareas conservados.
+
+### Evidencia de la versión sustitutiva
+
+| Verificación | Resultado |
+| --- | --- |
+| `npm.cmd run typecheck` | OK |
+| `npm.cmd run lint` | OK |
+| `npm.cmd test` | **118/118** |
+| `npm.cmd run build` | OK, 62 páginas; demo estática |
+| `node scripts/e2e-demo-construccion.mjs` contra `localhost:3000` | **83/83**, Edge sin interfaz |
+
+El script verifica estilos nativos iniciales, transformación del mismo panel, tipografía/colores, cifras y gráficos animados, navegación, formularios inicialmente vacíos, escritura progresiva, confirmación, coherencia del panel final, búsqueda hacia atrás, pausa de reloj y cursor, reinicio al HTML, velocidad y final exacto. Incluye anchos 1280/390/320 px, controles visibles, movimiento reducido, ausencia de consultas de navegador a Supabase y autenticación intacta de `/clientes`. Capturas revisadas en `.next/demo-capturas/`: HTML, estructura, diseño, tres formularios, panel final y formulario móvil.
+
+**Revisión y límites:** los controles operativos representados son inertes, no admiten entradas reales. La presentación es HTML animado, sin audio ni archivo de video. En pantallas pequeñas el contenido del sistema permite desplazamiento interno y los controles permanecen visibles. La apertura de pantalla completa depende del navegador y no se probó automáticamente. Sin defectos funcionales pendientes identificados para este ajuste.
+
 ## Presentación animada del desarrollo (2026-10-29)
+
+> Versión anterior, sustituida por la simulación visual descrita arriba. Se conserva esta sección como historial.
 
 - **Resultado:** demo local en `/demo-construccion`, solicitada como recreación de la construcción del ERP. Siete capítulos, 98 segundos, escritura de código, pestañas de navegador, cursor, formularios con datos ficticios y resultados conectados. No inicia E7 ni publica el sistema.
 - **Controles:** reproducir, pausar, reiniciar, buscar en la línea de tiempo, saltar capítulos, velocidades 0.5×/1×/1.5×/2× y pantalla completa cuando el navegador la permita. Empieza pausada y se pausa al ocultar la pestaña. Movimiento reducido muestra textos completos y elimina transiciones.
