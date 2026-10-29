@@ -2,6 +2,9 @@
 const RUTAS_PUBLICAS = ["/login"];
 
 export function esRutaPublica(pathname: string): boolean {
+  // Presentación con datos ficticios, sin consultas ni acciones del ERP.
+  // La excepción es exacta: no abre subrutas ni módulos operativos.
+  if (pathname === "/demo-construccion") return true;
   return RUTAS_PUBLICAS.some(
     (ruta) => pathname === ruta || pathname.startsWith(`${ruta}/`),
   );

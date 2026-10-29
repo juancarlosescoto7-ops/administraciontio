@@ -43,6 +43,9 @@ describe("rutas", () => {
     expect(esRutaPublica("/loginx")).toBe(false);
     expect(esRutaPublica("/clientes")).toBe(false);
     expect(esRutaPublica("/sin-acceso")).toBe(false);
+    expect(esRutaPublica("/demo-construccion")).toBe(true);
+    expect(esRutaPublica("/demo-construccion/clientes")).toBe(false);
+    expect(esRutaPublica("/demo-construccion-maliciosa")).toBe(false);
   });
 
   it("evita redirecciones abiertas tras el login", () => {

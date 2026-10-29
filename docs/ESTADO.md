@@ -1,5 +1,35 @@
 # Estado del proyecto
 
+## Presentación animada del desarrollo (2026-10-29)
+
+- **Resultado:** demo local en `/demo-construccion`, solicitada como recreación de la construcción del ERP. Siete capítulos, 98 segundos, escritura de código, pestañas de navegador, cursor, formularios con datos ficticios y resultados conectados. No inicia E7 ni publica el sistema.
+- **Controles:** reproducir, pausar, reiniciar, buscar en la línea de tiempo, saltar capítulos, velocidades 0.5×/1×/1.5×/2× y pantalla completa cuando el navegador la permita. Empieza pausada y se pausa al ocultar la pestaña. Movimiento reducido muestra textos completos y elimina transiciones.
+- **Diseño:** reutiliza `MarcaIcono`, `Icono`, tarjetas, insignias y colores existentes; las pantallas operativas están recreadas sin importar sus acciones ni consultas. Estilos exclusivos con prefijo `dc-`; controles visibles en escritorio y móvil.
+- **Datos:** Ana Demo, correo reservado `ana@example.com`, plan y recursos de ejemplo. Mensualidad de L 500.00, alquiler cerrado de L 1,500.00 y transporte completado de L 800.00: ingresos L 2,800.00, cobro L 500.00 y pendiente L 2,300.00. Son valores ilustrativos, no nuevas tarifas ni configuración comercial.
+- **Seguridad:** solo `/demo-construccion` se permite sin sesión, por ser una presentación ficticia; no se permiten sus subrutas. Los módulos del ERP conservan autenticación. No hay acciones, escrituras, consultas de datos operativos ni credenciales en la demo. El proxy de sesión existente sigue aplicándose. Metadatos `noindex`/`nofollow`.
+- **Migraciones:** ninguna; no se usó MCP ni se modificó Supabase.
+
+### Evidencia
+
+| Verificación | Resultado |
+| --- | --- |
+| `npm.cmd test` | **118/118**, incluidos los límites de la nueva ruta pública |
+| `npm.cmd run lint` | OK; tras la corrección visual, ESLint de todos los archivos de la demo, script y rutas de acceso también OK |
+| `npm.cmd run typecheck` | OK; TypeScript también pasó en el build final |
+| `npm.cmd run build` | OK, 62 páginas; `/demo-construccion` prerenderizada estáticamente |
+| `node scripts/e2e-demo-construccion.mjs` | **53/53** contra el build local en `localhost:3001`, Edge sin interfaz, sin usuarios ni datos reales |
+
+El script comprueba las siete escenas, escritura y campos, resultados, pausa/reanudación, reinicio, búsqueda, capítulos, velocidad, fin exacto, repetición, movimiento reducido, ausencia de peticiones del navegador a Supabase y redirección al login de `/clientes` y `/demo-construccion/clientes`. Verifica ausencia de desbordamiento horizontal a 390 y 320 px y controles visibles a 1280×800 y 390×844. Capturas revisadas: escritorio (formulario y resultado) y móvil, generadas en `.next/demo-capturas/` (ignoradas por Git).
+
+### Revisión propia, defectos corregidos y límites
+
+- La regla CSS de Turbopack existente no exportaba los nombres de CSS Modules: la primera captura mostró la demo sin estilos. Se cambió a CSS con prefijos exclusivos sin modificar la configuración compartida.
+- Las animaciones de entrada pausadas podían ocultar la primera pantalla; se eliminan esas entradas al pausar o buscar. Los controles permanecen disponibles al desplazarse en móvil.
+- El script de navegador inicialmente tenía dos selectores con comillas incorrectas; corregidos y ejecutado de nuevo sobre la versión compilada.
+- Es una recreación ilustrativa, no una grabación ni una reproducción exacta del historial Git. Fragmentos de código y terminal rotulados como simulados; no se ejecutan. Sin audio ni exportación a video, conforme al formato de demo en navegador elegido.
+- Pantalla completa depende de la API y permisos del navegador; tiene mensaje de alternativa. No se comprobó su apertura automáticamente. No hay pendientes funcionales para esta entrega.
+- Conservados todos los cambios locales previos; el commit de esta entrega incluye únicamente la demo, su prueba, la excepción exacta de ruta y esta documentación.
+
 ## Ajuste de cobros — aplicación automática por antigüedad (2026-10-28)
 
 - **Resultado:** implementación y migración aplicadas en Supabase Cloud de desarrollo; verificación SQL local y remota, regresiones API (incluida la concurrencia) y navegador aprobadas. No se inicia E7.
