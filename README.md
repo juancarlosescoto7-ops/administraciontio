@@ -191,3 +191,5 @@ Desde la raíz del repositorio:
 Los tokens OAuth se gestionan en cada cliente; nunca se guardan en estos archivos ni en Git.
 
 Toda migración aplicada debe existir idéntica en `supabase/migrations/` (con fin de línea LF, fijado en `.gitattributes`). Tras cada migración, regenerar [lib/supabase/tipos-bd.ts](lib/supabase/tipos-bd.ts) con `generate_typescript_types`.
+#   a d m i n i s t r a c i o n t i o  
+ 
