@@ -14,7 +14,7 @@ import { abrirNavegador } from "./navegador.mjs";
 const env = cargarEntorno();
 const { comprobar, terminar } = crearReporte();
 const sufijo = Date.now().toString(36).toUpperCase();
-const { cdp, evaluar, esperar, ruta, texto, listo, ir, llenar, pulsar, capturar, vista, iniciarSesion, cerrar } =
+const { cdp, evaluar, esperar, ruta, texto, listo, ir, llenar, pulsar, abrirVentana, capturar, vista, iniciarSesion, cerrar } =
   await abrirNavegador();
 
 try {
@@ -61,7 +61,7 @@ try {
   comprobar("cliente registrado", await esperar("/^\\/clientes\\/[0-9a-f-]{36}$/.test(location.pathname) && document.body.innerText.includes('Datos guardados')"), await ruta());
   const rutaCliente = await evaluar("location.pathname");
 
-  await evaluar("[...document.querySelectorAll('summary')].find((s) => s.textContent.includes('Editar datos')).click()");
+  await abrirVentana("Editar datos");
   await llenar("#campo-telefono", "2222-3333");
   await llenar("#campo-tipo", "juridica");
   await pulsar("Guardar cambios");
@@ -94,7 +94,7 @@ try {
   comprobar("vehículo registrado con código en mayúsculas",
     await esperar(`document.body.innerText.includes('Datos guardados') && document.querySelector('h1')?.textContent === ${JSON.stringify(codigo.toUpperCase())}`));
   const rutaVehiculo = await evaluar("location.pathname");
-  await evaluar("[...document.querySelectorAll('summary')].find((s) => s.textContent.includes('Editar datos')).click()");
+  await abrirVentana("Editar datos");
   await llenar("#campo-estado", "mantenimiento");
   await llenar("#campo-marca", "Toyota");
   await pulsar("Guardar cambios");
@@ -136,7 +136,9 @@ try {
   await ir("/clientes");
   await capturar("05-clientes-escritorio");
 
-  // 8. Cierre de sesión
+  // 8. Cierre de sesión (desde la cuenta, al pie del menú lateral)
+  await evaluar("document.querySelector('.boton-usuario').click()");
+  await esperar("document.querySelector('#menu-usuario')");
   await pulsar("Cerrar sesión");
   comprobar("cerrar sesión lleva al login", await esperar("location.pathname === '/login'"));
   await ir("/vehiculos");

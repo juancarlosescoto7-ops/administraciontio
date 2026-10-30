@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Suspense } from "react";
 import { puede } from "@/lib/auth/roles";
 import { requerirUsuario } from "@/lib/auth/sesion";
@@ -14,6 +13,7 @@ import type { ParametrosBusqueda } from "@/components/finanzas/filtros";
 import { AvisoOperacion, FormularioCorreccion, FormularioOperacion } from "@/components/finanzas/operaciones";
 import { ResumenImportes, Seccion } from "@/components/finanzas/resumen";
 import { Tabla } from "@/components/finanzas/tabla";
+import { Desplegable } from "@/components/operaciones";
 
 export default function Page({ params, searchParams }: PageProps<"/finanzas/cuentas/[id]">) {
   return (
@@ -76,7 +76,7 @@ async function Tesoreria({ params, searchParams }: { params: Promise<{ id: strin
         parametros={parametros}
         mensajes={{ apertura: "Saldo inicial registrado.", corregido: "Saldo inicial reversado." }}
       />
-      <Seccion titulo="Saldo">
+      <Seccion titulo="Saldo" abierta={primerValor(parametros.reversar_apertura) === "1"}>
         <ResumenImportes
           importes={[
             { etiqueta: "Saldo actual", valor: cuenta.saldo, destacado: true, ayuda: "Suma de movimientos confirmados" },
@@ -93,22 +93,16 @@ async function Tesoreria({ params, searchParams }: { params: Promise<{ id: strin
           </div>
         )}
         {corrige && apertura && (
-          primerValor(parametros.reversar_apertura) === "1" ? (
-            <div className="tarjeta desplegable-peligro p-4 sm:p-6">
-              <h3 className="mb-4 font-semibold">Reversar saldo inicial de {formatearMoneda(apertura.monto_con_signo)}</h3>
-              <FormularioCorreccion
-                tipo="apertura"
-                id={apertura.origen_id}
-                volver={ruta}
-                textoEnviar="Reversar saldo inicial"
-                confirmacion="Confirmo el reverso del saldo inicial"
-              />
-            </div>
-          ) : (
-            <Link href={`${ruta}?reversar_apertura=1`} className="text-sm text-enlace hover:underline">
-              Corregir el saldo inicial (reverso)
-            </Link>
-          )
+          <Desplegable titulo="Corregir el saldo inicial (reverso)" peligro abierto={primerValor(parametros.reversar_apertura) === "1"}>
+            <p className="mb-4 text-sm">Reversa el saldo inicial de {formatearMoneda(apertura.monto_con_signo)}; luego puede registrar el correcto.</p>
+            <FormularioCorreccion
+              tipo="apertura"
+              id={apertura.origen_id}
+              volver={ruta}
+              textoEnviar="Reversar saldo inicial"
+              confirmacion="Confirmo el reverso del saldo inicial"
+            />
+          </Desplegable>
         )}
       </Seccion>
 

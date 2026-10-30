@@ -37,9 +37,9 @@ await api(adminApi.token, "POST", "rpc/registrar_cobro", {
   p_referencia: null, p_monto: "500.00", p_aplicaciones: [],
 });
 
-const { evaluar, esperar, ruta, texto, ir, llenar, pulsar, capturar, vista, iniciarSesion, cerrar } = await abrirNavegador();
+const { evaluar, esperar, ruta, texto, ir, llenar, pulsar, capturar, vista, iniciarSesion, cerrar, abrirVentana } = await abrirNavegador();
 const marcar = (selector) => evaluar(`document.querySelector(${JSON.stringify(selector)}).click()`);
-const abrir = (titulo) => evaluar(`[...document.querySelectorAll('summary')].find((s) => s.textContent.includes(${JSON.stringify(titulo)})).click()`);
+const abrir = (titulo) => abrirVentana(titulo);
 const visible = (selector) => esperar(`document.querySelector(${JSON.stringify(selector)})?.checkVisibility()`);
 const faltan = async (...fragmentos) => {
   const actual = await texto();

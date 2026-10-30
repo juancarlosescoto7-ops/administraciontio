@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { cerrarSesion } from "@/app/login/acciones";
 import type { AccesoRapido } from "@/lib/accesos";
 import { Icono, type NombreIcono } from "@/components/iconos";
@@ -16,32 +17,45 @@ export type GrupoNavegacion = {
   enlaces: { href: string; etiqueta: string }[];
 };
 
-// Menú contraído a iconos en escritorio. El atributo lo fija antes de pintar
-// un script del layout raíz (a partir de localStorage); aquí solo se lee y cambia.
+// Menú lateral en escritorio: queda en íconos (data-menu-auto="oculto") en
+// cuanto el puntero sale de él, o unos segundos después de cargar si no se
+// toca; al pasar el puntero o el foco de teclado se despliega flotando sobre el
+// contenido ("flotante"). «Mantener abierto» lo fija (data-menu="fijo"). El
+// layout raíz aplica la preferencia antes de pintar.
 const EVENTO_MENU = "erp-menu";
+const OCULTAR_AL_CARGAR_MS = 4000;
+// Margen breve para no parpadear si el puntero solo roza el borde.
+const OCULTAR_AL_SALIR_MS = 200;
 
 function suscribirMenu(alCambiar: () => void) {
   window.addEventListener(EVENTO_MENU, alCambiar);
   return () => window.removeEventListener(EVENTO_MENU, alCambiar);
 }
 
-function leerMenuCompacto() {
-  return document.documentElement.dataset.menu === "compacto";
+function leerMenuFijo() {
+  return document.documentElement.dataset.menu === "fijo";
 }
 
-function fijarMenuCompacto(compacto: boolean) {
-  if (compacto) document.documentElement.dataset.menu = "compacto";
-  else delete document.documentElement.dataset.menu;
+function fijarMenu(fijo: boolean) {
+  const raiz = document.documentElement;
+  if (fijo) {
+    raiz.dataset.menu = "fijo";
+    delete raiz.dataset.menuAuto;
+  } else {
+    delete raiz.dataset.menu;
+    raiz.dataset.menuAuto = "flotante";
+  }
   try {
-    localStorage.setItem("erp-menu", compacto ? "compacto" : "amplio");
+    localStorage.setItem("erp-menu", fijo ? "fijo" : "auto");
   } catch {
     // Sin almacenamiento (modo privado): la preferencia dura hasta recargar.
   }
   window.dispatchEvent(new Event(EVENTO_MENU));
 }
 
-function esEscritorio() {
-  return window.matchMedia("(width >= 80rem)").matches;
+function desplegarMenu(desplegado: boolean) {
+  if (leerMenuFijo()) return;
+  document.documentElement.dataset.menuAuto = desplegado ? "flotante" : "oculto";
 }
 
 function estaActivo(pathname: string, href: string) {
@@ -49,8 +63,9 @@ function estaActivo(pathname: string, href: string) {
 }
 
 /**
- * Barra lateral y barra superior. En escritorio (≥1280 px) la barra lateral
- * está siempre visible; por debajo se despliega con el botón «Menú».
+ * Barra lateral con marca, buscador, menú y cuenta del usuario. En escritorio
+ * (≥1280 px) está siempre visible y no hay barra superior; por debajo, una
+ * barra mínima con el botón «Menú» la despliega.
  */
 export function Navegacion({
   grupos,
@@ -71,7 +86,38 @@ export function Navegacion({
   const abierto = rutaConMenu === pathname;
   const botonMenu = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLElement>(null);
-  const compacto = useSyncExternalStore(suscribirMenu, leerMenuCompacto, () => false);
+  const fijo = useSyncExternalStore(suscribirMenu, leerMenuFijo, () => false);
+  const temporizador = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Oculta el menú salvo que siga en uso: puntero encima, foco de teclado
+  // dentro (el foco que deja un clic no cuenta) o la cuenta del usuario
+  // abierta (su panel está fuera del menú).
+  const programarOcultar = useCallback((espera: number) => {
+    clearTimeout(temporizador.current);
+    temporizador.current = setTimeout(function intentar() {
+      const lateral = menu.current;
+      if (lateral?.matches(":hover") || lateral?.querySelector(":focus-visible") || document.getElementById("menu-usuario")) {
+        temporizador.current = setTimeout(intentar, OCULTAR_AL_SALIR_MS);
+        return;
+      }
+      desplegarMenu(false);
+    }, espera);
+  }, []);
+
+  useEffect(() => {
+    if (fijo) return;
+    programarOcultar(OCULTAR_AL_CARGAR_MS);
+    return () => clearTimeout(temporizador.current);
+  }, [fijo, programarOcultar]);
+
+  const alEntrar = () => {
+    if (fijo) return;
+    clearTimeout(temporizador.current);
+    desplegarMenu(true);
+  };
+  const alSalir = () => {
+    if (!fijo) programarOcultar(OCULTAR_AL_SALIR_MS);
+  };
 
   useEffect(() => {
     if (!abierto) return;
@@ -92,11 +138,11 @@ export function Navegacion({
 
   return (
     <>
-      <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-3 vidrio-barra border-b px-4 sm:px-6 lg:px-8">
+      <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-3 vidrio-barra border-b px-4 sm:px-6 lg:px-8 xl:hidden">
         <button
           ref={botonMenu}
           type="button"
-          className="boton boton-secundario xl:hidden"
+          className="boton boton-secundario"
           aria-expanded={abierto}
           aria-controls="menu-principal"
           onClick={() => setRutaConMenu(abierto ? null : pathname)}
@@ -108,8 +154,6 @@ export function Navegacion({
           {actual?.grupo && <span className="texto-tenue">{actual.grupo} / </span>}
           <span className="font-semibold">{actual?.etiqueta ?? "ERP interno"}</span>
         </p>
-        <PaletaComandos grupos={grupos} acciones={acciones} />
-        <MenuUsuario nombre={nombreUsuario} rol={rolUsuario} correo={correoUsuario} />
       </header>
 
       {abierto && (
@@ -119,7 +163,13 @@ export function Navegacion({
       <aside
         ref={menu}
         id="menu-principal"
-        className={`${abierto ? "flex" : "hidden"} menu-lateral fixed top-16 bottom-0 left-0 z-30 w-full flex-col overflow-x-hidden overflow-y-auto vidrio-barra border-r [scrollbar-width:thin] md:w-72 xl:top-0 xl:flex xl:w-[var(--ancho-menu)]`}
+        className={`${abierto ? "flex" : "hidden"} menu-lateral fixed top-16 bottom-0 left-0 z-30 w-full flex-col overflow-x-hidden overflow-y-auto vidrio-barra border-r [scrollbar-width:thin] md:w-72 xl:top-0 xl:z-40 xl:flex xl:w-[var(--ancho-menu)]`}
+        onPointerEnter={alEntrar}
+        onPointerLeave={alSalir}
+        onFocus={alEntrar}
+        onBlur={(evento) => {
+          if (!evento.currentTarget.contains(evento.relatedTarget)) alSalir();
+        }}
       >
         <Link
           href="/"
@@ -133,30 +183,36 @@ export function Navegacion({
           </span>
         </Link>
 
+        {/* En el inicio ya está el buscador general: aquí solo queda Ctrl+K. */}
+        <div className={pathname === "/" ? "contents" : "px-3 pt-3 pb-1 xl:pt-0"}>
+          <PaletaComandos grupos={grupos} acciones={acciones} conDisparador={pathname !== "/"} />
+        </div>
+
         <nav aria-label="Principal" className="flex flex-col gap-3 px-3 pt-2 pb-6">
           {grupos.map((grupo) =>
             grupo.titulo === null ? (
               <div key="inicio" className="flex flex-col gap-1">
                 {grupo.enlaces.map((enlace) => (
-                  <EnlaceNav key={enlace.href} {...enlace} icono={grupo.icono} pathname={pathname} alPulsar={cerrar} compacto={compacto} />
+                  <EnlaceNav key={enlace.href} {...enlace} icono={grupo.icono} pathname={pathname} alPulsar={cerrar} />
                 ))}
               </div>
             ) : (
-              <GrupoNav key={grupo.titulo} grupo={grupo} pathname={pathname} alPulsar={cerrar} compacto={compacto} />
+              <GrupoNav key={grupo.titulo} grupo={grupo} pathname={pathname} alPulsar={cerrar} />
             ),
           )}
         </nav>
 
-        <div className="mt-auto hidden border-t border-borde p-3 xl:block">
+        <div className="mt-auto flex flex-col gap-1 border-t border-borde p-3">
+          <MenuUsuario nombre={nombreUsuario} rol={rolUsuario} correo={correoUsuario} />
           <button
             type="button"
-            className="encabezado-grupo font-medium texto-tenue"
-            aria-label={compacto ? "Expandir menú" : "Contraer menú"}
-            title={compacto ? "Expandir menú" : "Contraer menú"}
-            onClick={() => fijarMenuCompacto(!compacto)}
+            className="encabezado-grupo hidden font-medium texto-tenue xl:flex"
+            aria-pressed={fijo}
+            title={fijo ? "El menú queda siempre abierto" : "El menú se oculta solo tras unos segundos sin usarlo"}
+            onClick={() => fijarMenu(!fijo)}
           >
-            <Icono nombre={compacto ? "expandir" : "contraer"} />
-            <span className="solo-amplio">Contraer menú</span>
+            <Icono nombre={fijo ? "candado" : "contraer"} />
+            <span className="solo-amplio">Mantener abierto</span>
           </button>
         </div>
       </aside>
@@ -169,12 +225,10 @@ function GrupoNav({
   grupo,
   pathname,
   alPulsar,
-  compacto,
 }: {
   grupo: GrupoNavegacion;
   pathname: string;
   alPulsar: () => void;
-  compacto: boolean;
 }) {
   const [abierto, setAbierto] = useState(true);
   const id = `grupo-${grupo.icono}`;
@@ -186,16 +240,7 @@ function GrupoNav({
         className="encabezado-grupo"
         aria-expanded={abierto}
         aria-controls={`${id}-enlaces`}
-        title={compacto ? (grupo.titulo ?? undefined) : undefined}
-        onClick={() => {
-          // Contraído en escritorio: el icono del grupo vuelve a mostrar el menú completo.
-          if (compacto && esEscritorio()) {
-            fijarMenuCompacto(false);
-            setAbierto(true);
-          } else {
-            setAbierto((valor) => !valor);
-          }
-        }}
+        onClick={() => setAbierto((valor) => !valor)}
       >
         <Icono nombre={grupo.icono} />
         <span className="solo-amplio flex-1 text-left">{grupo.titulo}</span>
@@ -216,21 +261,18 @@ function EnlaceNav({
   icono,
   pathname,
   alPulsar,
-  compacto = false,
 }: {
   href: string;
   etiqueta: string;
   icono?: NombreIcono;
   pathname: string;
   alPulsar: () => void;
-  compacto?: boolean;
 }) {
   return (
     <Link
       href={href}
       className={`enlace-nav ${icono ? "font-semibold" : "pl-11"}`}
       aria-current={estaActivo(pathname, href) ? "page" : undefined}
-      title={compacto ? etiqueta : undefined}
       onClick={alPulsar}
     >
       {icono && <Icono nombre={icono} />}
@@ -244,31 +286,46 @@ function iniciales(nombre: string) {
   return ((partes[0]?.[0] ?? "") + (partes.length > 1 ? partes[partes.length - 1][0] : "")).toUpperCase() || "?";
 }
 
+/**
+ * Cuenta del usuario al pie del menú lateral. El panel se abre hacia arriba en
+ * un portal con posición fija: la barra lateral recorta su contenido (scroll y
+ * backdrop-filter) y, contraída, es más angosta que el panel.
+ */
 function MenuUsuario({ nombre, rol, correo }: { nombre: string; rol: string; correo: string | null }) {
-  const [abierto, setAbierto] = useState(false);
-  const contenedor = useRef<HTMLDivElement>(null);
+  const [posicion, setPosicion] = useState<{ izquierda: number; abajo: number } | null>(null);
+  const abierto = posicion !== null;
+  const panel = useRef<HTMLDivElement>(null);
   const boton = useRef<HTMLButtonElement>(null);
+
+  function alternar() {
+    const caja = boton.current?.getBoundingClientRect();
+    setPosicion(abierto || !caja ? null : { izquierda: caja.left, abajo: window.innerHeight - caja.top + 8 });
+  }
 
   useEffect(() => {
     if (!abierto) return;
+    const cerrar = () => setPosicion(null);
     function alPulsarFuera(evento: PointerEvent) {
-      if (!contenedor.current?.contains(evento.target as Node)) setAbierto(false);
+      const objetivo = evento.target as Node;
+      if (!panel.current?.contains(objetivo) && !boton.current?.contains(objetivo)) cerrar();
     }
     function alPulsarTecla(evento: KeyboardEvent) {
       if (evento.key !== "Escape") return;
-      setAbierto(false);
+      cerrar();
       boton.current?.focus();
     }
     document.addEventListener("pointerdown", alPulsarFuera);
     document.addEventListener("keydown", alPulsarTecla);
+    window.addEventListener("resize", cerrar);
     return () => {
       document.removeEventListener("pointerdown", alPulsarFuera);
       document.removeEventListener("keydown", alPulsarTecla);
+      window.removeEventListener("resize", cerrar);
     };
   }, [abierto]);
 
   return (
-    <div ref={contenedor} className="relative shrink-0">
+    <>
       <button
         ref={boton}
         type="button"
@@ -276,34 +333,41 @@ function MenuUsuario({ nombre, rol, correo }: { nombre: string; rol: string; cor
         aria-expanded={abierto}
         aria-controls="menu-usuario"
         aria-label={`Cuenta de ${nombre} (${rol})`}
-        onClick={() => setAbierto((valor) => !valor)}
+        title={nombre}
+        onClick={alternar}
       >
-        <span className="flex size-9 items-center justify-center rounded-full distintivo text-sm font-semibold">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full distintivo text-sm font-semibold">
           {iniciales(nombre)}
         </span>
-        <span className="hidden max-w-48 flex-col items-start text-left leading-tight sm:flex">
+        <span className="solo-amplio flex min-w-0 flex-1 flex-col items-start text-left leading-tight">
           <span className="w-full truncate text-sm font-medium">{nombre}</span>
           <span className="text-xs texto-tenue">{rol}</span>
         </span>
-        <Icono nombre="abajo" className="size-4 texto-tenue" />
+        <Icono nombre="abajo" className={`solo-amplio size-4 shrink-0 texto-tenue transition-transform ${abierto ? "" : "rotate-180"}`} />
       </button>
 
-      <div
-        id="menu-usuario"
-        className={`${abierto ? "flex" : "hidden"} tarjeta sombra-flotante absolute right-0 mt-2 w-64 flex-col gap-3 p-4`}
-      >
-        <p className="text-sm">
-          <span className="block font-medium break-words">{nombre}</span>
-          {correo && <span className="block break-all texto-tenue">{correo}</span>}
-          <span className="mt-1 block texto-tenue">Perfil: {rol}</span>
-        </p>
-        <form action={cerrarSesion}>
-          <button type="submit" className="boton boton-secundario w-full">
-            <Icono nombre="salir" />
-            Cerrar sesión
-          </button>
-        </form>
-      </div>
-    </div>
+      {posicion &&
+        createPortal(
+          <div
+            ref={panel}
+            id="menu-usuario"
+            className="tarjeta sombra-flotante fixed z-50 flex w-64 flex-col gap-3 p-4"
+            style={{ left: posicion.izquierda, bottom: posicion.abajo }}
+          >
+            <p className="text-sm">
+              <span className="block font-medium break-words">{nombre}</span>
+              {correo && <span className="block break-all texto-tenue">{correo}</span>}
+              <span className="mt-1 block texto-tenue">Perfil: {rol}</span>
+            </p>
+            <form action={cerrarSesion}>
+              <button type="submit" className="boton boton-secundario w-full">
+                <Icono nombre="salir" />
+                Cerrar sesión
+              </button>
+            </form>
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }

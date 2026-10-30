@@ -1,18 +1,27 @@
+import { randomUUID } from "node:crypto";
 import Link from "next/link";
 import { Suspense } from "react";
 import { puede } from "@/lib/auth/roles";
 import { requerirUsuario } from "@/lib/auth/sesion";
+import { estadoInicial } from "@/lib/catalogos/estado";
 import { esUuid, primerValor } from "@/lib/catalogos/presentacion";
-import { esFechaValida, limpiarBusqueda } from "@/lib/catalogos/validacion";
-import { registrarMembresia } from "@/lib/membresias/acciones";
-import { camposAltaMembresia, ETIQUETAS_MODALIDAD } from "@/lib/membresias/definiciones";
+import { esFechaValida, limpiarBusqueda, valoresDesdeRegistro } from "@/lib/catalogos/validacion";
+import { registrarMembresiaCompleta } from "@/lib/membresias/acciones";
+import {
+  camposAltaMembresia,
+  camposBeneficiarioNuevo,
+  camposCondiciones,
+  CAMPO_TITULAR_BENEFICIARIO,
+  ETIQUETAS_MODALIDAD,
+  PREFIJO_BENEFICIARIO,
+} from "@/lib/membresias/definiciones";
 import { periodosDesde } from "@/lib/membresias/fechas";
 import { formatearFecha, formatearMoneda, hoyEnTegucigalpa } from "@/lib/formato";
 import { createClient } from "@/lib/supabase/server";
 import { Cargando, Encabezado, SinPermiso } from "@/components/encabezado";
 import { BuscarCliente, type ParametrosBusqueda } from "@/components/finanzas/filtros";
-import { FormularioOperacion } from "@/components/finanzas/operaciones";
 import { Datos, Seccion } from "@/components/finanzas/resumen";
+import { FormularioAltaMembresia } from "@/components/membresias/formulario-alta";
 
 export default function PaginaNuevaMembresia({ searchParams }: PageProps<"/membresias/nueva">) {
   return (
@@ -35,7 +44,7 @@ async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda })
   if (!esUuid(clienteId)) {
     return (
       <>
-        <p className="mb-4 texto-tenue">1. Busque y elija el cliente titular.</p>
+        <p className="mb-4 texto-tenue">1. Busque y elija el cliente titular. Si no está registrado, use «Cliente nuevo».</p>
         <BuscarCliente ruta="/membresias/nueva" busqueda={limpiarBusqueda(primerValor(parametros.q))} />
       </>
     );
@@ -128,6 +137,8 @@ function Revision({
   const periodos = periodosDesde(inicio, 3);
   // Mensualidades que se generarían hoy si la fecha de inicio es pasada.
   const hastaHoy = inicio <= hoy ? periodosDesde(inicio, 400).filter((p) => p.inicio <= hoy).length : 0;
+  const campos = camposAltaMembresia(beneficiarios, administrador).map((campo) => ({ ...campo, seccion: undefined }));
+  const condiciones = administrador ? camposCondiciones(false) : [];
 
   return (
     <>
@@ -149,36 +160,25 @@ function Revision({
             : hastaHoy > 1
               ? `La fecha de inicio es pasada: al confirmar se generarán hasta ${hastaHoy} mensualidades (una por período transcurrido), salvo que alguna quede vencida fuera del plazo de gracia.`
               : "Al confirmar se genera la primera mensualidad como cargo pendiente del cliente."}{" "}
-          Los traslados no utilizados no se acumulan de un mes a otro.
+          Los traslados no utilizados no se acumulan de un mes a otro. Al confirmar se genera también el contrato de la membresía.
         </p>
       </Seccion>
 
-      {beneficiarios.length === 0 ? (
-        <p className="aviso aviso-advertencia">
-          No hay beneficiarios activos.{" "}
-          <Link href="/beneficiarios/nuevo" className="underline">
-            Registre un beneficiario
-          </Link>{" "}
-          y vuelva a esta página.
-        </p>
-      ) : (
+      <Seccion titulo="4. Beneficiarios" fija>
         <div className="tarjeta p-4 sm:p-6">
-          <p className="mb-4 text-sm">
-            Marque los beneficiarios de la membresía. ¿Falta alguno?{" "}
-            <Link href="/beneficiarios/nuevo" className="text-enlace underline" target="_blank">
-              Registrar beneficiario
-            </Link>
-            .
-          </p>
-          <FormularioOperacion
-            campos={camposAltaMembresia(beneficiarios, administrador)}
-            accion={registrarMembresia.bind(null, clienteId, plan.id, inicio)}
-            textoEnviar="Confirmar membresía"
-            tono="exito"
-            rutaCancelar="/membresias"
+          <FormularioAltaMembresia
+            accion={registrarMembresiaCompleta.bind(null, clienteId, plan.id, inicio)}
+            estadoInicial={estadoInicial(valoresDesdeRegistro({ campos: condiciones }, null))}
+            idempotencia={randomUUID()}
+            hoy={hoy}
+            campoTitularBeneficiario={CAMPO_TITULAR_BENEFICIARIO}
+            camposExistentes={campos.filter((campo) => campo.nombre.startsWith(PREFIJO_BENEFICIARIO))}
+            camposNuevo={camposBeneficiarioNuevo()}
+            camposCondiciones={condiciones}
+            campoConfirmar={campos.find((campo) => campo.nombre === "confirmar")!}
           />
         </div>
-      )}
+      </Seccion>
     </>
   );
 }

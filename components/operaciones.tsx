@@ -2,19 +2,35 @@
 // transportes): formularios desplegables, acciones de un clic, avisos e
 // historial de la bitácora.
 import type { ReactNode } from "react";
+import { Dialogo } from "@/components/dialogo";
 import { EstadoVacio } from "@/components/encabezado";
 import { formatearFechaHora } from "@/lib/formato";
 import type { Json } from "@/lib/supabase/tipos-bd";
 import { FormularioOperacion } from "@/components/finanzas/operaciones";
 import { HistorialPlegable } from "@/components/historial-plegable";
 
-/** Formulario plegado; `peligro` marca cancelaciones y correcciones irreversibles. */
-export function Desplegable({ titulo, children, peligro = false }: { titulo: string; children: ReactNode; peligro?: boolean }) {
+/**
+ * Formulario secundario en ventana flotante: un botón la abre sin ocupar
+ * espacio en la página. `peligro` marca cancelaciones y correcciones
+ * irreversibles; `abierto` la muestra al llegar (la URL apunta a esta acción).
+ */
+export function Desplegable({
+  titulo,
+  children,
+  peligro = false,
+  abierto = false,
+}: {
+  titulo: string;
+  children: ReactNode;
+  peligro?: boolean;
+  abierto?: boolean;
+}) {
   return (
-    <details className={`tarjeta desplegable mt-3 px-5 py-1.5 ${peligro ? "desplegable-peligro" : ""}`}>
-      <summary>{titulo}</summary>
-      <div className="mt-2 border-t border-borde pt-4 pb-4">{children}</div>
-    </details>
+    <span className="mt-3 mr-2 inline-flex">
+      <Dialogo titulo={titulo} peligro={peligro} abierto={abierto} icono={peligro ? "alerta" : "editar"}>
+        {children}
+      </Dialogo>
+    </span>
   );
 }
 

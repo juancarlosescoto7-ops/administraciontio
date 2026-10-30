@@ -38,6 +38,8 @@ export type Campo = {
   noFutura?: boolean;
   predeterminado?: string;
   ayuda?: string;
+  /** Alto del área de texto (texto_largo), en líneas. */
+  filas?: number;
 };
 
 export type Columna = { campo: string; etiqueta: string };
@@ -363,4 +365,13 @@ export function obtenerDefinicion(clave: string): DefinicionCatalogo {
     throw new Error("Catálogo desconocido.");
   }
   return CATALOGOS[clave as ClaveCatalogo];
+}
+
+/**
+ * Campos de la ventana «Cliente nuevo» de los servicios: los del catálogo sin
+ * «Activo» (un cliente nuevo nace activo por omisión de la base). La ventana y
+ * la acción del servidor usan esta misma lista.
+ */
+export function camposClienteNuevo(): Campo[] {
+  return CATALOGOS.clientes.campos.filter((campo) => campo.nombre !== "activo");
 }

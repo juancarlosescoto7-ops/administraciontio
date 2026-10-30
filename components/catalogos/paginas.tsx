@@ -19,6 +19,7 @@ import { formatearFechaHora, hoyEnTegucigalpa } from "@/lib/formato";
 import { createClient } from "@/lib/supabase/server";
 import { Cargando, Encabezado, EstadoVacio, InsigniaEstado, SinPermiso } from "@/components/encabezado";
 import { Desplegable } from "@/components/operaciones";
+import { Notificacion } from "@/components/notificacion";
 import { Plegable } from "@/components/plegable";
 import { FormularioCatalogo } from "./formulario-catalogo";
 
@@ -295,11 +296,7 @@ async function ContenidoDetalle({
         volver={{ href: def.ruta, etiqueta: def.titulo }}
       />
 
-      {guardado === "1" && (
-        <p role="status" className="aviso aviso-exito mb-4">
-          Datos guardados correctamente.
-        </p>
-      )}
+      {guardado === "1" && <Notificacion mensaje="Datos guardados correctamente." />}
 
       {/* Ficha en lectura y edición, ambas plegadas hasta que se necesiten. */}
       <Plegable titulo="Datos">

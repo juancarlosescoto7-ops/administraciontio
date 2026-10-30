@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { hoyEnTegucigalpa } from "@/lib/formato";
 import { estadoPago, estaVencido, leerVista, rutaReporte } from "./definiciones";
-import { describirPeriodo, diaAnterior, resolverPeriodo, ultimoDiaDelMes } from "./periodo";
+import { describirPeriodo, diaAnterior, fechaCorte, resolverPeriodo, ultimoDiaDelMes } from "./periodo";
 
 describe("estado de pago y vencimiento", () => {
   it("pendiente, parcial, pagado y anulado", () => {
@@ -100,5 +100,19 @@ describe("períodos de reportes", () => {
     expect(describirPeriodo({ desde: "2026-10-01", hasta: "2026-10-31" })).toBe("octubre de 2026");
     expect(describirPeriodo({ desde: "2026-01-01", hasta: "2026-12-31" })).toBe("año 2026");
     expect(describirPeriodo({ desde: "2026-10-01", hasta: "2026-10-15" })).toBe("01/10/2026 al 15/10/2026");
+  });
+});
+
+describe("fecha de corte de la situación financiera", () => {
+  it("es el último día del período, salvo que sea futuro: entonces hoy", () => {
+    expect(fechaCorte({ hasta: "2026-09-30" }, "2026-10-28")).toBe("2026-09-30");
+    expect(fechaCorte({ hasta: "2026-10-31" }, "2026-10-28")).toBe("2026-10-28");
+    expect(fechaCorte({ hasta: "2026-10-28" }, "2026-10-28")).toBe("2026-10-28");
+  });
+
+  it("las vistas nuevas existen y se leen de la URL", () => {
+    expect(leerVista("resultados")).toBe("resultados");
+    expect(leerVista("situacion")).toBe("situacion");
+    expect(leerVista("balanza")).toBe("balanza");
   });
 });

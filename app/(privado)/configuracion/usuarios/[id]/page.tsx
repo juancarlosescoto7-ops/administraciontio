@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/tipos-bd";
 import { actualizarUsuario } from "@/lib/usuarios/acciones";
 import { Cargando, Encabezado, InsigniaEstado, SinPermiso } from "@/components/encabezado";
+import { Notificacion } from "@/components/notificacion";
 import { FormularioUsuario } from "@/components/usuarios/formulario-usuario";
 
 function resumirCambio(antes: Json | null, despues: Json | null): string {
@@ -80,11 +81,7 @@ async function ContenidoUsuario({ params, searchParams }: Pick<PropsUsuario, "pa
         volver={volver}
       />
 
-      {guardado === "1" && (
-        <p role="status" className="aviso aviso-exito mb-4">
-          Usuario actualizado.
-        </p>
-      )}
+      {guardado === "1" && <Notificacion mensaje="Usuario actualizado." />}
 
       <div className="tarjeta p-4 sm:p-6">
         <FormularioUsuario

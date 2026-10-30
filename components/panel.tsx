@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { ETIQUETAS_ESTADO_TRASLADO } from "@/lib/ambulancias/definiciones";
 import { ETIQUETAS_ESTADO_ALQUILER } from "@/lib/alquileres/definiciones";
 import { ETIQUETAS_ESTADO_TRANSPORTE } from "@/lib/transportes/definiciones";
@@ -12,6 +12,7 @@ import {
   type ServicioProximo,
   type TipoServicioProximo,
 } from "@/lib/panel";
+import { CifraAnimada } from "@/components/cifra-animada";
 import { InsigniaEstado } from "@/components/operaciones";
 import { Icono, type NombreIcono } from "@/components/iconos";
 import { Plegable } from "@/components/plegable";
@@ -49,17 +50,25 @@ export function TarjetaIndicador({
   icono: NombreIcono;
   tono: Tono;
 }) {
+  // Compacta: ícono a la izquierda; nombre, cifra y una línea de detalle a la
+  // derecha. El período queda en el título emergente y para lectores de pantalla.
   return (
-    <Link href={href} className="tarjeta tarjeta-enlace flex h-full flex-col gap-2 p-4">
-      <span className="flex items-center gap-3">
-        <IconoTono icono={icono} tono={tono} className="size-10" />
-        <span className="min-w-0 text-sm leading-snug font-medium texto-tenue">{etiqueta}</span>
+    <Link
+      href={href}
+      title={periodo}
+      className="tarjeta tarjeta-enlace indicador flex h-full items-center gap-3 px-4 py-3"
+      style={{ "--tono": `var(--acento-${tono})` } as CSSProperties}
+    >
+      <IconoTono icono={icono} tono={tono} className="size-10" />
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate text-sm font-medium texto-tenue">{etiqueta}</span>
+        <span className={`font-bold tracking-tight break-words ${valor === NO_DISPONIBLE ? "text-base" : "text-[1.375rem] leading-tight"}`}>
+          {valor === NO_DISPONIBLE ? valor : <CifraAnimada valor={valor} />}
+        </span>
+        <span className="truncate text-xs texto-tenue">{detalle ?? periodo}</span>
+        {detalle && <span className="sr-only">{periodo}</span>}
       </span>
-      <span className={`mt-1 font-semibold tracking-tight break-words ${valor === NO_DISPONIBLE ? "text-base" : "text-[1.25rem] leading-tight"}`}>{valor}</span>
-      <span className="mt-auto flex flex-col gap-0.5 text-xs">
-        {detalle && <span className="text-sm font-medium">{detalle}</span>}
-        <span className="texto-tenue">{periodo}</span>
-      </span>
+      <Icono nombre="flecha" className="indicador-flecha size-4 shrink-0" />
     </Link>
   );
 }
@@ -342,26 +351,42 @@ export function TarjetaModulo({
 }
 
 
-export function AccesosRapidos({ accesos }: { accesos: readonly AccesoRapido[] }) {
+/** Registros de uso frecuente, siempre a la vista; el primero, destacado. */
+export function BandaAccesos({ accesos }: { accesos: readonly AccesoRapido[] }) {
   return (
-    <ul className="grid grid-cols-2 gap-3 px-5 pb-5">
-      {accesos.map((acceso) => (
-        <li key={acceso.href}>
-          <Link
-            href={acceso.href}
-            className="boton boton-secundario flex h-full flex-col gap-2 px-2 py-4 text-center whitespace-normal"
-          >
-            <span
-              className="flex size-10 items-center justify-center rounded-full"
-              style={{ background: `var(--acento-${acceso.tono}-fondo)`, color: `var(--acento-${acceso.tono})` }}
-            >
-              <Icono nombre={acceso.icono} />
-            </span>
-            {acceso.etiqueta}
-          </Link>
-        </li>
-      ))}
-    </ul>
+    <section aria-labelledby="titulo-accesos" className="banda-accesos aparecer mt-4" style={{ "--orden": 1 } as CSSProperties}>
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+        <h2 id="titulo-accesos" className="text-base font-semibold tracking-tight">
+          Accesos rápidos
+        </h2>
+        <p className="text-sm text-white/85">Lo que más se registra, a un clic</p>
+      </div>
+      <ul className="banda-accesos-lista">
+        {accesos.map((acceso, indice) => (
+          <li key={acceso.href}>
+            <Link href={acceso.href} className={`acceso ${indice === 0 ? "acceso-principal" : ""}`}>
+              <span className="acceso-icono">
+                <Icono nombre={acceso.icono} className="size-5" />
+              </span>
+              <span className="acceso-texto">{acceso.etiqueta}</span>
+              <Icono nombre="flecha" className="acceso-flecha size-4" />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** Grupo de cajas con título; abrir una cierra la abierta de cualquier grupo. */
+export function GrupoCajas({ id, titulo, orden = 0, children }: { id: string; titulo: string; orden?: number; children: ReactNode }) {
+  return (
+    <section aria-labelledby={`grupo-${id}`} className="aparecer mt-6" style={{ "--orden": orden } as CSSProperties}>
+      <h2 id={`grupo-${id}`} className="grupo-titulo">
+        {titulo}
+      </h2>
+      <div className="cajas">{children}</div>
+    </section>
   );
 }
 

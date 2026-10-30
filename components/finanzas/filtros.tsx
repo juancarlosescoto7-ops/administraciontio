@@ -1,8 +1,15 @@
 import Link from "next/link";
-import type { Opcion } from "@/lib/catalogos/definiciones";
+import { puedeEditar } from "@/lib/auth/roles";
+import { requerirUsuario } from "@/lib/auth/sesion";
+import { registrarClienteDesde } from "@/lib/catalogos/acciones";
+import { camposClienteNuevo, type Opcion } from "@/lib/catalogos/definiciones";
+import { estadoInicial } from "@/lib/catalogos/estado";
 import { primerValor } from "@/lib/catalogos/presentacion";
-import { esFechaValida, limpiarBusqueda } from "@/lib/catalogos/validacion";
+import { esFechaValida, limpiarBusqueda, valoresDesdeRegistro } from "@/lib/catalogos/validacion";
+import { hoyEnTegucigalpa } from "@/lib/formato";
 import { createClient } from "@/lib/supabase/server";
+import { FormularioCatalogo } from "@/components/catalogos/formulario-catalogo";
+import { Dialogo } from "@/components/dialogo";
 import { EstadoVacio } from "@/components/encabezado";
 import { Plegable } from "@/components/plegable";
 
@@ -111,24 +118,50 @@ export function FormularioFiltros({
   );
 }
 
-/** Primer paso de cobros y cargos: elegir el cliente. */
+/**
+ * Primer paso de servicios, membresías, cobros y cargos: elegir el cliente o,
+ * si no existe, registrarlo en una ventana flotante sin salir de la pantalla.
+ */
 export async function BuscarCliente({ ruta, busqueda }: { ruta: string; busqueda: string }) {
-  const supabase = await createClient();
+  const [usuario, supabase] = await Promise.all([requerirUsuario(), createClient()]);
   let consulta = supabase.from("clientes").select("id, nombre, identificacion").eq("activo", true).order("nombre").limit(30);
   if (busqueda) consulta = consulta.or(`nombre.ilike."%${busqueda}%",identificacion.ilike."%${busqueda}%"`);
   const { data: clientes } = await consulta;
+  const campos = camposClienteNuevo();
 
   return (
     <div className="flex flex-col gap-4">
-      <form method="get" className="tarjeta flex flex-col gap-3 p-4 sm:flex-row sm:items-end">
-        <label className="campo flex-1">
-          <span className="campo-etiqueta">Cliente</span>
-          <input className="entrada" type="search" name="q" defaultValue={busqueda} placeholder="Nombre o identificación…" autoFocus />
-        </label>
-        <button type="submit" className="boton boton-secundario">
-          Buscar
-        </button>
-      </form>
+      <div className="tarjeta flex flex-col gap-3 p-4 sm:flex-row sm:items-end">
+        <form method="get" className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-end">
+          <label className="campo flex-1">
+            <span className="campo-etiqueta">Cliente</span>
+            <input className="entrada" type="search" name="q" defaultValue={busqueda} placeholder="Nombre o identificación…" autoFocus />
+          </label>
+          <button type="submit" className="boton boton-secundario">
+            Buscar
+          </button>
+        </form>
+        {/* Fuera del formulario de búsqueda: un formulario no puede contener otro. */}
+        {puedeEditar("clientes", usuario.rol) && (
+          <Dialogo
+            titulo="Registrar cliente nuevo"
+            textoBoton="Cliente nuevo"
+            descripcion="Al guardarlo se elige para continuar con esta operación."
+            icono="mas"
+          >
+            <FormularioCatalogo
+              campos={campos}
+              accion={registrarClienteDesde.bind(null, ruta)}
+              estadoInicial={estadoInicial(valoresDesdeRegistro({ campos }, null))}
+              textoEnviar="Registrar y continuar"
+              rutaCancelar={null}
+              rutaBase="/clientes"
+              hoy={hoyEnTegucigalpa()}
+              prefijo="nuevo-cliente-"
+            />
+          </Dialogo>
+        )}
+      </div>
       {clientes?.length ? (
         <ul className="tarjeta divide-y divide-[var(--borde)] overflow-hidden">
           {clientes.map((cliente) => (

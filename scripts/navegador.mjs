@@ -103,6 +103,22 @@ export async function abrirNavegador({
     })()`);
   }
 
+  /**
+   * Abre una ventana flotante por el texto de su botón. Si el botón está en una
+   * caja cerrada (contenido inerte), primero abre la caja, como haría un usuario.
+   */
+  async function abrirVentana(texto) {
+    const boton = `[...document.querySelectorAll('button[aria-haspopup=dialog]')].find((b) => b.textContent.includes(${JSON.stringify(texto)}))`;
+    await esperar(`${boton} && !${boton}.disabled`);
+    await evaluar(`(() => {
+      const panel = ${boton}.closest('[inert]');
+      if (panel) document.querySelector('[aria-controls="' + panel.id + '"]')?.click();
+    })()`);
+    await esperar(`!${boton}.closest('[inert]')`);
+    await evaluar(`${boton}.click()`);
+    await esperar("document.querySelector('dialog[open]')");
+  }
+
   async function capturar(nombre) {
     if (!capturas) return;
     const { data } = await cdp("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
@@ -134,5 +150,5 @@ export async function abrirNavegador({
   await cdp("Network.enable");
   await vista(1280, 800, false);
 
-  return { cdp, evaluar, esperar, ruta, texto, listo, ir, llenar, pulsar, capturar, vista, iniciarSesion, cerrar };
+  return { cdp, evaluar, esperar, ruta, texto, listo, ir, llenar, pulsar, abrirVentana, capturar, vista, iniciarSesion, cerrar };
 }

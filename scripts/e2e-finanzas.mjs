@@ -26,8 +26,10 @@ const cargo = (await api(adminApi.token, "POST", "rpc/registrar_cargo", {
   p_fecha: hoy, p_vencimiento: null, p_monto: "1500.00",
 })).datos;
 
-const { evaluar, esperar, ruta, texto, ir, llenar, pulsar, capturar, vista, iniciarSesion, cerrar } = await abrirNavegador();
+const { evaluar, esperar, ruta, texto, ir, llenar, pulsar, capturar, vista, iniciarSesion, cerrar, abrirVentana } = await abrirNavegador();
 const marcar = (selector) => evaluar(`document.querySelector(${JSON.stringify(selector)}).click()`);
+// El botón que abre la ventana y el de envío comparten texto: pulsar el de la ventana.
+const pulsarEnVentana = (textoBoton) => evaluar(`[...document.querySelectorAll("dialog[open] button")].find((b) => b.textContent.trim() === ${JSON.stringify(textoBoton)}).click()`);
 // El contenido llega por streaming: lo presente se espera; lo ausente se comprueba
 // después de haber esperado algo presente en la misma página.
 const contiene = (fragmento) => esperar(`document.body.innerText.includes(${JSON.stringify(fragmento)})`, 8000);
@@ -122,12 +124,12 @@ try {
   await esperar("[...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Reversar cobro' && !b.disabled)");
   await evaluar("(() => { const caja = [...document.querySelectorAll('button.caja')].find((b) => b.textContent.includes('Correcciones')); if (caja.getAttribute('aria-expanded') !== 'true') caja.click(); })()");
   await esperar("!document.querySelector('#campo-cobro-motivo').closest('[inert]')");
-  await evaluar("[...document.querySelectorAll('summary')].find((s) => s.textContent.includes('Reversar cobro')).click()");
+  await abrirVentana("Reversar cobro");
   await llenar("#campo-cobro-motivo", `${MARCA} prueba de reverso`);
-  await pulsar("Reversar cobro");
+  await pulsarEnVentana("Reversar cobro");
   comprobar("reverso sin confirmar la casilla se rechaza", await esperar("document.body.innerText.includes('Marque la casilla')"));
   await marcar("#campo-cobro-confirmar");
-  await pulsar("Reversar cobro");
+  await pulsarEnVentana("Reversar cobro");
   comprobar("cobro reversado con motivo y conservado",
     (await esperar("document.body.innerText.includes('Corrección registrada')", 20000)) && (await contiene("Reversado")) && (await contiene("Motivo del reverso")));
   await ir(`/finanzas/cargos/${cargo}`);

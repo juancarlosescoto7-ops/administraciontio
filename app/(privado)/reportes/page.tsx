@@ -18,6 +18,7 @@ import {
   ReporteResumen,
   type Parametros,
 } from "@/components/reportes/vistas";
+import { BalanzaComprobacion, EstadoResultados, SituacionFinanciera } from "@/components/reportes/estados";
 
 export default function PaginaReportes({ searchParams }: PageProps<"/reportes">) {
   return (
@@ -82,6 +83,12 @@ function Vista({ vista, periodo, hoy, parametros }: { vista: Vista; periodo: Per
       return <ReportePorPagar {...props} />;
     case "caja":
       return <ReporteCaja {...props} />;
+    case "resultados":
+      return <EstadoResultados {...props} />;
+    case "situacion":
+      return <SituacionFinanciera {...props} />;
+    case "balanza":
+      return <BalanzaComprobacion {...props} />;
     default:
       return <ReporteResumen {...props} />;
   }

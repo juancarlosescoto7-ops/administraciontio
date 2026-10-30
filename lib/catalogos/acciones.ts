@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { puedeEditar } from "@/lib/auth/roles";
 import { usuarioActivoOpcional } from "@/lib/auth/sesion";
 import { createClient } from "@/lib/supabase/server";
-import { obtenerDefinicion, type DefinicionCatalogo } from "./definiciones";
+import { camposClienteNuevo, obtenerDefinicion, type DefinicionCatalogo } from "./definiciones";
 import type { ClienteSimilar, EstadoFormulario } from "./estado";
 import { esUuid } from "./presentacion";
 import { tablaCatalogo } from "./tabla";
@@ -24,6 +24,47 @@ export async function guardarRegistro(
   formData: FormData,
 ): Promise<EstadoFormulario> {
   const def = obtenerDefinicion(clave);
+  return guardar(def, id, anterior, formData, (guardado) => `${def.ruta}/${guardado}?guardado=1`);
+}
+
+/** Pantallas de servicio que eligen cliente y pueden registrarlo sin salir. */
+const RUTAS_CON_CLIENTE = new Set([
+  "/ambulancias/nuevo",
+  "/alquileres/nuevo",
+  "/transportes/nuevo",
+  "/membresias/nueva",
+  "/finanzas/cobros/nuevo",
+  "/finanzas/cargos/nuevo",
+]);
+
+/**
+ * Registra un cliente desde la ventana «Cliente nuevo» de un servicio y vuelve
+ * a esa pantalla con el cliente ya elegido. Mismas validaciones y aviso de
+ * posibles duplicados que el catálogo de clientes.
+ */
+export async function registrarClienteDesde(
+  ruta: string,
+  anterior: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  // Los mismos campos que muestra la ventana, sin «Activo»: si se validara con
+  // la definición completa, la casilla ausente se leería como desmarcada y el
+  // cliente nacería inactivo. Sin ella, la base aplica activo = true.
+  const completa = obtenerDefinicion("clientes");
+  const def = { ...completa, campos: camposClienteNuevo() };
+  if (!RUTAS_CON_CLIENTE.has(ruta)) {
+    return { revision: anterior.revision + 1, valores: leerValores(def, formData), errores: {}, error: "Operación no válida.", similares: null };
+  }
+  return guardar(def, null, anterior, formData, (guardado) => `${ruta}?cliente=${guardado}&cliente_nuevo=1`);
+}
+
+async function guardar(
+  def: DefinicionCatalogo,
+  id: string | null,
+  anterior: EstadoFormulario,
+  formData: FormData,
+  destino: (guardado: string) => string,
+): Promise<EstadoFormulario> {
   const valores = leerValores(def, formData);
   const respuesta = (cambios: Partial<EstadoFormulario>): EstadoFormulario => ({
     revision: anterior.revision + 1,
@@ -78,7 +119,7 @@ export async function guardarRegistro(
   }
 
   revalidatePath(def.ruta);
-  redirect(`${def.ruta}/${guardado}?guardado=1`);
+  redirect(destino(guardado));
 }
 
 async function buscarClientesSimilares(

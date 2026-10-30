@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
-import { DemoConstruccion } from "./reproductor";
+import { LapsoConstruccion } from "./lapso";
+import { listadosDemo, menuDemo, panelDemo, resumenCobro } from "./pantallas";
 
 export const metadata: Metadata = {
-  title: "Simulación · ERP interno",
-  description: "El sistema pasa de HTML sin estilos a su interfaz final, con interacciones simuladas y datos ficticios.",
+  title: "Construcción · ERP interno",
+  description: "Time lapse de la construcción del sistema con su código, migraciones y esquema reales.",
   robots: { index: false, follow: false },
 };
 
 export default function PaginaDemoConstruccion() {
-  return <DemoConstruccion />;
+  return <LapsoConstruccion grupos={menuDemo()} listados={listadosDemo()} paneles={{ cerrado: panelDemo(), grafico: panelDemo({ grafico: true }), registrado: panelDemo({ grafico: true, cobro: true }) }} resumenCobro={resumenCobro()} />;
 }

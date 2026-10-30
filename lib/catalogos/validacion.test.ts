@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { CATALOGOS, obtenerDefinicion } from "./definiciones";
+import { camposClienteNuevo, CATALOGOS, obtenerDefinicion } from "./definiciones";
 import {
   filtroBusqueda,
+  leerValores,
   limpiarBusqueda,
   validarRegistro,
   valoresDesdeRegistro,
@@ -160,5 +161,26 @@ describe("obtenerDefinicion", () => {
     expect(() => obtenerDefinicion("perfiles")).toThrow();
     expect(() => obtenerDefinicion("toString")).toThrow();
     expect(obtenerDefinicion("vehiculos").tabla).toBe("vehiculos");
+  });
+});
+
+describe("ventana «Cliente nuevo» de los servicios", () => {
+  it("no pide «Activo» y los datos validados no lo incluyen (la base lo crea activo)", () => {
+    const campos = camposClienteNuevo();
+    expect(campos.map((campo) => campo.nombre)).not.toContain("activo");
+    const formulario = new FormData();
+    formulario.set("tipo", "natural");
+    formulario.set("nombre", "Cliente de prueba");
+    const resultado = validarRegistro({ campos }, leerValores({ campos }, formulario));
+    expect(resultado.ok).toBe(true);
+    expect(resultado.ok && "activo" in resultado.datos).toBe(false);
+  });
+
+  it("con la definición completa, la casilla ausente se leería como desmarcada (el error que se corrigió)", () => {
+    const formulario = new FormData();
+    formulario.set("tipo", "natural");
+    formulario.set("nombre", "Cliente de prueba");
+    const resultado = validarRegistro(CATALOGOS.clientes, leerValores(CATALOGOS.clientes, formulario));
+    expect(resultado.ok && resultado.datos.activo).toBe(false);
   });
 });

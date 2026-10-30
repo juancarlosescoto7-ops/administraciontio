@@ -5,10 +5,17 @@ import { puede } from "@/lib/auth/roles";
 import { requerirUsuario } from "@/lib/auth/sesion";
 import { esUuid, primerValor } from "@/lib/catalogos/presentacion";
 import { sumarMontos } from "@/lib/finanzas/montos";
-import { agregarBeneficiario, cancelarMembresia, editarCondiciones, inactivarBeneficiario } from "@/lib/membresias/acciones";
+import {
+  agregarBeneficiario,
+  agregarBeneficiarioNuevo,
+  cancelarMembresia,
+  editarCondiciones,
+  inactivarBeneficiario,
+} from "@/lib/membresias/acciones";
 import {
   camposAgregarBeneficiario,
   camposBaja,
+  camposBeneficiarioNuevo,
   camposEditarCondiciones,
   ETIQUETAS_MODALIDAD,
 } from "@/lib/membresias/definiciones";
@@ -85,7 +92,12 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
         descripcion={<InsigniaMembresia estado={membresia.estado} />}
         volver={{ href: "/membresias", etiqueta: "Membresías" }}
         acciones={
-          !cancelada && puede("actualizarMensualidades", usuario.rol) ? <BotonActualizarMensualidades membresiaId={id} /> : undefined
+          <>
+            <Link href={`${ruta}/contrato`} className="boton boton-secundario">
+              Contrato
+            </Link>
+            {!cancelada && puede("actualizarMensualidades", usuario.rol) && <BotonActualizarMensualidades membresiaId={id} />}
+          </>
         }
       />
       <AvisoOperacion
@@ -158,9 +170,8 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
           ]}
         />
         {administrador && (
-          <details className="tarjeta desplegable mb-6 px-4 py-2 open:pb-4 sm:px-6">
-            <summary>Editar condiciones</summary>
-            <p className="my-4 text-sm texto-tenue">
+          <Desplegable titulo="Editar condiciones">
+            <p className="mb-4 text-sm texto-tenue">
               Se aplican desde la próxima mensualidad; los períodos ya generados conservan sus condiciones.
             </p>
             <FormularioOperacion
@@ -176,11 +187,11 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
                 motivo: null,
               }}
             />
-          </details>
+          </Desplegable>
         )}
       </Seccion>
 
-      <Seccion titulo="Beneficiarios">
+      <Seccion titulo="Beneficiarios" abierta={Boolean(vinculoBaja)}>
         <Tabla
           filas={vinculos ?? []}
           enlace={(v) => `/beneficiarios/${v.beneficiario_id}`}
@@ -195,7 +206,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
               celda: (v) =>
                 v.activo ? (
                   operador ? (
-                    <Link href={`${ruta}?vinculo=${v.id}#baja`} className="text-sm text-enlace underline">
+                    <Link href={`${ruta}?vinculo=${v.id}`} className="text-sm text-enlace underline">
                       Dar de baja
                     </Link>
                   ) : (
@@ -208,7 +219,11 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
           ]}
         />
         {operador && vigentes.some((v) => v.id === vinculoBaja) && (
-          <div id="baja" className="tarjeta desplegable-peligro mt-4 p-4 sm:p-6">
+          <Desplegable
+            titulo={`Dar de baja a ${vigentes.find((v) => v.id === vinculoBaja)?.beneficiarios?.nombre ?? "beneficiario"}`}
+            peligro
+            abierto
+          >
             <p className="mb-4 text-sm">
               Dar de baja a {vigentes.find((v) => v.id === vinculoBaja)?.beneficiarios?.nombre}: deja de estar cubierto desde hoy. El
               historial se conserva.
@@ -221,19 +236,27 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
               prefijo="baja-"
               tono="peligro"
             />
-          </div>
+          </Desplegable>
         )}
         {operador && opcionesAgregar.length > 0 && (
-          <details className="tarjeta desplegable mt-4 px-4 py-2 open:pb-4 sm:px-6">
-            <summary>Agregar beneficiario</summary>
-            <div className="mt-4">
-              <FormularioOperacion
-                campos={camposAgregarBeneficiario(opcionesAgregar)}
-                accion={agregarBeneficiario.bind(null, id)}
-                textoEnviar="Agregar"
-              />
-            </div>
-          </details>
+          <Desplegable titulo="Agregar beneficiario ya registrado">
+            <FormularioOperacion
+              campos={camposAgregarBeneficiario(opcionesAgregar)}
+              accion={agregarBeneficiario.bind(null, id)}
+              textoEnviar="Agregar"
+            />
+          </Desplegable>
+        )}
+        {operador && (
+          <Desplegable titulo="Registrar beneficiario nuevo">
+            <p className="mb-4 text-sm texto-tenue">Se crea su ficha y queda cubierto desde hoy, sin salir de esta página.</p>
+            <FormularioOperacion
+              campos={camposBeneficiarioNuevo()}
+              accion={agregarBeneficiarioNuevo.bind(null, id)}
+              textoEnviar="Registrar y agregar"
+              prefijo="nuevo-"
+            />
+          </Desplegable>
         )}
       </Seccion>
 

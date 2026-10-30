@@ -6,6 +6,7 @@ import { camposCorreccion } from "@/lib/finanzas/definiciones";
 import { corregir, type TipoCorreccion } from "@/lib/finanzas/acciones";
 import { hoyEnTegucigalpa } from "@/lib/formato";
 import { FormularioCatalogo } from "@/components/catalogos/formulario-catalogo";
+import { Notificacion } from "@/components/notificacion";
 
 type Accion = (anterior: EstadoFormulario, formData: FormData) => Promise<EstadoFormulario>;
 
@@ -78,7 +79,7 @@ export function FormularioCorreccion({
   );
 }
 
-/** Aviso tras una operación (?guardado=1, ?corregido=1…). */
+/** Aviso flotante tras una operación (?guardado=1, ?corregido=1…). */
 export function AvisoOperacion({
   parametros,
   mensajes,
@@ -88,9 +89,5 @@ export function AvisoOperacion({
 }) {
   const clave = Object.keys(mensajes).find((nombre) => parametros[nombre] === "1");
   if (!clave) return null;
-  return (
-    <p role="status" className="aviso aviso-exito mb-4">
-      {mensajes[clave]}
-    </p>
-  );
+  return <Notificacion mensaje={mensajes[clave]} />;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useId, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
+import { createContext, useContext, useEffect, useId, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { Icono, type NombreIcono } from "@/components/iconos";
 
 /**
@@ -76,10 +76,25 @@ export function Plegable({
   const idEncabezado = idTitulo ?? `${id}-titulo`;
   const abierto = elegir ? (seleccion === undefined ? abierta : seleccion === id) : local;
 
+  const nombreIcono = icono ?? iconoPara(titulo);
+  const panel = useRef<HTMLElement>(null);
+  const abiertaPorUsuario = useRef(false);
+
   // Al salir de la página, la selección no pasa a la caja que ocupe su lugar.
   useEffect(() => () => elegir?.((actual) => (actual === id ? undefined : actual)), [elegir, id]);
 
-  const fijar = (valor: boolean) => (elegir ? elegir(valor ? id : null) : setLocal(valor));
+  // Si el contenido queda fuera de la vista (p. ej., en el teléfono), se acerca.
+  useEffect(() => {
+    if (!abierto || !abiertaPorUsuario.current) return;
+    abiertaPorUsuario.current = false;
+    const suave = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    panel.current?.scrollIntoView({ block: "nearest", behavior: suave ? "smooth" : "auto" });
+  }, [abierto]);
+
+  const fijar = (valor: boolean) => {
+    abiertaPorUsuario.current = valor;
+    return elegir ? elegir(valor ? id : null) : setLocal(valor);
+  };
 
   return (
     <>
@@ -91,16 +106,31 @@ export function Plegable({
         className={`caja ${abierto ? "caja-abierta" : ""} ${peligro ? "caja-peligro" : ""}`}
       >
         <span className="caja-icono">
-          <Icono nombre={icono ?? iconoPara(titulo)} className="size-[1.375rem]" />
+          <Icono nombre={nombreIcono} className="size-[1.375rem]" />
         </span>
+        <Icono nombre="abajo" className="caja-flecha size-4" />
         <span className="caja-titulo">{titulo}</span>
         {resumen && <span className="caja-resumen">{resumen}</span>}
+        {abierto && (
+          <span aria-hidden="true" className="caja-marca">
+            Abierta
+          </span>
+        )}
       </button>
-      <section id={idPanel} aria-labelledby={idEncabezado} className={`caja-panel ${abierto ? "caja-panel-abierto" : ""}`} inert={!abierto}>
+      <section
+        ref={panel}
+        id={idPanel}
+        aria-labelledby={idEncabezado}
+        className={`caja-panel ${abierto ? "caja-panel-abierto" : ""}`}
+        inert={!abierto}
+      >
         <div>
           <div className="caja-contenido">
             <div className="mb-3 flex items-center justify-between gap-3">
-              <h2 id={idEncabezado} className="text-base font-semibold tracking-tight">
+              <h2 id={idEncabezado} className="flex items-center gap-2.5 text-base font-semibold tracking-tight">
+                <span aria-hidden="true" className="caja-panel-icono">
+                  <Icono nombre={nombreIcono} className="size-4" />
+                </span>
                 {titulo}
               </h2>
               <button type="button" onClick={() => fijar(false)} className="boton boton-secundario min-h-9 px-3" aria-label={`Cerrar ${titulo}`}>

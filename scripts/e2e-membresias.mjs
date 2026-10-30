@@ -41,7 +41,7 @@ const morosaPanel = (await api(adminApi.token, "POST", "rpc/registrar_membresia"
 })).datos;
 const estadoDe = async (id) => (await api(adminApi.token, "GET", `membresias?id=eq.${id}&select=estado`)).datos[0].estado;
 
-const { evaluar, esperar, ruta, texto, ir, llenar, pulsar, capturar, vista, iniciarSesion, cerrar } = await abrirNavegador();
+const { evaluar, esperar, ruta, texto, ir, llenar, pulsar, capturar, vista, iniciarSesion, cerrar, abrirVentana } = await abrirNavegador();
 const marcar = (selector) => evaluar(`document.querySelector(${JSON.stringify(selector)}).click()`);
 const contiene = async (fragmento) => (await texto()).includes(fragmento);
 /** Fragmentos que no aparecen en la página (vacío = todos presentes). */
@@ -71,7 +71,9 @@ try {
   await esperar(`document.querySelector('#campo-beneficiario_${ana}')?.checkVisibility()`);
   const revision = await faltan(L("500.00"), "Compartido entre beneficiarios", "Primeros períodos", `Ana ${sufijo}`);
   comprobar("revisión de condiciones: precio, cupo, gracia, primeros períodos y beneficiarios", revision.length === 0, revision.join(" | "));
-  comprobar("el operador no ve condiciones particulares", !(await evaluar("Boolean(document.querySelector('#campo-precio'))")));
+  comprobar("el operador no ve condiciones particulares",
+    !(await evaluar("Boolean(document.querySelector('#campo-precio'))")) &&
+      !(await evaluar("[...document.querySelectorAll('button')].some((b) => b.textContent.includes('Pactar condiciones particulares'))")));
   await capturar("e3-01-nueva-membresia");
 
   await marcar(`#campo-beneficiario_${ana}`);
@@ -88,7 +90,7 @@ try {
   comprobar("detalle: activa, cuota de L 500 pendiente y beneficiario cubierto", detalle.length === 0, detalle.join(" | "));
   comprobar("el operador no edita condiciones ni cancela", !(await contiene("Editar condiciones")) && !(await contiene("Cancelar membresía")));
 
-  await evaluar("[...document.querySelectorAll('summary')].find((s) => s.textContent.includes('Agregar beneficiario')).click()");
+  await abrirVentana("Agregar beneficiario");
   await llenar("#campo-beneficiario_id", luis);
   await pulsar("Agregar");
   comprobar("beneficiario agregado (el mismo de otra membresía)",
@@ -140,7 +142,7 @@ try {
   await iniciarSesion(env.E2E_ADMIN_CORREO, env.E2E_ADMIN_CLAVE);
   await esperar("location.pathname === '/'");
   await ir(rutaMembresia);
-  await evaluar("[...document.querySelectorAll('summary')].find((s) => s.textContent.includes('Editar condiciones')).click()");
+  await abrirVentana("Editar condiciones");
   comprobar("editar condiciones muestra las vigentes", (await evaluar("document.querySelector('#campo-condiciones-precio').value")) === "500.00");
   await llenar("#campo-condiciones-precio", "650");
   await llenar("#campo-condiciones-motivo", `${MARCA} ajuste de precio`);
@@ -148,7 +150,7 @@ try {
   comprobar("condiciones actualizadas: L 650 para los próximos ciclos; la cuota generada sigue en L 500",
     (await esperar("document.body.innerText.includes('Condiciones actualizadas')", 20000)) && (await contiene(L("650.00"))) &&
       (await evaluar("[...document.querySelectorAll('h2')].some((h) => h.textContent === 'Mensualidades')")) && (await contiene(L("500.00"))));
-  await evaluar("[...document.querySelectorAll('summary')].find((s) => s.textContent.includes('Cancelar la membresía')).click()");
+  await abrirVentana("Cancelar la membresía");
   await llenar("#campo-cancelar-motivo", `${MARCA} el cliente se retira`);
   await pulsar("Cancelar membresía");
   comprobar("cancelar sin confirmar se rechaza", await esperar("document.body.innerText.includes('Marque la casilla')"));
@@ -159,7 +161,11 @@ try {
       (await contiene("el cliente se retira")) && (await contiene(L("500.00"))));
 
   await ir(`/membresias/nueva?cliente=${cliente}&plan=${plan}&inicio=${hoy}`);
-  comprobar("el administrador puede pactar condiciones particulares", await esperar("Boolean(document.querySelector('#campo-precio'))"));
+  comprobar("condiciones particulares ocultas tras un botón visible para el administrador",
+    (await esperar("[...document.querySelectorAll('button')].some((b) => b.textContent.includes('Pactar condiciones particulares') && b.checkVisibility())")) &&
+      !(await evaluar("Boolean(document.querySelector('#campo-precio')?.checkVisibility())")));
+  await pulsar("Pactar condiciones particulares");
+  comprobar("el administrador puede pactar condiciones particulares", await esperar("document.querySelector('#campo-precio')?.checkVisibility()"));
 
   // 4. Móvil
   await vista(390, 844, true);

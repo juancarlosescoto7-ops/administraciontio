@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, type CSSProperties } from "react";
 import { accesosRapidos } from "@/lib/accesos";
-import { ETIQUETAS_ROL, puede, type ClaveCatalogo } from "@/lib/auth/roles";
+import { puede, type ClaveCatalogo } from "@/lib/auth/roles";
 import { requerirUsuario } from "@/lib/auth/sesion";
+import { ejemplosPara, opcionesFijas } from "@/lib/busqueda/intencion";
+import { gruposNavegacion } from "@/lib/navegacion";
 import { ESTADOS_ACTIVOS, type EstadoTraslado } from "@/lib/ambulancias/definiciones";
 import { ESTADOS_ACTIVOS_TRANSPORTE } from "@/lib/transportes/definiciones";
 import { CATALOGOS, OPCIONES_ESTADO_VEHICULO, OPCIONES_TIPO_VEHICULO } from "@/lib/catalogos/definiciones";
@@ -12,7 +14,6 @@ import { sumarMontos } from "@/lib/finanzas/montos";
 import {
   aFechaHoraLocal,
   formatearFecha,
-  formatearFechaLarga,
   formatearMoneda,
   hoyEnTegucigalpa,
   momentoDesdeLocal,
@@ -20,15 +21,15 @@ import {
 import { inicioUltimosDias, ordenarProximos, recorrido, serieUltimosDias, type ServicioProximo } from "@/lib/panel";
 import { describirPeriodo, resolverPeriodo } from "@/lib/reportes/periodo";
 import { createClient } from "@/lib/supabase/server";
-import { Encabezado } from "@/components/encabezado";
+import { BuscadorInicio } from "@/components/buscador";
 import { InsigniaFinanciera } from "@/components/finanzas/resumen";
 import { Tabla } from "@/components/finanzas/tabla";
-import { Icono } from "@/components/iconos";
 import { ActualizarAlAbrir } from "@/components/membresias/actualizar";
 import {
-  AccesosRapidos,
+  BandaAccesos,
   EsqueletoPanel,
   GraficoColumnas,
+  GrupoCajas,
   IconoTono,
   LineaTiempo,
   ListaAtencion,
@@ -73,12 +74,6 @@ function texto(valor: number | null): string {
   return valor === null ? NO_DISPONIBLE : String(valor);
 }
 
-/** «Buenos días», «Buenas tardes» o «Buenas noches» según la hora de Tegucigalpa. */
-function saludo(ahora: Date): string {
-  const hora = Number(aFechaHoraLocal(ahora).slice(11, 13));
-  return hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches";
-}
-
 function plural(cantidad: number, singular: string, varios: string): string {
   return `${cantidad} ${cantidad === 1 ? singular : varios}`;
 }
@@ -87,9 +82,8 @@ function monto(lista: (number | string | null)[] | null): string {
   return lista ? formatearMoneda(sumarMontos(lista)) : NO_DISPONIBLE;
 }
 
-// Las piezas siguen el orden de prioridad en una sola columna y en la retícula
-// de tres columnas; desde 1536 px se reparten en columna principal y lateral
-// (sus contenedores dejan de ser «contents» y el orden vuelve al del DOM).
+// Orden de uso: accesos rápidos, indicadores y después las cajas agrupadas
+// (operación, finanzas y, al final, configuración, que se consulta menos).
 
 export default function Panel() {
   return (
@@ -290,41 +284,25 @@ async function ContenidoPanel() {
 
   // --- Acciones disponibles para el rol ----------------------------------
   const accesos = accesosRapidos(rol);
-  const [principal, ...otrosAccesos] = accesos;
-  const botonPrincipal = (clase: string) =>
-    principal && (
-      <Link href={principal.href} className={`boton boton-primario ${clase}`}>
-        <Icono nombre="mas" />
-        {principal.etiqueta}
-      </Link>
-    );
 
   return (
     <>
       <ActualizarAlAbrir />
 
-      {/* Cabecera despejada: deja ver los trazos y concentra la acción principal. */}
-      <Encabezado
-        className="mb-8 lg:pt-6 lg:pb-4"
-        titulo={`${saludo(ahora)}, ${usuario.nombre}`}
-        descripcion={`Perfil: ${ETIQUETAS_ROL[rol]} · Aquí tiene un resumen de la operación de hoy.`}
-        acciones={
-          <>
-            <span className="flex min-h-10 items-center gap-2 rounded-md border border-[var(--borde)] bg-[var(--vidrio-fuerte)] px-3 text-sm font-medium texto-tenue backdrop-blur">
-              {formatearFechaLarga(ahora)}
-              <Icono nombre="calendario" className="size-5" />
-            </span>
-            {botonPrincipal("")}
-          </>
-        }
-      />
+      {/* Sin cabecera visible: el buscador abre la página. */}
+      <h1 className="sr-only">Inicio</h1>
 
-      <section aria-labelledby="titulo-indicadores">
+      {/* Bloques a todo el ancho: buscador, accesos rápidos y después lo demás. */}
+      <BuscadorInicio fijas={opcionesFijas(gruposNavegacion(rol), accesos)} ejemplos={ejemplosPara(rol)} />
+
+      {accesos.length > 0 && <BandaAccesos accesos={accesos} />}
+
+      <section aria-labelledby="titulo-indicadores" className="mt-4">
         <h2 id="titulo-indicadores" className="sr-only">
           Indicadores de operación
         </h2>
-        <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          <li>
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <li className="aparecer" style={{ "--orden": 2 } as CSSProperties}>
             <TarjetaIndicador
               etiqueta="Cobrado hoy"
               valor={cobradoHoy}
@@ -334,7 +312,7 @@ async function ContenidoPanel() {
               tono="verde"
             />
           </li>
-          <li>
+          <li className="aparecer" style={{ "--orden": 3 } as CSSProperties}>
             <TarjetaIndicador
               etiqueta="Traslados de hoy"
               valor={texto(trasladosHoy)}
@@ -345,7 +323,7 @@ async function ContenidoPanel() {
               tono="azul"
             />
           </li>
-          <li>
+          <li className="aparecer" style={{ "--orden": 4 } as CSSProperties}>
             <TarjetaIndicador
               etiqueta="Vehículos alquilados ahora"
               valor={texto(alquilados)}
@@ -356,7 +334,7 @@ async function ContenidoPanel() {
               tono="morado"
             />
           </li>
-          <li>
+          <li className="aparecer" style={{ "--orden": 5 } as CSSProperties}>
             <TarjetaIndicador
               etiqueta="Membresías activas"
               valor={texto(membresiasActivas)}
@@ -370,8 +348,7 @@ async function ContenidoPanel() {
         </ul>
       </section>
 
-      {/* Lo demás, en cajas de íconos: su contenido aparece debajo de la fila. */}
-      <div className="cajas mt-5">
+      <GrupoCajas id="operacion" titulo="Operación del día" orden={6}>
         <Seccion id="atencion" titulo="Requiere atención" descripcion="Casos que esperan una acción">
           <ListaAtencion elementos={atencion} />
         </Seccion>
@@ -383,56 +360,6 @@ async function ContenidoPanel() {
         >
           <LineaTiempo servicios={proximos} hoy={hoy} ahora={ahora} error={errorProximos} />
         </Seccion>
-        <Seccion
-          id="cobros-semana"
-          titulo="Cobros de los últimos 7 días"
-          descripcion="Cobros confirmados por fecha, en lempiras"
-          enlace={{ href: "/finanzas/cobros", etiqueta: "Ver cobros" }}
-        >
-          {serieCobros ? (
-            <GraficoColumnas serie={serieCobros} descripcion="Cobros confirmados por día" />
-          ) : (
-            <p role="alert" className="aviso aviso-error mx-5 mb-5">No se pudieron cargar los cobros.</p>
-          )}
-        </Seccion>
-        <Seccion id="finanzas" titulo="Finanzas" descripcion="Saldos a la fecha">
-          <ul className="grid grid-cols-1 gap-1 px-3 pb-3 sm:grid-cols-2 lg:grid-cols-4">
-            {indicadoresFinanzas.map((indicador, indice) => (
-              <li key={indicador.etiqueta} className={indice > 0 ? "lg:border-l lg:border-borde lg:pl-1" : ""}>
-                <Link href={indicador.href} className="fila-enlace flex h-full flex-col justify-center gap-1 rounded-lg px-3 py-2.5">
-                  <span className="text-sm texto-tenue">{indicador.etiqueta}</span>
-                  <span className="text-lg font-bold tracking-tight">{indicador.valor}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Seccion>
-        {resultadoMes && (
-          <Seccion
-            id="resultado-mes"
-            titulo="Resultado del mes"
-            descripcion={describirPeriodo(mesActual)}
-            enlace={{ href: "/reportes", etiqueta: "Ver reportes" }}
-          >
-            {resultadoMes.error || !resultadoMes.data ? (
-              <p role="alert" className="aviso aviso-error mx-5 mb-5">No se pudo calcular el resultado del mes.</p>
-            ) : (
-              <ul className="grid grid-cols-1 gap-1 px-3 pb-1 sm:grid-cols-3">
-                {[
-                  { etiqueta: "Ingresos reconocidos", valor: resultadoMes.data.ingresos },
-                  { etiqueta: "Gastos reconocidos", valor: resultadoMes.data.gastos },
-                  { etiqueta: "Resultado operativo básico", valor: resultadoMes.data.resultado },
-                ].map((cifra, indice) => (
-                  <li key={cifra.etiqueta} className={`flex flex-col gap-1 px-3 py-2.5 ${indice > 0 ? "sm:border-l sm:border-borde" : ""}`}>
-                    <span className="text-sm texto-tenue">{cifra.etiqueta}</span>
-                    <span className="text-lg font-bold tracking-tight">{formatearMoneda(cifra.valor)}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <p className="mx-5 mb-2 text-xs texto-tenue">Informe gerencial; no es utilidad fiscal. Los cobros del mes no son ingresos.</p>
-          </Seccion>
-        )}
         <Seccion id="modulos" titulo="Resumen por servicio" descripcion="Ambulancias, alquileres y transporte" sinTarjeta>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
             <TarjetaModulo
@@ -471,13 +398,8 @@ async function ContenidoPanel() {
               href="/transportes"
               etiquetaEnlace="Ver transportes"
             />
-                  </div>
+          </div>
         </Seccion>
-        {otrosAccesos.length > 0 && (
-          <Seccion id="accesos" titulo="Accesos rápidos" descripcion="Registros de uso frecuente">
-            <AccesosRapidos accesos={otrosAccesos} />
-          </Seccion>
-        )}
         <Seccion
           id="flota"
           titulo="Estado de vehículos"
@@ -507,23 +429,59 @@ async function ContenidoPanel() {
             </ul>
           )}
         </Seccion>
-        <Seccion id="catalogos" titulo="Catálogos" descripcion="Registros activos por catálogo">
-          <ul className="grid grid-cols-2 gap-1 px-3 py-3">
-            {conteos.map(({ clave, total }) => {
-              const def = CATALOGOS[clave];
-              return (
-                <li key={clave}>
-                  <Link href={def.ruta} className="fila-enlace flex flex-col gap-0.5 rounded-lg px-3 py-2.5">
-                    <span className="text-sm font-medium">{def.titulo}</span>
-                    <span className="text-xs texto-tenue tabular-nums">
-                      {total === null ? NO_DISPONIBLE : `${total} ${total === 1 ? "activo" : "activos"}`}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
+      </GrupoCajas>
+
+      <GrupoCajas id="finanzas" titulo="Finanzas" orden={7}>
+        <Seccion id="saldos" titulo="Saldos" descripcion="Saldos a la fecha">
+          <ul className="grid grid-cols-1 gap-1 px-3 pb-3 sm:grid-cols-2 lg:grid-cols-4">
+            {indicadoresFinanzas.map((indicador, indice) => (
+              <li key={indicador.etiqueta} className={indice > 0 ? "lg:border-l lg:border-borde lg:pl-1" : ""}>
+                <Link href={indicador.href} className="fila-enlace flex h-full flex-col justify-center gap-1 rounded-lg px-3 py-2.5">
+                  <span className="text-sm texto-tenue">{indicador.etiqueta}</span>
+                  <span className="text-lg font-bold tracking-tight">{indicador.valor}</span>
+                </Link>
+              </li>
+            ))}
           </ul>
         </Seccion>
+        <Seccion
+          id="cobros-semana"
+          titulo="Cobros de los últimos 7 días"
+          descripcion="Cobros confirmados por fecha, en lempiras"
+          enlace={{ href: "/finanzas/cobros", etiqueta: "Ver cobros" }}
+        >
+          {serieCobros ? (
+            <GraficoColumnas serie={serieCobros} descripcion="Cobros confirmados por día" />
+          ) : (
+            <p role="alert" className="aviso aviso-error mx-5 mb-5">No se pudieron cargar los cobros.</p>
+          )}
+        </Seccion>
+        {resultadoMes && (
+          <Seccion
+            id="resultado-mes"
+            titulo="Resultado del mes"
+            descripcion={describirPeriodo(mesActual)}
+            enlace={{ href: "/reportes", etiqueta: "Ver reportes" }}
+          >
+            {resultadoMes.error || !resultadoMes.data ? (
+              <p role="alert" className="aviso aviso-error mx-5 mb-5">No se pudo calcular el resultado del mes.</p>
+            ) : (
+              <ul className="grid grid-cols-1 gap-1 px-3 pb-1 sm:grid-cols-3">
+                {[
+                  { etiqueta: "Ingresos reconocidos", valor: resultadoMes.data.ingresos },
+                  { etiqueta: "Gastos reconocidos", valor: resultadoMes.data.gastos },
+                  { etiqueta: "Resultado operativo básico", valor: resultadoMes.data.resultado },
+                ].map((cifra, indice) => (
+                  <li key={cifra.etiqueta} className={`flex flex-col gap-1 px-3 py-2.5 ${indice > 0 ? "sm:border-l sm:border-borde" : ""}`}>
+                    <span className="text-sm texto-tenue">{cifra.etiqueta}</span>
+                    <span className="text-lg font-bold tracking-tight">{formatearMoneda(cifra.valor)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="mx-5 mb-2 text-xs texto-tenue">Informe gerencial; no es utilidad fiscal. Los cobros del mes no son ingresos.</p>
+          </Seccion>
+        )}
         <Seccion
           id="cobros"
           titulo="Cobros recientes"
@@ -549,7 +507,27 @@ async function ContenidoPanel() {
             </div>
           )}
         </Seccion>
-      </div>
+      </GrupoCajas>
+
+      <GrupoCajas id="configuracion" titulo="Configuración" orden={8}>
+        <Seccion id="catalogos" titulo="Catálogos" descripcion="Registros activos por catálogo">
+          <ul className="grid grid-cols-2 gap-1 px-3 py-3">
+            {conteos.map(({ clave, total }) => {
+              const def = CATALOGOS[clave];
+              return (
+                <li key={clave}>
+                  <Link href={def.ruta} className="fila-enlace flex flex-col gap-0.5 rounded-lg px-3 py-2.5">
+                    <span className="text-sm font-medium">{def.titulo}</span>
+                    <span className="text-xs texto-tenue tabular-nums">
+                      {total === null ? NO_DISPONIBLE : `${total} ${total === 1 ? "activo" : "activos"}`}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </Seccion>
+      </GrupoCajas>
     </>
   );
 }

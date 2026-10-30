@@ -68,6 +68,8 @@ export const PERMISOS_MEMBRESIAS = {
   gestionarMembresia: ["administrador"],
   /** Actualizar mensualidades: solo materializa lo que fijan las condiciones. */
   actualizarMensualidades: ["administrador", "operador", "finanzas"],
+  /** Plantilla del contrato de membresía (public.guardar_plantilla_contrato). */
+  gestionarContrato: ["administrador"],
 } as const satisfies Record<string, readonly Rol[]>;
 
 /** Espejo de las verificaciones de rol de las funciones de traslados de E4. */

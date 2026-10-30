@@ -103,9 +103,8 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       </Seccion>
 
       {corrige && aplicacionAReversar && (
-        <Seccion titulo="Reversar aplicación" abierta>
-          <div className="tarjeta desplegable-peligro p-4 sm:p-6">
-            <p className="mb-4 text-sm">
+        <Desplegable titulo="Reversar aplicación" peligro abierto>
+          <p className="mb-4 text-sm">
               {formatearMoneda(aplicacionAReversar.monto)} aplicados a «{aplicacionAReversar.cargos_cliente?.concepto}» vuelven al
               saldo a favor del cliente y el cargo queda pendiente otra vez. No se mueve dinero.
             </p>
@@ -116,8 +115,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
               textoEnviar="Reversar aplicación"
               confirmacion="Confirmo el reverso de esta aplicación"
             />
-          </div>
-        </Seccion>
+        </Desplegable>
       )}
 
       {corrige && cobro.estado === "confirmado" && !aplicacionAReversar && (

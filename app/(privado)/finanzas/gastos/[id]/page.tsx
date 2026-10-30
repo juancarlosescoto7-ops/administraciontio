@@ -125,9 +125,8 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       </Seccion>
 
       {corrige && pagoAReversar && (
-        <Seccion titulo="Reversar pago" abierta>
-          <div className="tarjeta desplegable-peligro p-4 sm:p-6">
-            <p className="mb-4 text-sm">
+        <Desplegable titulo="Reversar pago" peligro abierto>
+          <p className="mb-4 text-sm">
               Devuelve {formatearMoneda(pagoAReversar.monto)} a {pagoAReversar.cuentas_dinero?.nombre} y el gasto vuelve a quedar
               pendiente por ese importe. El pago original se conserva como reversado.
             </p>
@@ -138,8 +137,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
               textoEnviar="Reversar pago"
               confirmacion="Confirmo el reverso de este pago"
             />
-          </div>
-        </Seccion>
+        </Desplegable>
       )}
 
       {corrige && registrado && !pagoAReversar && (

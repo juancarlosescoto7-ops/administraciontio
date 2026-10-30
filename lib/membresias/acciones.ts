@@ -9,14 +9,19 @@ import { esFechaValida, type Datos } from "@/lib/catalogos/validacion";
 import { decimal } from "@/lib/finanzas/montos";
 import { clave, fallo, procesar, SIN_CLAVE, texto, traducir } from "@/lib/operaciones";
 import { createClient } from "@/lib/supabase/server";
-import type { Database } from "@/lib/supabase/tipos-bd";
+import type { Database, Json } from "@/lib/supabase/tipos-bd";
 import {
   camposAgregarBeneficiario,
-  camposAltaMembresia,
+  camposAltaIntegrada,
   camposBaja,
+  camposBeneficiarioNuevo,
   camposEditarCondiciones,
+  camposPlantillaContrato,
   describirActualizacion,
+  indicesBeneficiariosNuevos,
   PREFIJO_BENEFICIARIO,
+  prefijoNuevo,
+  variablesDesconocidas,
   type ResumenActualizacion,
 } from "./definiciones";
 
@@ -25,20 +30,29 @@ type Modalidad = Database["public"]["Enums"]["modalidad_cupo"];
 const INVALIDA = fallo("Operación no válida.");
 const SIN_CONFIRMAR = fallo("Revise los campos marcados.", { confirmar: "Marque la casilla para confirmar." });
 
-export async function registrarMembresia(
+/**
+ * Alta integrada: beneficiarios existentes y nuevos, y membresía en una sola
+ * operación (registrar_membresia_completa). El titular ya existe: si era nuevo,
+ * se registró antes en la ventana «Cliente nuevo».
+ */
+export async function registrarMembresiaCompleta(
   clienteId: string,
   planId: string,
   fechaInicio: string,
   anterior: EstadoFormulario,
   formData: FormData,
 ): Promise<EstadoFormulario> {
-  // Una casilla por beneficiario ofrecido: beneficiario_<id>.
-  const casillas = [...formData.keys()]
+  const nombres = [...formData.keys()];
+  const casillas = nombres
     .filter((nombre) => nombre.startsWith(PREFIJO_BENEFICIARIO) && esUuid(nombre.slice(PREFIJO_BENEFICIARIO.length)))
     .map((nombre) => ({ id: nombre.slice(PREFIJO_BENEFICIARIO.length), nombre: "", detalle: null }));
+  const nuevos = indicesBeneficiariosNuevos(nombres);
   const usuario = await usuarioActivoOpcional();
   const administrador = usuario !== null && puede("gestionarMembresia", usuario.rol);
-  const campos = camposAltaMembresia(casillas, administrador);
+  // El nombre de cada fila nueva se exige abajo: una fila vacía se ignora.
+  const campos = camposAltaIntegrada({ beneficiarios: casillas, nuevos, administrador }).map(
+    (campo) => (/^nuevo_\d+_nombre$/.test(campo.nombre) ? { ...campo, requerido: false } : campo),
+  );
 
   return procesar(anterior, formData, campos, "registrarMembresia", async (datos, supabase) => {
     const idempotencia = clave(formData);
@@ -46,20 +60,93 @@ export async function registrarMembresia(
     if (!esUuid(clienteId) || !esUuid(planId) || !esFechaValida(fechaInicio)) return INVALIDA;
     if (datos.confirmar !== true) return SIN_CONFIRMAR;
 
-    const beneficiarios = casillas.map((c) => c.id).filter((id) => datos[`${PREFIJO_BENEFICIARIO}${id}`] === true);
-    if (beneficiarios.length === 0) return fallo("Seleccione al menos un beneficiario.");
+    const existentes = casillas.map((c) => c.id).filter((id) => datos[`${PREFIJO_BENEFICIARIO}${id}`] === true);
+    const nuevosDatos: Record<string, string | null>[] = [];
+    const errores: Record<string, string> = {};
+    for (const indice of nuevos) {
+      const prefijo = prefijoNuevo(indice);
+      const fila = Object.fromEntries(
+        camposBeneficiarioNuevo().map((campo) => [campo.nombre, texto(datos[`${prefijo}${campo.nombre}`])]),
+      );
+      if (Object.values(fila).every((valor) => valor === null)) continue;
+      if (fila.nombre === null) {
+        errores[`${prefijo}nombre`] = "Indique el nombre o quite la fila.";
+        continue;
+      }
+      nuevosDatos.push(fila);
+    }
+    if (Object.keys(errores).length > 0) return fallo("Revise los campos marcados.", errores);
+    const titular = datos.titular_beneficiario === true;
+    if (existentes.length + nuevosDatos.length === 0 && !titular) {
+      return fallo("Agregue al menos un beneficiario: marque uno existente, registre uno nuevo o marque al titular.");
+    }
 
     const condiciones = administrador ? condicionesParticulares(datos) : null;
-    const { data, error } = await supabase.rpc("registrar_membresia", {
+    const { data, error } = await supabase.rpc("registrar_membresia_completa", {
       p_idempotencia: idempotencia,
       p_cliente_id: clienteId,
+      p_cliente: null,
       p_plan_id: planId,
       p_fecha_inicio: fechaInicio,
-      p_beneficiarios: beneficiarios,
+      p_beneficiarios: existentes,
+      p_nuevos_beneficiarios: nuevosDatos as Json,
+      p_titular_beneficiario: titular,
       p_condiciones: condiciones ?? undefined,
     });
     if (error) return traducir(error);
     return { destino: `/membresias/${data}?guardado=1` };
+  });
+}
+
+/** Registra un beneficiario nuevo y lo vincula a la membresía en una sola operación. */
+export async function agregarBeneficiarioNuevo(
+  membresiaId: string,
+  anterior: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  return procesar(anterior, formData, camposBeneficiarioNuevo(), "registrarMembresia", async (datos, supabase) => {
+    const idempotencia = clave(formData);
+    if (!idempotencia) return SIN_CLAVE;
+    if (!esUuid(membresiaId)) return INVALIDA;
+    const beneficiario = Object.fromEntries(camposBeneficiarioNuevo().map((campo) => [campo.nombre, texto(datos[campo.nombre])]));
+    const { error } = await supabase.rpc("agregar_beneficiario_nuevo_membresia", {
+      p_idempotencia: idempotencia,
+      p_membresia_id: membresiaId,
+      p_beneficiario: beneficiario as Json,
+    });
+    if (error) return traducir(error);
+    return { destino: `/membresias/${membresiaId}?beneficiario=1` };
+  });
+}
+
+/** Guarda una versión nueva de la plantilla del contrato (solo administrador). */
+export async function guardarPlantillaContrato(anterior: EstadoFormulario, formData: FormData): Promise<EstadoFormulario> {
+  return procesar(anterior, formData, camposPlantillaContrato(), "gestionarContrato", async (datos, supabase) => {
+    // Los navegadores envían los saltos de línea de un textarea como \r\n.
+    const contenido = String(datos.contenido).replace(/\r\n?/g, "\n");
+    const desconocidas = variablesDesconocidas(contenido);
+    if (desconocidas.length > 0) {
+      return fallo("Revise los campos marcados.", {
+        contenido: `Variable desconocida: ${desconocidas.map((v) => `{{${v}}}`).join(", ")}. Use solo las de la lista.`,
+      });
+    }
+    const { error } = await supabase.rpc("guardar_plantilla_contrato", { p_contenido: contenido });
+    if (error) return traducir(error);
+    return { destino: "/configuracion/contrato?guardado=1" };
+  });
+}
+
+/** Contrato de una membresía registrada sin él (antes del alta integrada). */
+export async function generarContrato(
+  membresiaId: string,
+  anterior: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  return procesar(anterior, formData, [], "registrarMembresia", async (_datos, supabase) => {
+    if (!esUuid(membresiaId)) return INVALIDA;
+    const { error } = await supabase.rpc("generar_contrato_membresia", { p_membresia_id: membresiaId });
+    if (error) return traducir(error);
+    return { destino: `/membresias/${membresiaId}/contrato?generado=1` };
   });
 }
 

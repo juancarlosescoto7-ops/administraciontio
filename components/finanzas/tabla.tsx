@@ -35,25 +35,33 @@ export function Tabla<T extends { id: string }>({
       <ul className="flex flex-col gap-2 sm:hidden">
         {filas.map((fila) => {
           const href = enlace?.(fila);
-          const contenido = (
-            <>
-              <span className="font-medium break-words">{principal.celda(fila)}</span>
-              {resto.map((columna) => (
-                <span key={columna.clave} className="flex justify-between gap-3 text-sm">
-                  <span className="texto-tenue">{columna.etiqueta}</span>
-                  <span className={columna.numerica ? "tabular-nums" : "text-right"}>{columna.celda(fila)}</span>
-                </span>
-              ))}
-            </>
-          );
+          const detalles = resto.map((columna) => (
+            <span key={columna.clave} className="flex justify-between gap-3 text-sm">
+              <span className="texto-tenue">{columna.etiqueta}</span>
+              <span className={columna.numerica ? "tabular-nums" : "text-right"}>{columna.celda(fila)}</span>
+            </span>
+          ));
           return (
             <li key={fila.id}>
               {href ? (
-                <Link href={href} className="tarjeta tarjeta-enlace flex flex-col gap-1.5 p-4">
-                  {contenido}
-                </Link>
+                // Un enlace no puede contener otro (p. ej., «Dar de baja» en una
+                // celda): el título es el enlace y se estira sobre la tarjeta; los
+                // enlaces y botones de las celdas quedan por encima y siguen activos.
+                <div className="tarjeta tarjeta-enlace relative flex flex-col gap-1.5 p-4 [&_a:not([data-principal])]:relative [&_a:not([data-principal])]:z-[1] [&_button]:relative [&_button]:z-[1]">
+                  <Link
+                    href={href}
+                    data-principal
+                    className="font-medium break-words outline-none after:absolute after:inset-0 after:rounded-[inherit] after:content-['']"
+                  >
+                    {principal.celda(fila)}
+                  </Link>
+                  {detalles}
+                </div>
               ) : (
-                <div className="tarjeta flex flex-col gap-1.5 p-4">{contenido}</div>
+                <div className="tarjeta flex flex-col gap-1.5 p-4">
+                  <span className="font-medium break-words">{principal.celda(fila)}</span>
+                  {detalles}
+                </div>
               )}
             </li>
           );

@@ -1,5 +1,159 @@
 # Estado del proyecto
 
+## Time lapse de construcción con código real y base de datos (2026-10-29)
+
+> Rastro para cualquier agente (Claude o Codex). Trabajo terminado y verificado; ver «Pendientes» para lo que queda a decisión del usuario.
+
+**Pedido del usuario:** «time lapse muy rápido de la construcción del sistema; simular que estoy escribiendo código y el sistema se va creando; realista; código real del proyecto; usar la base de datos para simular que la estamos creando y conectando las tablas».
+
+Aclaraciones del usuario durante el trabajo, en orden; la última manda:
+1. Pantalla dividida: código a un lado y el proyecto al otro. La base aparece en «flashes». Las conexiones deben verse naturales, como las haría una persona.
+2. La base es parte de la ventana del código, debajo del editor, trabajada a la par. El sistema ocupa más espacio horizontal. Sin bordes de ventana (ni minimizar ni cerrar).
+3. La barra lateral del ERP debe quedar dentro de la ventana del sistema.
+4. «No veo la construcción del sistema en la otra pantalla». La ventana de la base no debe animarse tanto: más simple y más estática.
+5. Última revisión: el sistema debe construirse «probando» el diseño (tipografía, etc.) y la base debe parecer que realmente se está creando.
+6. «Una última escena donde se prueba ya el sistema con los componentes más interesantes».
+
+Dudas resueltas con lo propuesto, tras el «continúa» del usuario:
+- **Base de datos:** solo lectura de la estructura real; la creación en pantalla es simulada.
+- **Duración:** ~40 s pedidos. Resultado final: 57.7 s, con 46.6 s de construcción (pruebas de diseño y creación columna por columna) y 11 s de la escena de prueba.
+- **Cierre:** el sistema real terminado.
+
+**Resultado (`/demo-construccion`):** arranca solo, sin controles ni rótulos; al final solo aparece «Repetir». Pantalla dividida sin marcos:
+- **Izquierda (~36 %):**
+  - Editor con pestañas, ruta, números de línea reales, resaltado y barra de estado. El código real se teclea en ráfagas y luego salta al final del archivo con su numeración real.
+  - Panel «BASE DE DATOS · public», como un diseñador de esquemas:
+    - Cada tabla de la migración nace vacía y recibe sus columnas una a una, con su **tipo real** (`uuid`, `text`, `timestamptz`, enums…), la marca `RLS` y «+ N columnas» si hay más.
+    - Después aparecen las llaves foráneas reales como conectores ortogonales estáticos (sin cursor ni trazos animados).
+    - Un registro de dos líneas muestra lo que se ejecuta: `create table public.X (N columnas)`, `enable row level security` y `add foreign key …`.
+    - Entre migraciones queda visible la última aplicada.
+  - Terminal: `apply_migration` con conteos reales de tablas, políticas y funciones; typecheck; `git commit` con hash, mensaje y `--shortstat` reales.
+- **Derecha (~64 %):** el ERP real (`gruposNavegacion`, `Encabezado`, `FormularioFiltros`, `Tabla`, panel de inicio real) **se construye a la par del código**:
+  - Al empezar a teclear el archivo de una etapa, el sistema pasa a su pantalla vacía.
+  - Mientras se escribe aparecen en orden los enlaces nuevos del menú, el encabezado, la caja de filtros, la tabla y sus filas (en el inicio: buscador, accesos, indicadores, grupos y cajas). Lo controlan `estado.sistema.progreso` en `guion.ts` y `data-construido` en `vista.tsx`.
+  - Si la pantalla es la misma que en la etapa anterior, solo aparecen los enlaces nuevos.
+  - Mientras se arma, **se prueba el diseño en vivo**: el título se teclea letra a letra y un aspecto cambia dos veces antes de asentarse en el estilo real (`PRUEBAS` en `guion.ts`, reglas `data-prueba` en `demo.css`). Aspectos: tipografía en Clientes, color en Cobros, esquinas en Membresías, densidad de tabla en Traslados, sombras en Alquileres.
+  - Un recuadro tipo inspector abajo a la derecha muestra la regla probada, con los intentos tachados. Sus valores finales son los reales de `globals.css`: `Inter Variable`, `#533afd`, `0.5rem`, `0.75rem`, `var(--sombra)`. Se dibuja al ancho real de la pantalla y se reduce al panel; `contain: paint` mantiene la barra lateral fija dentro.
+- **Cierre: escena de prueba (`prueba.tsx`, 11 s).** El sistema terminado pasa a pantalla completa y un cursor lo usa con sus piezas más vistosas:
+  1. Se desplaza y abre «Cobros de los últimos 7 días»: el `GraficoColumnas` real, con barras que crecen.
+  2. Sube y pulsa el acceso rápido «Registrar cobro».
+  3. Llena el formulario real (`camposCobro`: importe recibido 1200.00, caja o banco, fecha, método de pago → Transferencia bancaria, referencia TRF-0042), con el `ResumenImportes` real del cliente ficticio «Clínica Modelo» (pendiente L 2,400.00).
+  4. Pulsa «Registrar cobro» y aparece la `Notificacion` real «Cobro registrado.».
+  5. Vuelve al inicio: «Cobrado hoy» pasa a L 4,700.00 con la `CifraAnimada` real, y se actualizan los cobros recientes, saldos y gráfico.
+
+  Las tres versiones del panel (`panelDemo({ grafico, cobro })`) llegan en un objeto para que el panel se actualice en su sitio.
+
+**Etapas (commit → migraciones → archivo tecleado):**
+1. E0 `de98964` → — → `app/page.tsx`
+2. E1 `58e37ae` → `e1_perfiles_y_acceso`, `e1_catalogos` → `components/catalogos/paginas.tsx`
+3. E2 `22bc0dc` → `e2_finanzas_estructura` → `lib/finanzas/acciones.ts`
+4. E3 `9b5b864` → `e3_membresias_estructura` → `app/(privado)/membresias/nueva/page.tsx`
+5. E4 `b9f4c3f` → `e4_ambulancias_estructura` → `app/(privado)/ambulancias/nuevo/page.tsx`
+6. E5 `c41854e` → `e5_alquileres_transportes_estructura` → `app/(privado)/alquileres/nuevo/page.tsx`
+7. Rediseño `e974098` → — → `components/panel.tsx`
+8. E6 `958626c` → `e6_reportes` → `app/(privado)/reportes/page.tsx`
+9. Contrato (árbol de trabajo, sin commit) → `e6_membresia_integrada_contrato` → `app/(privado)/membresias/[id]/contrato/page.tsx`
+10. Cobros automáticos `587ee16` → `cobros_automaticos_antiguedad` → `lib/finanzas/acciones.ts`
+
+No se muestran `e6_estados_financieros` ni `limpieza_datos_prueba`, ni las migraciones de operaciones u orígenes.
+
+**Archivos (`app/demo-construccion/`):**
+
+| Archivo | Contenido |
+|---|---|
+| `page.tsx` | servidor: arma listados y panel reales |
+| `lapso.tsx` | reloj y disposición |
+| `guion.ts` | línea de tiempo derivada de los datos; constantes de ritmo arriba |
+| `editor.tsx` | editor y terminal |
+| `diagrama.tsx` | `PanelBd`: retícula adaptativa, creación columna por columna con tipos, RLS, registro y conectores ortogonales estáticos |
+| `vista.tsx` | `SistemaReal`, marco del ERP con menú por etapa, construcción progresiva, títulos tecleados y prueba de diseño |
+| `pantallas.tsx` | pantallas con componentes reales y datos ficticios |
+| `prueba.tsx` | escena final: cursor, desplazamientos y formulario de cobro |
+| `resaltado.ts` (+ `.test.ts`) | resaltado de sintaxis |
+| `demo.css` | estilos de la demo |
+| `esquema-bd.json` | estructura de la base de desarrollo leída por MCP en solo lectura (`information_schema` y `pg_class`): 32 tablas con columnas, tipos reales y RLS (todas activadas); 48 relaciones sin columnas de auditoría ni duplicados de llaves compuestas |
+| `lapso-datos.json` | **generado** |
+
+- **Exportar a video** (pedido del usuario: llevarlo a un editor): `node scripts/exportar-demo-video.mjs [--salida ruta.mp4] [--ancho 1920] [--alto 1080] [--fps 60] [--hasta segundos]`.
+  - Por omisión genera `%USERPROFILE%Videosdemo-construccion-erp.mp4` en 1920×1080, 60 fps, H.264 `yuv420p`, CRF 16, `+faststart`.
+  - Se graba cuadro a cuadro con un reloj virtual inyectado antes de cargar la página: temporizadores, `requestAnimationFrame`, `performance.now`/`Date.now`, animaciones y transiciones CSS (en pausa y colocadas con `currentTime`) y desplazamientos suaves avanzan exactamente 1/fps. El video es fluido aunque cada captura tarde unos 200 ms.
+  - Oculta el indicador de Next, «Repetir» y las barras de desplazamiento.
+  - Requiere ffmpeg: se instaló con `winget install Gyan.FFmpeg` (9.0.2). El script lo busca en PATH, en WinGet o en `FFMPEG`.
+  - Tarda unos 12 s reales por segundo de video.
+- **Regenerar** los datos (tras nuevos commits o migraciones): `node scripts/generar-lapso-construccion.mjs`. Toma el contenido de cada archivo en su commit (`git show`), las migraciones del disco y el historial. Falla si alguna tabla de `esquema-bd.json` no tiene una migración que la cree y rechaza secretos o correos no ficticios; se admiten los dominios `example`/`ejemplo`. Si cambia el esquema, actualizar antes `esquema-bd.json` con una consulta de solo lectura.
+- **Eliminado:** `formulario.tsx` y `reproductor.tsx` (versiones anteriores).
+- **Supabase:** solo lectura por MCP; sin migraciones ni escrituras.
+
+**Evidencia:**
+
+| Comando | Resultado |
+|---|---|
+| `tsc --noEmit`, `npx eslint app/demo-construccion scripts/…` | OK |
+| `npx vitest run app/demo-construccion lib/auth` | 10/10 |
+| `node scripts/e2e-demo-construccion.mjs` contra `localhost:3000` | **51/51**, Edge sin interfaz |
+
+La e2e comprueba:
+- que los extractos sean idénticos a `supabase/migrations` y a `git show` de cada commit, y que los commits y mensajes sean reales;
+- que cada línea mostrada en el editor exista en su archivo real (1544 revisadas);
+- que surjan las 32 tablas y se conecten las 48 relaciones, con la base sin cursor ni animaciones;
+- que el sistema se construya a la par del código en cada pantalla (cuadros con bloques hechos y pendientes) y quede completo al terminar cada archivo;
+- las pruebas de diseño (cinco aspectos, dos intentos y el valor real; la tipografía cambia de verdad), los títulos tecleados y que los valores finales del inspector existan en `globals.css`;
+- que la base muestre tipos reales, cree las tablas columna por columna y registre cada `create table` y cada llave foránea reales;
+- el orden de etapas y archivos y la duración;
+- la base debajo del editor, la ausencia de marcos de ventana, el sistema más ancho y la barra lateral contenida a 1440 y 1280 px;
+- la ausencia de desbordamiento a 1440/390/320 px;
+- la escena de prueba: gráfico abierto y cobro registrado en orden, formulario, cursor, desplazamiento, aviso real, barra lateral fija al desplazarse e indicador en L 4,700.00;
+- el cierre real, la consola sin errores y el movimiento reducido;
+- que no haya peticiones a Supabase y que `/clientes` siga autenticado.
+
+Capturas revisadas: prueba de tipografía (Georgia → Trebuchet → Inter), prueba de color del panel, creación de tablas de E1 y E2 con tipos y registro, escritorio y móvil.
+
+**Defectos corregidos durante la revisión:**
+- Correo de ejemplo `@ejemplo.hn` detenido por el filtro de secretos: es correcto que se detuviera.
+- La prueba no admitía dos versiones de una misma ruta.
+- Las líneas de la terminal se encimaban en móvil.
+- Un conector atravesaba una tabla intermedia.
+- La barra lateral se salía de la vista previa.
+- La duración pasaba de 54 s.
+- En la escena final, la barra lateral fija del ERP se movía con la página: la animación de entrada dejaba una transformación (`both`), y además el primer desplazamiento empezaba antes de que terminara. Se corrigió con `backwards` y con el primer desplazamiento a los 800 ms.
+
+**Pendientes / decisiones del usuario:**
+- **Riesgo:** `/demo-construccion` es pública (sin sesión, `lib/auth/rutas.ts`) y ahora muestra fragmentos de código y la estructura real de la base. Decidir si exige sesión antes de publicar el ERP.
+- No se ejecutó `next build`, porque el servidor de desarrollo del usuario está activo en `:3000`.
+- Sin commit: el usuario no lo pidió.
+- No se inicia E7.
+
+## Lapso de construcción por capas (2026-10-29)
+
+- **Resultado:** según la aclaración del usuario («una animación de cómo se construye el sistema, desde su esqueleto, su color, sus animaciones»), `/demo-construccion` muestra pantallas reales del ERP armándose por capas. El recorrido dura 10.7 s y arranca solo al abrir la página. No tiene rótulos ni controles; al final solo aparece «Repetir».
+- **Capas, en cada pantalla:**
+  1. **Esqueleto:** se traza de arriba abajo; contornos, barras grises en lugar de texto y marcos punteados en lugar de íconos y acentos.
+  2. **Contenido:** textos e íconos reales, en blanco y negro.
+  3. **Color:** un filtro gris que se retira en barrido de izquierda a derecha.
+  4. **Vivo:** animaciones reales (entrada del panel, cifras que cuentan, buscador que escribe ejemplos, caja que se abre) más filas e insignias que entran.
+- **Pantallas:** panel de inicio (también arma el marco y el menú lateral) → listado de Membresías → formulario Nuevo cliente, que se escribe solo y termina con el aviso real «Cliente registrado.». Las pantallas siguientes se arman más rápido.
+- **Cómo:** `page.tsx` (servidor) arma el panel y el listado con los componentes reales (`pantallas.tsx`). `formulario.tsx` reproduce el marcado de `FormularioCatalogo`. `lapso.tsx` reproduce el marco de `navegacion.tsx` y fija `data-capa` en el marco y en el contenido según el reloj de `guion.ts`. `demo.css` define las capas sobre las clases reales de `globals.css`; no cambia estilos del ERP.
+- Datos ficticios. La interfaz es inerte; no hay sesión, consultas ni acciones. Con movimiento reducido se muestra el resultado final. Sin cambios en autenticación, permisos ni Supabase. No se inicia E7.
+
+| Comando | Resultado |
+|---|---|
+| `tsc --noEmit` / `npx eslint app/demo-construccion scripts/e2e-demo-construccion.mjs` | OK |
+| `node scripts/e2e-demo-construccion.mjs` contra `localhost:3000` | **36/36**, Edge sin interfaz |
+
+La prueba graba un recorrido completo y comprueba:
+- el orden pantalla/capa;
+- la duración;
+- los estilos computados de cada capa: texto transparente con barra y sin íconos en el esqueleto; texto e íconos con filtro gris en el contenido; recorte animado en el color; sin filtro en vivo;
+- que la caja se abre solo en vivo;
+- las piezas reales y el menú;
+- el formulario escrito y el aviso;
+- la ausencia de rótulos;
+- la ausencia de desbordamiento a 1440/1280/390/320 px y la barra móvil;
+- la consola sin errores y el movimiento reducido;
+- que no hay peticiones a Supabase y que `/clientes` sigue pidiendo sesión.
+
+Corregidos durante la revisión: un efecto que devolvía un valor (detenía el reloj) y un barrido que saltaba en lugar de animarse (faltaba `from` en el keyframe). Capturas revisadas de cada capa en escritorio, del barrido a medias y del esqueleto en móvil. No se ejecutó `next build`, porque el servidor de desarrollo del usuario está activo.
+
 ## Simulación visual del sistema — sustitución de la demo (2026-10-29)
 
 - **Resultado:** se reemplaza la demo explicativa anterior según la corrección del usuario. `/demo-construccion` muestra únicamente el sistema a pantalla completa y controles de video discretos. Se retiran editor, terminal, navegador decorativo, títulos narrativos y capítulos explicativos.

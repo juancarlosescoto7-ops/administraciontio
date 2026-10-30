@@ -9,6 +9,9 @@ export const VISTAS = [
   { valor: "cobrar", etiqueta: "Por cobrar" },
   { valor: "pagar", etiqueta: "Por pagar" },
   { valor: "caja", etiqueta: "Caja y bancos" },
+  { valor: "resultados", etiqueta: "Estado de resultados" },
+  { valor: "situacion", etiqueta: "Situación financiera" },
+  { valor: "balanza", etiqueta: "Balanza de comprobación" },
 ] as const;
 
 export type Vista = (typeof VISTAS)[number]["valor"];

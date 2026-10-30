@@ -1,7 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { puede } from "@/lib/auth/roles";
 import { validarRegistro } from "@/lib/catalogos/validacion";
-import { camposAltaMembresia, camposEditarCondiciones, describirActualizacion } from "./definiciones";
+import {
+  camposAltaIntegrada,
+  camposAltaMembresia,
+  camposBeneficiarioNuevo,
+  camposEditarCondiciones,
+  describirActualizacion,
+  indicesBeneficiariosNuevos,
+  prefijoNuevo,
+  VARIABLES_CONTRATO,
+  variablesDesconocidas,
+} from "./definiciones";
 import { periodosDesde, siguienteRenovacion, sumarDias } from "./fechas";
 
 /** Serie de inicios de período desde una fecha (día de anclaje = su día). */
@@ -88,5 +98,33 @@ describe("formularios de membresías", () => {
   it("resume la actualización de mensualidades", () => {
     expect(describirActualizacion({ periodos: 1, suspendidas: 0, reactivadas: 0 })).toBe("Mensualidades al día: 1 mensualidad generada.");
     expect(describirActualizacion({ periodos: 2, suspendidas: 1, reactivadas: 1 })).toContain("1 suspendida(s) por morosidad, 1 reactivada(s)");
+  });
+});
+
+describe("alta integrada y contrato", () => {
+  it("detecta las filas de beneficiarios nuevos enviadas (sin repetir, ordenadas, máximo 50)", () => {
+    expect(indicesBeneficiariosNuevos(["nuevo_3_nombre", "nuevo_3_telefono", "nuevo_0_nombre", "cliente_nombre", "nuevo_x_nombre"])).toEqual([0, 3]);
+    expect(indicesBeneficiariosNuevos(Array.from({ length: 60 }, (_, i) => `nuevo_${i}_nombre`))).toHaveLength(50);
+  });
+
+  it("una fila de beneficiario nuevo: nombre, identidad, nacimiento, teléfono y tutor", () => {
+    expect(camposBeneficiarioNuevo(prefijoNuevo(2)).map((campo) => campo.nombre)).toEqual([
+      "nuevo_2_nombre", "nuevo_2_identificacion", "nuevo_2_fecha_nacimiento", "nuevo_2_telefono", "nuevo_2_tutor",
+    ]);
+  });
+
+  it("el alta integrada reúne beneficiarios, condiciones (solo administrador) y confirmación", () => {
+    const campos = (administrador: boolean) =>
+      camposAltaIntegrada({ beneficiarios: [{ id: "b1", nombre: "Ana", detalle: null }], nuevos: [0], administrador }).map((c) => c.nombre);
+    expect(campos(true)).toEqual(expect.arrayContaining(["titular_beneficiario", "nuevo_0_nombre", "beneficiario_b1", "precio", "confirmar"]));
+    expect(campos(false)).not.toContain("precio");
+    expect(campos(true).some((nombre) => nombre.startsWith("cliente_"))).toBe(false);
+  });
+
+  it("variables del contrato: sin repetir y detección de las desconocidas", () => {
+    const nombres = VARIABLES_CONTRATO.map((v) => v.nombre);
+    expect(new Set(nombres).size).toBe(nombres.length);
+    expect(variablesDesconocidas("Hola {{cliente_nombre}} y {{ plan }}")).toEqual([]);
+    expect(variablesDesconocidas("{{cliente_nonbre}} {{precio}} {{cliente_nonbre}}")).toEqual(["cliente_nonbre", "precio"]);
   });
 });

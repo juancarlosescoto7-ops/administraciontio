@@ -41,9 +41,9 @@ const reservaOcupada = (await api(adminApi.token, "POST", "rpc/registrar_alquile
   p_devolucion_prevista: `${dia(8)}T08:00:00-06:00`, p_tarifa_id: null, p_precio: "2000.00", p_notas: null,
 })).datos;
 
-const { evaluar, esperar, ruta, texto, ir, llenar, pulsar, capturar, vista, iniciarSesion, cerrar } = await abrirNavegador();
+const { evaluar, esperar, ruta, texto, ir, llenar, pulsar, capturar, vista, iniciarSesion, cerrar, abrirVentana } = await abrirNavegador();
 const marcar = (selector) => evaluar(`document.querySelector(${JSON.stringify(selector)}).click()`);
-const abrir = (titulo) => evaluar(`[...document.querySelectorAll('summary')].find((s) => s.textContent.includes(${JSON.stringify(titulo)})).click()`);
+const abrir = (titulo) => abrirVentana(titulo);
 const visible = (selector) => esperar(`document.querySelector(${JSON.stringify(selector)})?.checkVisibility()`);
 const faltan = async (...fragmentos) => {
   const actual = await texto();

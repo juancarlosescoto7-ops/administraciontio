@@ -1,4 +1,4 @@
-// Generado con Supabase MCP (generate_typescript_types) tras las migraciones de E6.
+// Generado con Supabase MCP (generate_typescript_types) tras las migraciones de E6 (alta integrada, contrato y estados financieros).
 // No editar a mano: regenerar después de cada migración.
 
 export type Json =
@@ -804,6 +804,65 @@ export type Database = {
           },
         ]
       }
+      contratos_membresia: {
+        Row: {
+          contenido: string
+          creado_por: string | null
+          created_at: string
+          datos: Json
+          id: string
+          membresia_id: string
+          plantilla_version: number
+        }
+        Insert: {
+          contenido: string
+          creado_por?: string | null
+          created_at?: string
+          datos: Json
+          id?: string
+          membresia_id: string
+          plantilla_version: number
+        }
+        Update: {
+          contenido?: string
+          creado_por?: string | null
+          created_at?: string
+          datos?: Json
+          id?: string
+          membresia_id?: string
+          plantilla_version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contratos_membresia_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_membresia_membresia_id_fkey"
+            columns: ["membresia_id"]
+            isOneToOne: true
+            referencedRelation: "membresias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_membresia_membresia_id_fkey"
+            columns: ["membresia_id"]
+            isOneToOne: true
+            referencedRelation: "saldos_membresias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_membresia_plantilla_version_fkey"
+            columns: ["plantilla_version"]
+            isOneToOne: false
+            referencedRelation: "plantillas_contrato"
+            referencedColumns: ["version"]
+          },
+        ]
+      }
       cuentas_contables: {
         Row: {
           activo: boolean
@@ -1604,6 +1663,38 @@ export type Database = {
           },
           {
             foreignKeyName: "planes_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plantillas_contrato: {
+        Row: {
+          contenido: string
+          creado_por: string | null
+          created_at: string
+          id: string
+          version: number
+        }
+        Insert: {
+          contenido: string
+          creado_por?: string | null
+          created_at?: string
+          id?: string
+          version: number
+        }
+        Update: {
+          contenido?: string
+          creado_por?: string | null
+          created_at?: string
+          id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plantillas_contrato_creado_por_fkey"
             columns: ["creado_por"]
             isOneToOne: false
             referencedRelation: "perfiles"
@@ -2957,6 +3048,14 @@ export type Database = {
         Args: { p_beneficiario_id: string; p_membresia_id: string }
         Returns: string
       }
+      agregar_beneficiario_nuevo_membresia: {
+        Args: {
+          p_beneficiario: Json
+          p_idempotencia: string
+          p_membresia_id: string
+        }
+        Returns: string
+      }
       ajustar_duracion_transporte: {
         Args: {
           p_minutos_estimados: number
@@ -3011,6 +3110,18 @@ export type Database = {
         Returns: string[]
       }
       avisos_traslado: { Args: { p_traslado_id: string }; Returns: string[] }
+      balanza_comprobacion: {
+        Args: { p_desde: string; p_hasta: string }
+        Returns: {
+          cuenta_codigo: string
+          cuenta_nombre: string
+          debe: number
+          haber: number
+          saldo_final: number
+          saldo_inicial: number
+          tipo: Database["public"]["Enums"]["tipo_cuenta_contable"]
+        }[]
+      }
       cancelar_alquiler: {
         Args: { p_alquiler_id: string; p_motivo: string }
         Returns: undefined
@@ -3026,6 +3137,18 @@ export type Database = {
       cancelar_traslado: {
         Args: { p_motivo: string; p_traslado_id: string }
         Returns: undefined
+      }
+      comprobaciones_financieras: {
+        Args: { p_fecha: string }
+        Returns: {
+          control: string
+          cuadra: boolean
+          diferencia: number
+          esperado: number
+          nota: string
+          obtenido: number
+          orden: number
+        }[]
       }
       consultar_cobertura: {
         Args: {
@@ -3111,6 +3234,19 @@ export type Database = {
         }
         Returns: string[]
       }
+      estado_resultados: {
+        Args: { p_desde: string; p_hasta: string }
+        Returns: {
+          alquileres: number
+          ambulancias: number
+          cuenta_codigo: string
+          cuenta_nombre: string
+          general: number
+          tipo: Database["public"]["Enums"]["tipo_cuenta_contable"]
+          total: number
+          transportes: number
+        }[]
+      }
       finalizar_transporte: {
         Args: {
           p_aplicar_anticipo?: number
@@ -3126,6 +3262,14 @@ export type Database = {
           p_traslado_id: string
         }
         Returns: Json
+      }
+      generar_contrato_membresia: {
+        Args: { p_membresia_id: string }
+        Returns: string
+      }
+      guardar_plantilla_contrato: {
+        Args: { p_contenido: string }
+        Returns: number
       }
       historial_membresia: {
         Args: { p_membresia_id: string }
@@ -3297,6 +3441,20 @@ export type Database = {
           p_fecha_inicio: string
           p_idempotencia: string
           p_plan_id: string
+        }
+        Returns: string
+      }
+      registrar_membresia_completa: {
+        Args: {
+          p_beneficiarios?: string[]
+          p_cliente: Json
+          p_cliente_id: string
+          p_condiciones?: Json
+          p_fecha_inicio: string
+          p_idempotencia: string
+          p_nuevos_beneficiarios?: Json
+          p_plan_id: string
+          p_titular_beneficiario?: boolean
         }
         Returns: string
       }
@@ -3514,6 +3672,16 @@ export type Database = {
         Args: { p_motivo: string; p_traslado_id: string }
         Returns: undefined
       }
+      situacion_financiera: {
+        Args: { p_fecha: string }
+        Returns: {
+          cuenta_codigo: string
+          cuenta_nombre: string
+          saldo: number
+          tipo: Database["public"]["Enums"]["tipo_cuenta_contable"]
+        }[]
+      }
+      vista_previa_contrato: { Args: { p_contenido: string }; Returns: string }
     }
     Enums: {
       actividad: "ambulancias" | "alquileres" | "transportes" | "general"

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { actualizarAlAbrir, actualizarMensualidades } from "@/lib/membresias/acciones";
 import { describirActualizacion } from "@/lib/membresias/definiciones";
+import { Notificacion } from "@/components/notificacion";
 import { useHidratado } from "@/components/use-hidratado";
 
 /** Botón «Actualizar mensualidades» de una membresía (id) o de todas (null). */
@@ -19,11 +20,7 @@ export function BotonActualizarMensualidades({ membresiaId }: { membresiaId: str
       <button type="submit" className="boton boton-secundario" disabled={pendiente || !hidratado}>
         {pendiente ? "Actualizando…" : "Actualizar mensualidades"}
       </button>
-      {estado.mensaje && (
-        <p role="status" className="aviso aviso-exito text-sm">
-          {estado.mensaje}
-        </p>
-      )}
+      {estado.mensaje && <Notificacion mensaje={estado.mensaje} />}
       {estado.error && (
         <p role="alert" className="aviso aviso-error text-sm">
           {estado.error}
@@ -59,9 +56,5 @@ export function ActualizarAlAbrir() {
   }, [router]);
 
   if (!mensaje) return null;
-  return (
-    <p role="status" className="aviso aviso-exito mb-4">
-      {mensaje}
-    </p>
-  );
+  return <Notificacion mensaje={mensaje} />;
 }

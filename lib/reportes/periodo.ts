@@ -99,3 +99,11 @@ export function describirPeriodo(periodo: Pick<Periodo, "desde" | "hasta">): str
   const corta = (fecha: string) => fecha.split("-").reverse().join("/");
   return `${corta(desde)} al ${corta(hasta)}`;
 }
+
+/**
+ * Fecha de corte de la situación financiera: el último día del período, pero
+ * nunca después de hoy (un corte futuro mostraría los mismos saldos de hoy).
+ */
+export function fechaCorte(periodo: Pick<Periodo, "hasta">, hoy: string): string {
+  return periodo.hasta > hoy ? hoy : periodo.hasta;
+}

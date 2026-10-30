@@ -1,4 +1,4 @@
-import { OPCIONES_MODALIDAD_CUPO, type Campo } from "@/lib/catalogos/definiciones";
+import { CATALOGOS, OPCIONES_MODALIDAD_CUPO, type Campo } from "@/lib/catalogos/definiciones";
 import type { Database } from "@/lib/supabase/tipos-bd";
 
 type Enums = Database["public"]["Enums"];
@@ -97,4 +97,96 @@ export function camposBaja(confirmacion: string): Campo[] {
     { nombre: "motivo", etiqueta: "Motivo", tipo: "texto_largo", requerido: true, max: 300 },
     CAMPO_CONFIRMAR(confirmacion),
   ];
+}
+
+// --- Alta integrada: beneficiarios nuevos en el mismo formulario ---
+
+/** Beneficiario nuevo número n: nuevo_<n>_<campo>. */
+const PATRON_NUEVO = /^nuevo_(\d{1,3})_nombre$/;
+
+const sinActivo = (campos: readonly Campo[]) => campos.filter((campo) => campo.nombre !== "activo");
+
+/** Datos de un beneficiario nuevo (sin notas, para que la fila sea breve). */
+export function camposBeneficiarioNuevo(prefijo = ""): Campo[] {
+  return sinActivo(CATALOGOS.beneficiarios.campos)
+    .filter((campo) => campo.nombre !== "notas")
+    .map((campo) => ({ ...campo, nombre: `${prefijo}${campo.nombre}` }));
+}
+
+/** Índices de las filas de beneficiarios nuevos enviadas en el formulario. */
+export function indicesBeneficiariosNuevos(nombres: Iterable<string>): number[] {
+  const indices = new Set<number>();
+  for (const nombre of nombres) {
+    const coincidencia = PATRON_NUEVO.exec(nombre);
+    if (coincidencia) indices.add(Number(coincidencia[1]));
+  }
+  return [...indices].sort((a, b) => a - b).slice(0, 50);
+}
+
+export const prefijoNuevo = (indice: number) => `nuevo_${indice}_`;
+
+export const CAMPO_TITULAR_BENEFICIARIO: Campo = {
+  nombre: "titular_beneficiario",
+  etiqueta: "El titular también es beneficiario",
+  tipo: "booleano",
+  ayuda: "Solo para personas naturales. Si ya tiene ficha de beneficiario con la misma identidad, se usa esa.",
+};
+
+/** Todos los campos del alta integrada, para validar en el servidor. */
+export function camposAltaIntegrada({
+  beneficiarios,
+  nuevos,
+  administrador,
+}: {
+  beneficiarios: readonly { id: string; nombre: string; detalle: string | null }[];
+  nuevos: readonly number[];
+  administrador: boolean;
+}): Campo[] {
+  return [
+    CAMPO_TITULAR_BENEFICIARIO,
+    ...nuevos.flatMap((indice) => camposBeneficiarioNuevo(prefijoNuevo(indice))),
+    ...camposAltaMembresia(beneficiarios, administrador).map((campo) => ({ ...campo, seccion: undefined })),
+  ];
+}
+
+// --- Contrato -----------------------------------------------------------------
+
+/** Variables de la plantilla del contrato (mismas que private.variables_contrato). */
+export const VARIABLES_CONTRATO: readonly { nombre: string; descripcion: string }[] = [
+  { nombre: "fecha_contrato", descripcion: "Fecha en que se registró la membresía" },
+  { nombre: "cliente_nombre", descripcion: "Nombre o razón social del titular" },
+  { nombre: "cliente_identificacion", descripcion: "Identidad o RTN del titular" },
+  { nombre: "cliente_telefono", descripcion: "Teléfono del titular" },
+  { nombre: "cliente_correo", descripcion: "Correo del titular" },
+  { nombre: "cliente_direccion", descripcion: "Dirección del titular" },
+  { nombre: "plan", descripcion: "Nombre del plan" },
+  { nombre: "precio_mensual", descripcion: "Precio mensual pactado, en lempiras" },
+  { nombre: "traslados_por_mes", descripcion: "Traslados incluidos por mes" },
+  { nombre: "modalidad_cupo", descripcion: "Cupo compartido o individual" },
+  { nombre: "dias_gracia", descripcion: "Días de gracia para pagar" },
+  { nombre: "fecha_inicio", descripcion: "Fecha de inicio de la membresía" },
+  { nombre: "dia_de_pago", descripcion: "Día del mes en que vence cada cuota" },
+  { nombre: "beneficiarios", descripcion: "Lista numerada de beneficiarios (con identidad si la tienen)" },
+  { nombre: "numero_beneficiarios", descripcion: "Cantidad de beneficiarios" },
+];
+
+export function camposPlantillaContrato(): Campo[] {
+  return [
+    {
+      nombre: "contenido",
+      etiqueta: "Texto del contrato",
+      tipo: "texto_largo",
+      requerido: true,
+      max: 50000,
+      filas: 24,
+      ayuda: "Escriba las variables entre dobles llaves, por ejemplo {{cliente_nombre}}. Al guardar se crea una versión nueva.",
+    },
+  ];
+}
+
+/** Variables escritas en un texto que no existen (la base las rechaza igual). */
+export function variablesDesconocidas(texto: string): string[] {
+  const validas = new Set(VARIABLES_CONTRATO.map((v) => v.nombre));
+  const encontradas = [...texto.matchAll(/\{\{([^{}]*)\}\}/g)].map((m) => m[1].trim());
+  return [...new Set(encontradas.filter((nombre) => !validas.has(nombre)))];
 }

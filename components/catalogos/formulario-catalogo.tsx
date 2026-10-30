@@ -104,7 +104,7 @@ export function FormularioCatalogo({
   );
 }
 
-function CampoFormulario({
+export function CampoFormulario({
   campo,
   valor,
   error,
@@ -157,7 +157,7 @@ function CampoFormulario({
   let control;
   switch (campo.tipo) {
     case "texto_largo":
-      control = <textarea {...comunes} className="entrada" rows={3} maxLength={campo.max} defaultValue={valor} />;
+      control = <textarea {...comunes} className="entrada" rows={campo.filas ?? 3} maxLength={campo.max} defaultValue={valor} />;
       break;
     case "seleccion":
       control = (
