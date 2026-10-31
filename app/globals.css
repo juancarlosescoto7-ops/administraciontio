@@ -127,6 +127,11 @@ body {
     backdrop-filter: var(--vidrio-desenfoque);
   }
 
+  /* Ícono de la marca: solo con el menú lateral contraído (en vez del logotipo). */
+  .solo-compacto {
+    display: none;
+  }
+
   /* Distintivo, avatar y opción activa de la paleta: degradado índigo. */
   .distintivo {
     background: var(--distintivo);
@@ -1377,6 +1382,10 @@ body {
 
   :root[data-menu-auto="oculto"] .menu-lateral .enlaces-grupo {
     display: none;
+  }
+
+  :root[data-menu-auto="oculto"] .menu-lateral .solo-compacto {
+    display: block;
   }
 
   :root[data-menu-auto="oculto"] .menu-lateral .enlace-nav,

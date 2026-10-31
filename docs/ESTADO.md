@@ -1,5 +1,38 @@
 # Estado del proyecto
 
+## Empleados y pago de salarios (2026-10-31)
+
+**Solicitud:** módulo de empleados en Gastos para seleccionar un empleado y registrar el pago de su salario, y en los gastos operativos o de cada servicio la opción de pagar el salario/remuneración del conductor. Primera implementación hecha por Codex; revisada, completada y verificada por Claude Code. Migración aplicada exclusivamente en Supabase de desarrollo `cgohbizokewvivxmvbij`. No se inicia E7.
+
+### Funcionalidad
+
+- **Empleados** (`/empleados`, menú «Flota y personal»): catálogo con nombre, puesto, teléfono y activo. Solo administrador y finanzas lo ven y editan (RLS y página).
+- **Registrar gasto:** campos «Salario de empleado» y «Salario / remuneración de conductor». Un gasto tiene un solo destinatario (empleado, conductor o proveedor) y, si es remuneración, debe usar la categoría Salarios (cuenta 5300). Usa el pago inmediato o parcial y la contabilidad existentes; lo no pagado queda pendiente y se liquida con «Registrar pago».
+- **Accesos directos:** «Registrar pago de salario» en la ficha del empleado y del conductor, y «Pagar al conductor» en «Gastos de este servicio» de viajes con chofer y traslados con conductor asignado. Abren el formulario con la persona, la categoría Salarios y un concepto ya rellenados.
+- **Historial:** la ficha del empleado y la del conductor muestran sus últimos 50 salarios (fecha, importe, pendiente o anulado). El operador ve la ficha del conductor sin pagos.
+- **Listado y detalle de gastos:** columna «Destinatario» (empleado/conductor o proveedor); la búsqueda también encuentra por nombre del empleado o conductor. El destinatario conserva el nombre de la fecha del pago aunque luego se renombre o inactive la persona.
+
+### Migración
+
+| Versión | Contenido | MD5 (SQL aplicado = archivo sin salto final) |
+|---|---|---|
+| `20261031103159_empleados_remuneraciones.sql` | Tabla `empleados` con auditoría y RLS; `gastos_personal` (destinatario único, solo lectura); RPC `registrar_gasto_personal` atómica e idempotente sobre `registrar_gasto_servicio` | `423eaaa38f23dc906a09849fe67ecfc1` |
+
+Codex dejó el archivo como `20261031102018_…` sin aplicarlo; se aplicó por MCP y se renombró a la versión devuelta por Supabase. Tipos regenerados por MCP. Asesores: sin hallazgos nuevos aparte del patrón ya existente de funciones `SECURITY DEFINER` con control de rol interno, e índices aún sin uso.
+
+### Pruebas y evidencia
+
+- `npm run lint` OK, `npm run typecheck` OK (Codex lo había dejado con 9 errores: tipos sin regenerar y `PageProps` de `/empleados`), `npm test` **127/127**.
+- `scripts/verificar-personal.sql` **21/21** en PGlite (`node scripts/verificar-servicios-local.mjs`, junto con 38/38 de servicios) y **21/21** en Supabase de desarrollo dentro de una transacción revertida: abono parcial y liquidación, reintento idempotente sin pago ni asiento duplicado, cambio de destinatario rechazado, dos destinatarios, categoría errónea, empleado inactivo, conductor ligado a un viaje, nombre histórico, RLS del operador y modificación del historial bloqueada. Comprobado después: 0 empleados y 0 remuneraciones residuales.
+- `node scripts/verificar-limpieza-local.mjs` aprobado (no aplica migraciones posteriores a la limpieza).
+- PostgREST acepta el orden por `gastos(fecha)` del historial; el rol anónimo recibe `permission denied` en `gastos_personal`.
+- Las rutas nuevas responden en `next dev` (redirigen a inicio de sesión sin sesión).
+
+### Pendientes
+
+- **Prueba de navegador con sesión no ejecutada:** las pruebas e2e dejan registros permanentes y la base acaba de limpiarse; además no se leyeron credenciales de prueba. Recorrido manual sugerido: crear un empleado › «Registrar pago de salario» con abono parcial › ver el pendiente en su ficha › «Pagar al conductor» desde un viaje con conductor.
+- Sin commit.
+
 ## Limpieza de operaciones conservando catálogos (2026-10-31)
 
 **Solicitud expresa:** «limpiar todos los registros, menos los clientes, vehículos o cualquier tipo de catálogo». Limpieza excepcional ejecutada únicamente en desarrollo `cgohbizokewvivxmvbij`; no modifica las reglas normales que impiden borrar historial desde la aplicación ni inicia otra etapa.

@@ -5,7 +5,7 @@ import { ETIQUETAS_ROL } from "@/lib/auth/roles";
 import { requerirUsuario } from "@/lib/auth/sesion";
 import { gruposNavegacion } from "@/lib/navegacion";
 import { Navegacion } from "@/components/navegacion";
-import { MarcaIcono } from "@/components/marca";
+import { MarcaIcono, MarcaLogo } from "@/components/marca";
 import { CajasProvider } from "@/components/plegable";
 import { AvisoClienteNuevo } from "@/components/aviso-cliente-nuevo";
 
@@ -52,11 +52,8 @@ function MarcoProvisional() {
       </div>
       <div className="menu-lateral fixed inset-y-0 left-0 hidden w-[var(--ancho-menu)] overflow-hidden vidrio-barra border-r xl:block">
         <div className="flex h-[4.5rem] items-center gap-3 px-5">
-          <MarcaIcono className="size-10" />
-          <span className="solo-amplio flex flex-col leading-tight">
-            <span className="text-[0.875rem] font-bold tracking-tight">ERP interno</span>
-            <span className="text-xs texto-tenue">Gestión de servicios</span>
-          </span>
+          <MarcaIcono className="solo-compacto size-10" />
+          <MarcaLogo alto={44} className="solo-amplio" />
         </div>
       </div>
     </>

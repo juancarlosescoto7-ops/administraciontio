@@ -133,7 +133,12 @@ export async function registrarGastoRelacionado(tipo: string, servicioId: string
       };
     }
 
-    const { data, error } = await supabase.rpc("registrar_gasto_servicio", {
+    if ([datos.empleado_id, datos.conductor_id, datos.proveedor_id].filter(Boolean).length > 1) {
+      return fallo("Seleccione un solo destinatario: empleado, conductor o proveedor.");
+    }
+    const { data, error } = await supabase.rpc("registrar_gasto_personal", {
+      p_empleado_id: opcional(texto(datos.empleado_id)),
+      p_conductor_id: opcional(texto(datos.conductor_id)),
       ...(relacionado ? { p_tipo: tipo, p_servicio_id: servicioId } : {}),
       p_idempotencia: idempotencia,
       p_proveedor_id: opcional(texto(datos.proveedor_id)),

@@ -9,7 +9,8 @@ try {
     create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
     grant usage on schema auth to anon,authenticated;
     grant execute on function auth.uid() to anon,authenticated;`);
-  for(const file of readdirSync('supabase/migrations').filter(f=>f.endsWith('.sql')&&!f.includes('limpieza_datos_prueba')&&!f.includes('limpiar_operaciones')).sort())
+  // Reproduce el esquema de aquella limpieza; no aplica migraciones posteriores.
+  for(const file of readdirSync('supabase/migrations').filter(f=>f.endsWith('.sql')&&f<'20261031101037'&&!f.includes('limpieza_datos_prueba')).sort())
     await db.exec(readFileSync('supabase/migrations/'+file,'utf8'));
   await db.exec(readFileSync('scripts/verificar-servicios-contrato.sql','utf8').replace(/rollback;\s*$/i,'set constraints all immediate;'));
   await db.exec(readFileSync('supabase/migrations/20261031101037_limpiar_operaciones_conservar_catalogos.sql','utf8'));

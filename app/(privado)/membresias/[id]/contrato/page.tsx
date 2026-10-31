@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Cargando, Encabezado } from "@/components/encabezado";
 import type { ParametrosBusqueda } from "@/components/finanzas/filtros";
 import { AvisoOperacion } from "@/components/finanzas/operaciones";
+import { MarcaLogo } from "@/components/marca";
 import { BotonImprimir } from "@/components/membresias/imprimir";
 import { BotonAccion } from "@/components/operaciones";
 
@@ -51,6 +52,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
             cambios posteriores en la plantilla o en las condiciones no lo modifican.
           </p>
           <article className="contrato-imprimible tarjeta p-6 sm:p-10" data-contrato>
+            <MarcaLogo alto={64} className="mx-auto mb-8" />
             <div className="mx-auto max-w-3xl font-serif text-[0.95rem] leading-relaxed whitespace-pre-wrap">{contrato.contenido}</div>
           </article>
         </>

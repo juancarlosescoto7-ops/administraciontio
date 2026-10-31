@@ -15,6 +15,8 @@ try {
   }
   const result = await db.exec(readFileSync('scripts/verificar-servicios-contrato.sql','utf8'));
   console.log(JSON.stringify(result.filter((r) => r.rows.length).map((r) => r.rows)));
+  const personal = await db.exec(readFileSync('scripts/verificar-personal.sql','utf8'));
+  console.log(JSON.stringify(personal.filter((r) => r.rows.length).map((r) => r.rows)));
 } catch (error) {
   console.error(error.message, error.code, error.where);
   process.exitCode = 1;

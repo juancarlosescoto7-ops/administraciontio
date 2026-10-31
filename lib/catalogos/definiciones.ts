@@ -113,6 +113,19 @@ export const OPCIONES_TIPO_CUENTA: readonly Opcion[] = [
 ];
 
 export const CATALOGOS: Record<ClaveCatalogo, DefinicionCatalogo> = {
+  empleados: {
+    clave: "empleados", tabla: "empleados", ruta: "/empleados", titulo: "Empleados",
+    descripcion: "Personal de la empresa. Registre sus salarios desde Gastos.",
+    singular: "empleado", etiquetaNuevo: "Nuevo empleado", campoTitulo: "nombre",
+    campos: [
+      { nombre: "nombre", etiqueta: "Nombre", tipo: "texto", requerido: true, max: 200 },
+      { nombre: "puesto", etiqueta: "Puesto", tipo: "texto", max: 100 },
+      { nombre: "telefono", etiqueta: "Teléfono", tipo: "telefono", max: 40 },
+      CAMPO_ACTIVO,
+    ],
+    columnas: [{ campo: "nombre", etiqueta: "Nombre" }, { campo: "puesto", etiqueta: "Puesto" }, { campo: "activo", etiqueta: "Estado" }],
+    camposBusqueda: ["nombre", "puesto"], orden: "nombre",
+  },
   clientes: {
     clave: "clientes",
     tabla: "clientes",

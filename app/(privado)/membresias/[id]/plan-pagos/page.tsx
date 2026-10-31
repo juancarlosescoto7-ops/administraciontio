@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/tipos-bd";
 import { formatearFecha, formatearMoneda, hoyEnTegucigalpa } from "@/lib/formato";
 import { proyectarCuotas } from "@/lib/membresias/plan-pagos";
+import { MarcaLogo } from "@/components/marca";
 import { BotonImprimir } from "@/components/membresias/imprimir";
 import { Cargando, Encabezado } from "@/components/encabezado";
 
@@ -43,6 +44,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
   return <>
     <Encabezado titulo="Plan de pagos" volver={{ href: `/membresias/${id}`, etiqueta: "Membresía" }} acciones={<BotonImprimir />} className="mb-6 print:hidden" />
     <article className="contrato-imprimible tarjeta p-6">
+      <MarcaLogo alto={56} className="mb-4" />
       <h1 className="text-xl font-semibold">Estado y plan de cuotas de membresía</h1>
       <p>{m.clientes?.nombre} · {m.planes?.nombre}</p>
       <p>Contrato: {id}</p>

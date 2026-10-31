@@ -246,7 +246,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       <Seccion titulo="Historial">
         <Historial eventos={historial} acciones={ACCIONES} describir={describir} />
       </Seccion>
-      <GastosServicio tipo="transporte" id={id} rol={usuario.rol} />
+      <GastosServicio tipo="transporte" id={id} rol={usuario.rol} conductorId={t.conductor_id} />
     </>
   );
 }

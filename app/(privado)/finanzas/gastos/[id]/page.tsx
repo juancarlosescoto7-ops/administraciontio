@@ -48,6 +48,8 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
   const { data: relacion, error: errorRelacion } = await supabase.from("gastos_servicio").select("*").eq("gasto_id", id).maybeSingle();
   if (errorRelacion) throw new Error("No se pudo consultar el servicio del gasto.");
   const origen = relacion ? Object.values(SERVICIOS_GASTO).find((s) => relacion[s.columna]) : null;
+  const { data: personal, error: errorPersonal } = await supabase.from("gastos_personal").select("*").eq("gasto_id", id).maybeSingle();
+  if (errorPersonal) throw new Error("No se pudo consultar el destinatario de la remuneración.");
 
   const ruta = `/finanzas/gastos/${id}`;
   const registrado = gasto.estado === "registrado";
@@ -79,7 +81,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       <Datos
         filas={[
           ["Servicio relacionado", origen && relacion ? <Link href={`${origen.ruta}/${relacion[origen.columna]}`} className="text-enlace underline">{origen.etiqueta}</Link> : "Sin servicio específico"],
-          ["Proveedor", gasto.proveedor_nombre ?? "Sin proveedor"],
+          ["Destinatario", personal ? `${personal.empleado_id ? "Empleado" : "Conductor"}: ${personal.nombre_destinatario}` : gasto.proveedor_nombre ?? "Sin destinatario específico"],
           ["Categoría", gasto.categoria_nombre],
           ["Actividad", gasto.actividad ? ETIQUETAS_ACTIVIDAD[gasto.actividad] : null],
           ["Fecha", formatearFecha(gasto.fecha)],

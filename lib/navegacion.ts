@@ -30,6 +30,7 @@ export function gruposNavegacion(rol: Rol): GrupoNavegacion[] {
       enlaces: [
         { href: "/vehiculos", etiqueta: "Vehículos" },
         { href: "/conductores", etiqueta: "Conductores" },
+        ...(puede("gestionarGastos", rol) ? [{ href: "/empleados", etiqueta: "Empleados" }] : []),
       ],
     },
     {

@@ -7,7 +7,7 @@ import { createPortal } from "react-dom";
 import { cerrarSesion } from "@/app/login/acciones";
 import type { AccesoRapido } from "@/lib/accesos";
 import { Icono, type NombreIcono } from "@/components/iconos";
-import { MarcaIcono } from "@/components/marca";
+import { MarcaIcono, MarcaLogo } from "@/components/marca";
 import { PaletaComandos } from "@/components/paleta";
 
 export type GrupoNavegacion = {
@@ -154,6 +154,9 @@ export function Navegacion({
           {actual?.grupo && <span className="texto-tenue">{actual.grupo} / </span>}
           <span className="font-semibold">{actual?.etiqueta ?? "ERP interno"}</span>
         </p>
+        <Link href="/" className="enlace-marca hidden shrink-0 rounded-md sm:block" onClick={cerrar}>
+          <MarcaLogo alto={32} />
+        </Link>
       </header>
 
       {abierto && (
@@ -176,11 +179,8 @@ export function Navegacion({
           className="enlace-marca hidden h-[4.5rem] shrink-0 items-center gap-3 px-5 xl:flex"
           onClick={cerrar}
         >
-          <MarcaIcono className="size-10" />
-          <span className="solo-amplio flex flex-col leading-tight">
-            <span className="text-[0.875rem] font-bold tracking-tight">ERP interno</span>
-            <span className="text-xs texto-tenue">Gestión de servicios</span>
-          </span>
+          <MarcaIcono className="solo-compacto size-10" />
+          <MarcaLogo alto={44} className="solo-amplio" />
         </Link>
 
         {/* En el inicio ya está el buscador general: aquí solo queda Ctrl+K. */}

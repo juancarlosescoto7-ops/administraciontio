@@ -24,6 +24,7 @@ export const ROLES_EDICION = {
   beneficiarios: ["administrador", "operador"],
   vehiculos: ["administrador", "operador"],
   conductores: ["administrador", "operador"],
+  empleados: ["administrador", "finanzas"],
   proveedores: ["administrador", "operador", "finanzas"],
   planes: ["administrador"],
   tarifas: ["administrador"],

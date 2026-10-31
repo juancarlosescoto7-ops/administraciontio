@@ -88,18 +88,29 @@ async function Listado({ searchParams }: { searchParams: ParametrosBusqueda }) {
   if (filtros.estado === "anulados") consulta = consulta.eq("estado", "anulado");
   if (categoria !== "todas") consulta = consulta.eq("categoria_id", categoria);
   if (actividad !== "todas") consulta = consulta.eq("actividad", actividad as Actividad);
-  if (filtros.busqueda) consulta = consulta.or(filtroBusqueda(["concepto", "proveedor_nombre"], filtros.busqueda));
+  if (filtros.busqueda) {
+    // Los salarios no tienen proveedor: se busca también por el empleado o conductor pagado.
+    const { data: personal } = await supabase.from("gastos_personal").select("gasto_id")
+      .ilike("nombre_destinatario", `%${filtros.busqueda}%`).limit(LIMITE_LISTADO);
+    const ids = (personal ?? []).map((p) => p.gasto_id);
+    consulta = consulta.or(filtroBusqueda(["concepto", "proveedor_nombre"], filtros.busqueda) + (ids.length ? `,id.in.(${ids.join(",")})` : ""));
+  }
   if (filtros.desde) consulta = consulta.gte("fecha", filtros.desde);
   if (filtros.hasta) consulta = consulta.lte("fecha", filtros.hasta);
   const { data, error } = await consulta;
 
-  const filas = (data ?? []).slice(0, LIMITE_LISTADO).map((fila) => ({ ...fila, id: fila.id! }));
+  const visibles = (data ?? []).slice(0, LIMITE_LISTADO);
+  const { data: personal } = visibles.length
+    ? await supabase.from("gastos_personal").select("gasto_id, nombre_destinatario").in("gasto_id", visibles.map((f) => f.id!))
+    : { data: [] };
+  const destinatarios = new Map((personal ?? []).map((p) => [p.gasto_id, p.nombre_destinatario]));
+  const filas = visibles.map((fila) => ({ ...fila, id: fila.id!, destinatario: destinatarios.get(fila.id!) ?? fila.proveedor_nombre }));
   return (
     <>
       <FormularioFiltros
         filtros={filtros}
         estados={ESTADOS}
-        placeholder="Concepto o proveedor…"
+        placeholder="Concepto, proveedor o empleado…"
         extras={[
           { nombre: "categoria", etiqueta: "Categoría", opciones: opcionesCategoria, valor: categoria },
           { nombre: "actividad", etiqueta: "Actividad", opciones: OPCIONES_ACTIVIDAD, valor: actividad },
@@ -114,7 +125,7 @@ async function Listado({ searchParams }: { searchParams: ParametrosBusqueda }) {
           vacio="No hay gastos que coincidan con el filtro."
           columnas={[
             { clave: "concepto", etiqueta: "Concepto", celda: (f) => f.concepto },
-            { clave: "proveedor", etiqueta: "Proveedor", celda: (f) => f.proveedor_nombre ?? "—" },
+            { clave: "destinatario", etiqueta: "Destinatario", celda: (f) => f.destinatario ?? "—" },
             { clave: "categoria", etiqueta: "Categoría", celda: (f) => f.categoria_nombre },
             { clave: "actividad", etiqueta: "Actividad", celda: (f) => (f.actividad ? ETIQUETAS_ACTIVIDAD[f.actividad] : "—") },
             { clave: "fecha", etiqueta: "Fecha", celda: (f) => formatearFecha(f.fecha) },

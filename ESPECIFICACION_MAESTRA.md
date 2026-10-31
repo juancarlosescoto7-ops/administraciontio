@@ -41,7 +41,7 @@ Rutas mínimas: `/login`, `/` panel, `/clientes`, `/membresias`, `/ambulancias/t
 
 **Vehículos:** código interno y tipo (`ambulancia`, `alquiler`, `transporte`, `mixto`), placa opcional única si está presente, marca/modelo opcionales, estado (`operativo`, `mantenimiento`, `fuera_servicio`), activo. Un mismo vehículo puede atender distintas líneas de negocio si su tipo lo permite. No GPS ni mantenimientos avanzados.
 
-**Conductores:** nombre, teléfono, documento opcional y activo. No nómina, turnos ni vencimientos documentales en el MVP.
+**Conductores:** nombre, teléfono, documento opcional y activo. No nómina, turnos ni vencimientos documentales en el MVP. Sus remuneraciones se registran como gastos (ver §16, cambio del 2026-10-31).
 
 **Proveedores:** nombre y datos de contacto opcionales, activo. **Cuentas de dinero:** una o varias cajas y cuentas bancarias, HNL, activas; saldos derivados de movimientos confirmados, nunca editados manualmente. **Categorías de gasto:** catálogo simple (combustible, mantenimiento, salarios, servicios, otros). **Actividades:** `ambulancias`, `alquileres`, `transportes` y `general` (gastos generales).
 
@@ -214,6 +214,7 @@ El mismo agente crea código y migraciones; ejecuta lint/typecheck/build/pruebas
 - Permitir introducir duración en minutos, horas o días; conservar instantes UTC y controles transaccionales de disponibilidad. Un día equivale a 24 horas. No cambiar las tarifas pactadas por elegir una unidad distinta.
 - Agregar un estado/plan de cuotas imprimible desde la membresía: cliente, fechas de pago, importes, aplicaciones, saldo y cuotas futuras claramente identificadas como proyección informativa. Imprimir no genera cargos ni cobros.
 - **Confirmado el 2026-10-31:** al reactivar una membresía con vencimiento fijo se conservan el calendario original y su vencimiento. Se omiten los ciclos completos suspendidos; el ciclo vigente conserva su precio y fecha de pago originales. Si esa cuota está fuera de gracia, también debe saldarse para recuperar cobertura. No se prolonga el contrato ni se inventan días adicionales de gracia. Las membresías históricas sin vencimiento conservan el comportamiento anterior hasta que el dueño establezca su fecha final.
+- **Solicitado el 2026-10-31 — personal y salarios:** catálogo de empleados (nombre, puesto, teléfono, activo) administrado por administrador/finanzas. En Gastos se selecciona un empleado y se registra el pago de su salario; los gastos generales y los gastos de cada servicio permiten también registrar el salario/remuneración del conductor. Es un gasto de la categoría Salarios con un único destinatario (empleado, conductor o proveedor), que usa los pagos parciales y la contabilidad existentes y conserva el nombre pagado. No es nómina: no calcula deducciones, planillas ni prestaciones.
 
 ## 17. Fuentes técnicas oficiales
 

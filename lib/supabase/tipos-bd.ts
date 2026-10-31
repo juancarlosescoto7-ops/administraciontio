@@ -1,4 +1,4 @@
-// Generado con Supabase MCP tras gastos por servicio, vigencia y duración (2026-10-31).
+// Generado con Supabase MCP tras empleados y remuneraciones (2026-10-31).
 // No editar a mano: regenerar después de cada migración.
 
 export type Json =
@@ -944,6 +944,57 @@ export type Database = {
           },
         ]
       }
+      empleados: {
+        Row: {
+          activo: boolean
+          actualizado_por: string | null
+          creado_por: string | null
+          created_at: string
+          id: string
+          nombre: string
+          puesto: string | null
+          telefono: string | null
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          actualizado_por?: string | null
+          creado_por?: string | null
+          created_at?: string
+          id?: string
+          nombre: string
+          puesto?: string | null
+          telefono?: string | null
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          actualizado_por?: string | null
+          creado_por?: string | null
+          created_at?: string
+          id?: string
+          nombre?: string
+          puesto?: string | null
+          telefono?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empleados_actualizado_por_fkey"
+            columns: ["actualizado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "empleados_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gastos: {
         Row: {
           actividad: Database["public"]["Enums"]["actividad"]
@@ -1026,6 +1077,56 @@ export type Database = {
             columns: ["proveedor_id"]
             isOneToOne: false
             referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gastos_personal: {
+        Row: {
+          conductor_id: string | null
+          empleado_id: string | null
+          gasto_id: string
+          nombre_destinatario: string
+        }
+        Insert: {
+          conductor_id?: string | null
+          empleado_id?: string | null
+          gasto_id: string
+          nombre_destinatario: string
+        }
+        Update: {
+          conductor_id?: string | null
+          empleado_id?: string | null
+          gasto_id?: string
+          nombre_destinatario?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gastos_personal_conductor_id_fkey"
+            columns: ["conductor_id"]
+            isOneToOne: false
+            referencedRelation: "conductores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_personal_empleado_id_fkey"
+            columns: ["empleado_id"]
+            isOneToOne: false
+            referencedRelation: "empleados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_personal_gasto_id_fkey"
+            columns: ["gasto_id"]
+            isOneToOne: true
+            referencedRelation: "gastos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_personal_gasto_id_fkey"
+            columns: ["gasto_id"]
+            isOneToOne: true
+            referencedRelation: "saldos_gastos"
             referencedColumns: ["id"]
           },
         ]
@@ -3535,6 +3636,25 @@ export type Database = {
           p_notas: string
           p_pago?: Json
           p_proveedor_id: string
+          p_vencimiento: string
+        }
+        Returns: string
+      }
+      registrar_gasto_personal: {
+        Args: {
+          p_actividad: Database["public"]["Enums"]["actividad"]
+          p_categoria_id: string
+          p_concepto: string
+          p_conductor_id?: string
+          p_empleado_id?: string
+          p_fecha: string
+          p_idempotencia: string
+          p_monto: number
+          p_notas: string
+          p_pago?: Json
+          p_proveedor_id: string
+          p_servicio_id?: string
+          p_tipo?: string
           p_vencimiento: string
         }
         Returns: string

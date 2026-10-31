@@ -113,6 +113,8 @@ export function camposGasto(
   categorias: readonly Opcion[],
   proveedores: readonly Opcion[],
   cuentas: readonly Opcion[],
+  empleados: readonly Opcion[] = [],
+  conductores: readonly Opcion[] = [],
 ): Campo[] {
   return [
     { nombre: "concepto", etiqueta: "Concepto", tipo: "texto", requerido: true, max: 200 },
@@ -120,6 +122,8 @@ export function camposGasto(
     { nombre: "categoria_id", etiqueta: "Categoría", tipo: "seleccion", requerido: true, opciones: categorias, opcionesDinamicas: true },
     { nombre: "actividad", etiqueta: "Actividad", tipo: "seleccion", requerido: true, opciones: OPCIONES_ACTIVIDAD_GASTO },
     { nombre: "proveedor_id", etiqueta: "Proveedor", tipo: "seleccion", opciones: proveedores, opcionesDinamicas: true, ayuda: "Opcional." },
+    { nombre: "empleado_id", etiqueta: "Salario de empleado", tipo: "seleccion", opciones: empleados, opcionesDinamicas: true, ayuda: "Para salarios, seleccione el empleado y la categoría Salarios. Deje proveedor y conductor vacíos." },
+    { nombre: "conductor_id", etiqueta: "Salario / remuneración de conductor", tipo: "seleccion", opciones: conductores, opcionesDinamicas: true, ayuda: "Para remuneraciones, seleccione el conductor y la categoría Salarios. Deje empleado y proveedor vacíos. Indique el período o servicio en el concepto." },
     campoFecha(hoy),
     { nombre: "vencimiento", etiqueta: "Vencimiento", tipo: "fecha", ayuda: "Opcional: fecha límite de pago." },
     { nombre: "notas", etiqueta: "Notas", tipo: "texto_largo", max: 1000 },
