@@ -206,7 +206,16 @@ Portal de clientes, WhatsApp, SMS/correo automático, pagos en línea, facturaci
 
 El mismo agente crea código y migraciones; ejecuta lint/typecheck/build/pruebas; comprueba acceso y datos reales de *desarrollo* por MCP; verifica permisos y ausencia de secretos; hace revisión propia y corrige defectos detectados antes de informar. Al finalizar produce `docs/ESTADO.md` con: etapa, fecha, funcionalidad, cambios de esquema/migraciones (y si fueron aplicadas), comandos/pruebas con resultado, escenarios verificados, pendientes, bloqueos, commit si existe. No inicia siguiente etapa sin instrucción nueva. No hacer destructive SQL sin aprobación expresa, incluso en desarrollo si existen registros.
 
-## 16. Fuentes técnicas oficiales
+## 16. Cambios solicitados el 2026-10-30 (ampliación puntual de E3–E6, sin iniciar E7)
+
+- Permitir registrar un gasto relacionado con una membresía, alquiler, viaje con conductor o traslado de ambulancia. Se conserva un único gasto y su contabilidad/pagos existentes; la relación no duplica importes. Los permisos de gastos siguen siendo administrador/finanzas.
+- El dueño (administrador) establece el vencimiento de cada contrato de membresía. El usuario confirmó que al vencer finalizan cobertura y generación de nuevas cuotas, conservando la deuda pendiente. Confirmó también que el vencimiento debe coincidir con el final de un período mensual, sin cuotas parciales.
+- Las membresías históricas no reciben una fecha de vencimiento inventada: el dueño debe establecerla. No recortar períodos ya emitidos ni ignorar servicios posteriores al nuevo vencimiento.
+- Permitir introducir duración en minutos, horas o días; conservar instantes UTC y controles transaccionales de disponibilidad. Un día equivale a 24 horas. No cambiar las tarifas pactadas por elegir una unidad distinta.
+- Agregar un estado/plan de cuotas imprimible desde la membresía: cliente, fechas de pago, importes, aplicaciones, saldo y cuotas futuras claramente identificadas como proyección informativa. Imprimir no genera cargos ni cobros.
+- **Confirmado el 2026-10-31:** al reactivar una membresía con vencimiento fijo se conservan el calendario original y su vencimiento. Se omiten los ciclos completos suspendidos; el ciclo vigente conserva su precio y fecha de pago originales. Si esa cuota está fuera de gracia, también debe saldarse para recuperar cobertura. No se prolonga el contrato ni se inventan días adicionales de gracia. Las membresías históricas sin vencimiento conservan el comportamiento anterior hasta que el dueño establezca su fecha final.
+
+## 17. Fuentes técnicas oficiales
 
 - MCP Supabase: https://supabase.com/docs/guides/ai-tools/mcp
 - Supabase Next.js SSR: https://supabase.com/docs/guides/auth/server-side/creating-a-client?framework=nextjs

@@ -5,6 +5,7 @@ import { Fragment, useActionState } from "react";
 import type { Campo } from "@/lib/catalogos/definiciones";
 import type { EstadoFormulario } from "@/lib/catalogos/estado";
 import { useHidratado } from "@/components/use-hidratado";
+import { CampoDuracion } from "@/components/duracion";
 
 type Accion = (anterior: EstadoFormulario, formData: FormData) => Promise<EstadoFormulario>;
 
@@ -180,7 +181,7 @@ export function CampoFormulario({
       control = <input {...comunes} className="entrada" type="datetime-local" defaultValue={valor} />;
       break;
     case "entero":
-      control = (
+      control = campo.duracion ? <CampoDuracion id={id} nombre={campo.nombre} minutos={valor} error={!!error} /> : (
         <input
           {...comunes}
           className="entrada"

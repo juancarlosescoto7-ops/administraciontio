@@ -55,11 +55,12 @@ export function accionesTransporte(estado: EstadoTransporte, rol: Rol): Acciones
 
 const CAMPO_MINUTOS: Campo = {
   nombre: "minutos",
-  etiqueta: "Duración estimada (minutos)",
+  etiqueta: "Duración estimada",
+  duracion: true,
   tipo: "entero",
   requerido: true,
   min: 1,
-  max: 1440,
+  max: 2_147_483_647,
   predeterminado: String(DURACION_TRANSPORTE),
 };
 

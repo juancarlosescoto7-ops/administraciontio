@@ -16,6 +16,7 @@ import {
   camposTransferencia,
 } from "./definiciones";
 import { aCentavos, decimal, opcional } from "./montos";
+import { esTipoServicio, SERVICIOS_GASTO } from "./servicios";
 
 type Enums = Database["public"]["Enums"];
 
@@ -102,7 +103,14 @@ export async function aplicarSaldo(
 // --- Gastos --------------------------------------------------------------
 
 export async function registrarGasto(anterior: EstadoFormulario, formData: FormData): Promise<EstadoFormulario> {
-  const campos = camposGasto(hoyEnTegucigalpa(), [], [], []);
+  return registrarGastoRelacionado("", "", anterior, formData);
+}
+
+export async function registrarGastoRelacionado(tipo: string, servicioId: string, anterior: EstadoFormulario, formData: FormData): Promise<EstadoFormulario> {
+  const relacionado = tipo !== "" || servicioId !== "";
+  if (relacionado && (!esTipoServicio(tipo) || !esUuid(servicioId))) return { ...anterior, error: "Servicio no válido." };
+  const actividad = esTipoServicio(tipo) ? SERVICIOS_GASTO[tipo].actividad : null;
+  const campos = camposGasto(hoyEnTegucigalpa(), [], [], []).filter((c) => !actividad || c.nombre !== "actividad");
   return procesar(anterior, formData, campos, "gestionarGastos", async (datos, supabase) => {
     const idempotencia = clave(formData);
     if (!idempotencia) return SIN_CLAVE;
@@ -125,11 +133,12 @@ export async function registrarGasto(anterior: EstadoFormulario, formData: FormD
       };
     }
 
-    const { data, error } = await supabase.rpc("registrar_gasto", {
+    const { data, error } = await supabase.rpc("registrar_gasto_servicio", {
+      ...(relacionado ? { p_tipo: tipo, p_servicio_id: servicioId } : {}),
       p_idempotencia: idempotencia,
       p_proveedor_id: opcional(texto(datos.proveedor_id)),
       p_categoria_id: String(datos.categoria_id),
-      p_actividad: datos.actividad as Enums["actividad"],
+      p_actividad: actividad ?? datos.actividad as Enums["actividad"],
       p_fecha: String(datos.fecha),
       p_vencimiento: opcional(texto(datos.vencimiento)),
       p_concepto: String(datos.concepto),

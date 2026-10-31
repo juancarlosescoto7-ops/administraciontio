@@ -1,3 +1,6 @@
+import { establecerVencimiento } from "@/lib/membresias/acciones";
+import { camposVencimiento } from "@/lib/membresias/vigencia";
+import { GastosServicio } from "@/components/finanzas/gastos-servicio";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -50,7 +53,10 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
   const { data: membresia } = await supabase.from("saldos_membresias").select("*").eq("id", id).maybeSingle();
   if (!membresia || !membresia.cliente_id) notFound();
 
+  const { data: vigencia, error: errorVigencia } = await supabase.from("membresias").select("fecha_fin").eq("id", id).single();
+  if (errorVigencia) throw new Error("No se pudo consultar la vigencia.");
   const hoy = hoyEnTegucigalpa();
+  const vencida = membresia.estado !== "cancelada" && !!vigencia.fecha_fin && vigencia.fecha_fin < hoy;
   const [{ data: vinculos }, { data: periodos }, { data: saldoCliente }, { data: historial }, { data: activos }] = await Promise.all([
     supabase
       .from("membresia_beneficiarios")
@@ -89,10 +95,11 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
     <>
       <Encabezado
         titulo={`${membresia.cliente_nombre} · ${membresia.plan_nombre}`}
-        descripcion={<InsigniaMembresia estado={membresia.estado} />}
+        descripcion={vencida ? "Vencida" : <InsigniaMembresia estado={membresia.estado} />}
         volver={{ href: "/membresias", etiqueta: "Membresías" }}
         acciones={
           <>
+            <Link href={`${ruta}/plan-pagos`} className="boton boton-secundario">Plan de pagos</Link>
             <Link href={`${ruta}/contrato`} className="boton boton-secundario">
               Contrato
             </Link>
@@ -104,6 +111,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
         parametros={parametros}
         mensajes={{
           guardado: "Membresía registrada.",
+          vigencia: "Vencimiento actualizado.",
           condiciones: "Condiciones actualizadas para los próximos ciclos.",
           beneficiario: "Beneficiario agregado.",
           baja: "Beneficiario dado de baja.",
@@ -111,11 +119,12 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
         }}
       />
 
-      {membresia.estado === "suspendida" && (
+      {!vencida && membresia.estado === "suspendida" && (
         <p role="status" className="aviso aviso-advertencia mb-4">
           Suspendida por morosidad desde el {formatearFecha(membresia.suspendida_desde)}: no habilita traslados cubiertos ni genera
-          mensualidades. Al saldar las cuotas vencidas se reactiva; si ya pasó la renovación, empieza un ciclo nuevo desde la fecha de
-          reactivación y los meses suspendidos no se cobran.
+          mensualidades. {vigencia.fecha_fin
+            ? "Al saldar la deuda se conserva el calendario original y el vencimiento. Los ciclos completos suspendidos no se cobran; si la cuota del ciclo vigente también está vencida, debe saldarla para recuperar la cobertura."
+            : "Al saldar las cuotas vencidas se reactiva; si ya pasó la renovación, empieza un ciclo nuevo desde la fecha de reactivación y los meses suspendidos no se cobran."}
         </p>
       )}
 
@@ -144,6 +153,11 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
         </p>
       )}
 
+      {vencida && <p className="aviso aviso-advertencia mb-4">Membresía vencida: sin cobertura ni nuevas cuotas. La deuda pendiente se conserva.</p>}
+      <Seccion titulo="Vigencia del contrato">
+        <p className="mb-4">Vencimiento: {vigencia.fecha_fin ? formatearFecha(vigencia.fecha_fin) : "Por definir por el dueño"}</p>
+        {administrador && <FormularioOperacion campos={camposVencimiento} accion={establecerVencimiento.bind(null, id)} textoEnviar="Guardar vencimiento" registro={{ fecha_fin: vigencia.fecha_fin, motivo: null }} prefijo="vigencia-" />}
+      </Seccion>
       <Seccion titulo="Información general">
         <Datos
           filas={[
@@ -151,7 +165,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
             ["Plan", <Link key="p" href={`/planes/${membresia.plan_id}`} className="text-enlace hover:underline">{membresia.plan_nombre}</Link>],
             ["Fecha de afiliación", formatearFecha(membresia.fecha_inicio)],
             ["Día de renovación", `Día ${membresia.dia_ancla} de cada mes (o el último día si el mes es más corto)`],
-            ["Próxima renovación", membresia.estado === "activa" ? formatearFecha(membresia.proxima_renovacion) : "— (no renueva mientras no esté activa)"],
+            ["Próxima renovación", membresia.estado === "activa" && !vencida && (!vigencia.fecha_fin || membresia.proxima_renovacion! <= vigencia.fecha_fin) ? formatearFecha(membresia.proxima_renovacion) : "— (no renueva mientras no esté activa)"],
             ["Registrada", formatearFechaHora(membresia.created_at)],
             ...(cancelada
               ? ([["Cancelada", formatearFechaHora(membresia.cancelada_en)], ["Motivo de cancelación", membresia.motivo_cancelacion]] as [string, string | null][])
@@ -365,6 +379,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
           <EstadoVacio mensaje="Sin eventos registrados." />
         )}
       </Seccion>
+      <GastosServicio tipo="membresia" id={id} rol={usuario.rol} />
     </>
   );
 }

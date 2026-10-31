@@ -1,5 +1,6 @@
 import { CATALOGOS, OPCIONES_MODALIDAD_CUPO, type Campo } from "@/lib/catalogos/definiciones";
 import type { Database } from "@/lib/supabase/tipos-bd";
+import { CAMPO_FECHA_FIN } from "./vigencia";
 
 type Enums = Database["public"]["Enums"];
 
@@ -17,6 +18,7 @@ export const ETIQUETAS_MODALIDAD: Record<Enums["modalidad_cupo"], string> = {
 export const ESTADOS_MEMBRESIA = [
   { valor: "activa", etiqueta: "Activas" },
   { valor: "suspendida", etiqueta: "Suspendidas" },
+  { valor: "vencida", etiqueta: "Vencidas" },
   { valor: "cancelada", etiqueta: "Canceladas" },
   { valor: "todas", etiqueta: "Todas" },
 ] as const;
@@ -49,6 +51,7 @@ const CAMPO_CONFIRMAR = (etiqueta: string): Campo => ({
 export function camposCondiciones(obligatorias: boolean, seccion?: string): Campo[] {
   const vacio = obligatorias ? undefined : "Vacío: la del plan.";
   return [
+    ...(!obligatorias ? [CAMPO_FECHA_FIN] : []),
     { nombre: "precio", etiqueta: "Precio mensual", tipo: "monto", requerido: obligatorias, seccion, ayuda: vacio },
     { nombre: "cupo", etiqueta: "Traslados por mes", tipo: "entero", requerido: obligatorias, min: 0, max: 1000, ayuda: vacio },
     {

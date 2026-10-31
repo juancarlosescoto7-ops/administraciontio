@@ -1,3 +1,5 @@
+import { formatearDuracion } from "@/lib/duracion";
+import { GastosServicio } from "@/components/finanzas/gastos-servicio";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -131,7 +133,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
         <Datos
           filas={[
             ["Programado para", formatearFechaHora(t.inicio_previsto)],
-            ["Duración estimada", `${t.minutos_estimados} minutos`],
+            ["Duración estimada", formatearDuracion(t.minutos_estimados)],
             [t.inicio_real ? "Fin estimado (desde el inicio real)" : "Fin estimado", formatearFechaHora(finEstimado)],
             ["Inicio real", formatearFechaHora(t.inicio_real)],
             ["Fin real", formatearFechaHora(t.fin_real)],
@@ -244,6 +246,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       <Seccion titulo="Historial">
         <Historial eventos={historial} acciones={ACCIONES} describir={describir} />
       </Seccion>
+      <GastosServicio tipo="transporte" id={id} rol={usuario.rol} />
     </>
   );
 }

@@ -1,4 +1,4 @@
-// Generado con Supabase MCP (generate_typescript_types) tras las migraciones de E6 (alta integrada, contrato y estados financieros).
+// Generado con Supabase MCP tras gastos por servicio, vigencia y duración (2026-10-31).
 // No editar a mano: regenerar después de cada migración.
 
 export type Json =
@@ -1030,6 +1030,104 @@ export type Database = {
           },
         ]
       }
+      gastos_servicio: {
+        Row: {
+          alquiler_id: string | null
+          created_at: string
+          gasto_id: string
+          membresia_id: string | null
+          transporte_id: string | null
+          traslado_id: string | null
+        }
+        Insert: {
+          alquiler_id?: string | null
+          created_at?: string
+          gasto_id: string
+          membresia_id?: string | null
+          transporte_id?: string | null
+          traslado_id?: string | null
+        }
+        Update: {
+          alquiler_id?: string | null
+          created_at?: string
+          gasto_id?: string
+          membresia_id?: string | null
+          transporte_id?: string | null
+          traslado_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gastos_servicio_alquiler_id_fkey"
+            columns: ["alquiler_id"]
+            isOneToOne: false
+            referencedRelation: "alquileres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_servicio_alquiler_id_fkey"
+            columns: ["alquiler_id"]
+            isOneToOne: false
+            referencedRelation: "saldos_alquileres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_servicio_gasto_id_fkey"
+            columns: ["gasto_id"]
+            isOneToOne: true
+            referencedRelation: "gastos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_servicio_gasto_id_fkey"
+            columns: ["gasto_id"]
+            isOneToOne: true
+            referencedRelation: "saldos_gastos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_servicio_membresia_id_fkey"
+            columns: ["membresia_id"]
+            isOneToOne: false
+            referencedRelation: "membresias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_servicio_membresia_id_fkey"
+            columns: ["membresia_id"]
+            isOneToOne: false
+            referencedRelation: "saldos_membresias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_servicio_transporte_id_fkey"
+            columns: ["transporte_id"]
+            isOneToOne: false
+            referencedRelation: "saldos_transportes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_servicio_transporte_id_fkey"
+            columns: ["transporte_id"]
+            isOneToOne: false
+            referencedRelation: "transportes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_servicio_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "saldos_traslados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_servicio_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "traslados_ambulancia"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lineas_asiento: {
         Row: {
           asiento_id: string
@@ -1176,6 +1274,7 @@ export type Database = {
           dia_ancla: number
           dias_gracia: number
           estado: Database["public"]["Enums"]["estado_membresia"]
+          fecha_fin: string | null
           fecha_inicio: string
           id: string
           idempotencia: string
@@ -1198,6 +1297,7 @@ export type Database = {
           dia_ancla: number
           dias_gracia: number
           estado?: Database["public"]["Enums"]["estado_membresia"]
+          fecha_fin?: string | null
           fecha_inicio: string
           id?: string
           idempotencia: string
@@ -1220,6 +1320,7 @@ export type Database = {
           dia_ancla?: number
           dias_gracia?: number
           estado?: Database["public"]["Enums"]["estado_membresia"]
+          fecha_fin?: string | null
           fecha_inicio?: string
           id?: string
           idempotencia?: string
@@ -2700,6 +2801,7 @@ export type Database = {
           dia_ancla: number | null
           dias_gracia: number | null
           estado: Database["public"]["Enums"]["estado_membresia"] | null
+          fecha_fin: string | null
           fecha_inicio: string | null
           id: string | null
           modalidad_cupo: Database["public"]["Enums"]["modalidad_cupo"] | null
@@ -3234,6 +3336,10 @@ export type Database = {
         }
         Returns: string[]
       }
+      establecer_vencimiento_membresia: {
+        Args: { p_fecha_fin: string; p_membresia_id: string; p_motivo: string }
+        Returns: undefined
+      }
       estado_resultados: {
         Args: { p_desde: string; p_hasta: string }
         Returns: {
@@ -3429,6 +3535,23 @@ export type Database = {
           p_notas: string
           p_pago?: Json
           p_proveedor_id: string
+          p_vencimiento: string
+        }
+        Returns: string
+      }
+      registrar_gasto_servicio: {
+        Args: {
+          p_actividad: Database["public"]["Enums"]["actividad"]
+          p_categoria_id: string
+          p_concepto: string
+          p_fecha: string
+          p_idempotencia: string
+          p_monto: number
+          p_notas: string
+          p_pago?: Json
+          p_proveedor_id: string
+          p_servicio_id?: string
+          p_tipo?: string
           p_vencimiento: string
         }
         Returns: string

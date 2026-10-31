@@ -10,6 +10,7 @@ import { decimal } from "@/lib/finanzas/montos";
 import { clave, fallo, procesar, SIN_CLAVE, texto, traducir } from "@/lib/operaciones";
 import { createClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/lib/supabase/tipos-bd";
+import { camposVencimiento } from "./vigencia";
 import {
   camposAgregarBeneficiario,
   camposAltaIntegrada,
@@ -153,11 +154,23 @@ export async function generarContrato(
 /** Solo los campos escritos: lo vacío conserva la condición del plan. */
 function condicionesParticulares(datos: Datos): Record<string, string | number> | null {
   const condiciones: Record<string, string | number> = {};
+  if (texto(datos.fecha_fin) !== null) condiciones.fecha_fin = String(datos.fecha_fin);
   if (texto(datos.precio) !== null) condiciones.precio = String(datos.precio);
   if (typeof datos.cupo === "number") condiciones.cupo = datos.cupo;
   if (texto(datos.modalidad) !== null) condiciones.modalidad = String(datos.modalidad);
   if (typeof datos.dias_gracia === "number") condiciones.dias_gracia = datos.dias_gracia;
   return Object.keys(condiciones).length > 0 ? condiciones : null;
+}
+
+export async function establecerVencimiento(id: string, anterior: EstadoFormulario, formData: FormData): Promise<EstadoFormulario> {
+  return procesar(anterior, formData, camposVencimiento, "gestionarMembresia", async (datos, supabase) => {
+    if (!esUuid(id)) return INVALIDA;
+    const { error } = await supabase.rpc("establecer_vencimiento_membresia", {
+      p_membresia_id: id, p_fecha_fin: String(datos.fecha_fin), p_motivo: String(datos.motivo),
+    });
+    if (error) return traducir(error);
+    return { destino: `/membresias/${id}?vigencia=1` };
+  });
 }
 
 export async function editarCondiciones(

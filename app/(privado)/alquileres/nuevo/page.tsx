@@ -13,6 +13,7 @@ import { BuscarCliente, type ParametrosBusqueda } from "@/components/finanzas/fi
 import { FormularioOperacion } from "@/components/finanzas/operaciones";
 import { Datos, Seccion } from "@/components/finanzas/resumen";
 import { Tabla } from "@/components/finanzas/tabla";
+import { FechasAlquiler } from "@/components/fechas-alquiler";
 
 /** "AAAA-MM-DDTHH:mm" válido (hora local de Tegucigalpa). */
 function leerFechaHora(valor: string | undefined): string | null {
@@ -71,14 +72,7 @@ async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda })
       </p>
       <form method="get" className="tarjeta mb-6 grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-end">
         <input type="hidden" name="cliente" value={cliente.id} />
-        <label className="campo">
-          <span className="campo-etiqueta">2. Entrega prevista</span>
-          <input className="entrada" type="datetime-local" name="entrega" defaultValue={entrega ?? ahora} required />
-        </label>
-        <label className="campo">
-          <span className="campo-etiqueta">Devolución prevista</span>
-          <input className="entrada" type="datetime-local" name="devolucion" defaultValue={devolucion ?? ""} required />
-        </label>
+        <FechasAlquiler key={`${entrega}-${devolucion}`} entrega={entrega ?? ahora} devolucion={devolucion ?? ""} />
         <label className="campo">
           <span className="campo-etiqueta">Tarifa por día</span>
           <select className="entrada" name="tarifa" defaultValue={tarifa?.id ?? ""}>

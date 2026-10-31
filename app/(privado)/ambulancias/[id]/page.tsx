@@ -1,3 +1,4 @@
+import { GastosServicio } from "@/components/finanzas/gastos-servicio";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
@@ -333,6 +334,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       <Seccion titulo="Historial">
         <Historial eventos={historial} acciones={ACCIONES} describir={describirEvento} />
       </Seccion>
+      <GastosServicio tipo="traslado" id={id} rol={usuario.rol} />
     </>
   );
 }

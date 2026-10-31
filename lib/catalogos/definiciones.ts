@@ -16,6 +16,7 @@ export type TipoCampo =
 export type Opcion = { valor: string; etiqueta: string };
 
 export type Campo = {
+  duracion?: boolean;
   nombre: string;
   etiqueta: string;
   tipo: TipoCampo;

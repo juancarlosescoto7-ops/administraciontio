@@ -1,5 +1,50 @@
 # Estado del proyecto
 
+## Gastos por servicio, vigencia, duración y plan de cuotas (2026-10-31)
+
+**Resultado:** cambios solicitados el 2026-10-30 implementados en el código local y migraciones aplicadas exclusivamente en Supabase de desarrollo `cgohbizokewvivxmvbij`. La aclaración final sobre reactivación se recibió el 2026-10-31. No se inicia E7 ni se despliega a producción.
+
+### Funcionalidad
+
+- Desde el detalle de cada membresía, alquiler, viaje con chofer o traslado de ambulancia, administrador/finanzas pueden abrir «Gastos de este servicio» y registrar un gasto relacionado. El gasto usa la contabilidad y los pagos existentes; en su detalle hay enlace al servicio. Se conserva la opción de gastos generales por actividad. Operadores no adquieren permisos de finanzas.
+- El administrador puede fijar el vencimiento en las condiciones particulares del alta o en «Vigencia del contrato» de una membresía existente, con motivo y bitácora. El final debe coincidir con el último día de un período mensual; no se recortan períodos emitidos ni se ignoran traslados posteriores. Las membresías antiguas permanecen sin fecha hasta que el dueño la establezca.
+- Al vencer se corta la cobertura y la generación de nuevas cuotas, conservando la deuda. El listado distingue «Vencidas». La reactivación de contratos finitos conserva anclaje y vencimiento, omite ciclos completos suspendidos y genera únicamente la cuota del ciclo vigente con su calendario y precio originales. Si esa cuota ya está fuera de gracia, también debe pagarse para recuperar cobertura. Sin fecha final se conserva la regla histórica.
+- El contrato generado con fecha final incluye el vencimiento pactado. Los contratos ya congelados no se reescriben; el plan de pagos muestra la vigencia actual.
+- Transportes y ambulancias permiten duración en minutos, horas o días, incluidas fracciones que equivalgan a minutos exactos; ya no hay límite de 24 horas. La base conserva minutos y valida disponibilidad transaccional. En alquileres se puede calcular la devolución mediante duración o introducir fechas directamente; un día son 24 horas y esto no cambia las tarifas pactadas.
+- En el detalle de membresía, «Plan de pagos» abre `/membresias/[id]/plan-pagos`: cuotas emitidas, aplicaciones, pendientes, fechas y proyección hasta el vencimiento. «Imprimir o guardar PDF» usa la impresión del navegador. La proyección no crea cargos ni muestra cuotas futuras como deuda. Lectura paginada de cuotas para no truncar contratos largos.
+
+### Migraciones y verificación de desarrollo
+
+Ambas migraciones existen en `supabase/migrations/` con las versiones devueltas por Supabase y el mismo SQL aplicado (MD5 del cuerpo verificado):
+
+| Versión | Contenido | MD5 |
+|---|---|---|
+| `20261031015204_servicios_gastos_vigencia_duracion.sql` | Relación `gastos_servicio` con cuatro FKs, una relación por gasto, RLS e índices; RPC atómica/idempotente; duraciones de varios días | `5c1978e92245a34bf7811ccd908b6f44` |
+| `20261031082102_membresias_vigencia_plan_pagos.sql` | `fecha_fin`, validación de final de ciclo, corte de cuotas/cobertura, reactivación, modificación por administrador y snapshot contractual | `adbd6e964b2048debc7fb1467146c809` |
+
+Tipos de Supabase regenerados por MCP después de ambas migraciones. No se leyeron ni publicaron valores de `.env.local`.
+
+### Pruebas y evidencia
+
+- `npm run lint`: aprobado.
+- `npm run typecheck`: aprobado con tipos regenerados desde Cloud.
+- `npm test`: **127/127**; cinco pruebas nuevas cubren unidades, fracciones exactas, rechazos, representación y ciclos 31/febrero/bisiesto.
+- `npm run build`: aprobado; incluye la nueva ruta de plan de pagos.
+- `node scripts/verificar-servicios-local.mjs`: **38 comprobaciones** en PostgreSQL temporal con PGlite (dependencia de pruebas ya disponible, sin Docker); aplica las migraciones reales, excepto la limpieza histórica de datos de prueba.
+- `scripts/verificar-servicios-contrato.sql` por MCP en desarrollo: **38 comprobaciones aprobadas**. Roles administrador/operador/finanzas, las cuatro relaciones, rechazo de servicio inexistente/actividad incorrecta, reintentos, abono L 300 sobre gasto L 800 (saldo L 500, un solo egreso), viajes de varios días y rechazo de solapamientos, cuota final/aniversario 31, cobertura en último día y posterior, deuda conservada, reactivación sin cuotas duplicadas ni extensión, asientos balanceados.
+- Las pruebas Cloud se ejecutaron dentro de `BEGIN`/`ROLLBACK`, con usuarios ficticios y reloj simulado. Se comprobó después que el reloj estaba restaurado y que no quedaron los clientes ficticios.
+- Asesores de seguridad: ninguna alerta ERROR; advertencias por RPC `SECURITY DEFINER` accesibles a authenticated (patrón existente, funciones nuevas con rol explícito y privilegios restringidos) y protección de contraseñas filtradas deshabilitada (pendiente previo). RLS y denegación de escritura directa probadas.
+
+### Revisión propia, defectos y límites
+
+- Corregidos durante implementación: BOM generado por PowerShell en un SQL, tipo explícito del arreglo de cuotas, código ficticio de vehículo inválido y creación de caja de prueba bajo un rol sin permiso. Son fallos de preparación/prueba, no cambios en reglas de negocio.
+- Se revisaron también el vencimiento en listado/filtros, cancelaciones, mensajes de reactivación, consultas con permisos, unidades convertidas en servidor mediante validación de minutos, y separación de importe proyectado/deuda.
+- Una llamada MCP no llegó a ejecutarse por agotamiento temporal de la revisión automática de herramientas. El acceso se recuperó y las migraciones/pruebas se completaron; no queda bloqueo de aprobación.
+- **Límite de verificación:** no se ejecutó prueba de navegador con sesión autenticada ni se inspeccionó físicamente la impresión; no hay credenciales de prueba configuradas en esta sesión. No se afirma validación visual o E2E de navegador. Se verificaron compilación, lógica y transacciones reales.
+- Pendiente operativo: el dueño debe asignar vencimientos a membresías existentes. No se inventaron fechas ni se modificaron datos comerciales históricos. `.claude/`, preexistente sin seguimiento, quedó intacto.
+
+Los cambios se conservan en un commit específico; el hash se informa al cerrar la entrega.
+
 ## Time lapse de construcción con código real y base de datos (2026-10-29)
 
 > Rastro para cualquier agente (Claude o Codex). Trabajo terminado y verificado; ver «Pendientes» para lo que queda a decisión del usuario.
