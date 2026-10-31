@@ -90,6 +90,11 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
           </span>
         }
         volver={{ href: "/transportes", etiqueta: "Transportes" }}
+        acciones={
+          <Link href={`/transportes/${id}/contrato`} className="boton boton-secundario">
+            Contrato
+          </Link>
+        }
       />
       <AvisoOperacion
         parametros={parametros}

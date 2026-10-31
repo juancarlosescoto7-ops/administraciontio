@@ -863,6 +863,84 @@ export type Database = {
           },
         ]
       }
+      contratos_servicio: {
+        Row: {
+          alquiler_id: string | null
+          contenido: string
+          creado_por: string | null
+          created_at: string
+          datos: Json
+          id: string
+          plantilla_version: number
+          servicio_id: string | null
+          tipo: string
+          transporte_id: string | null
+          traslado_id: string | null
+        }
+        Insert: {
+          alquiler_id?: string | null
+          contenido: string
+          creado_por?: string | null
+          created_at?: string
+          datos: Json
+          id?: string
+          plantilla_version: number
+          servicio_id?: never
+          tipo: string
+          transporte_id?: string | null
+          traslado_id?: string | null
+        }
+        Update: {
+          alquiler_id?: string | null
+          contenido?: string
+          creado_por?: string | null
+          created_at?: string
+          datos?: Json
+          id?: string
+          plantilla_version?: number
+          servicio_id?: never
+          tipo?: string
+          transporte_id?: string | null
+          traslado_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contratos_servicio_alquiler_id_fkey"
+            columns: ["alquiler_id"]
+            isOneToOne: false
+            referencedRelation: "alquileres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_servicio_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_servicio_tipo_plantilla_version_fkey"
+            columns: ["tipo", "plantilla_version"]
+            isOneToOne: false
+            referencedRelation: "plantillas_contrato"
+            referencedColumns: ["tipo", "version"]
+          },
+          {
+            foreignKeyName: "contratos_servicio_transporte_id_fkey"
+            columns: ["transporte_id"]
+            isOneToOne: false
+            referencedRelation: "transportes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_servicio_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "traslados_ambulancia"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cuentas_contables: {
         Row: {
           activo: boolean
@@ -1878,6 +1956,7 @@ export type Database = {
           creado_por: string | null
           created_at: string
           id: string
+          tipo: string
           version: number
         }
         Insert: {
@@ -1885,6 +1964,7 @@ export type Database = {
           creado_por?: string | null
           created_at?: string
           id?: string
+          tipo?: string
           version: number
         }
         Update: {
@@ -1892,6 +1972,7 @@ export type Database = {
           creado_por?: string | null
           created_at?: string
           id?: string
+          tipo?: string
           version?: number
         }
         Relationships: [
@@ -3474,10 +3555,13 @@ export type Database = {
         Args: { p_membresia_id: string }
         Returns: string
       }
-      guardar_plantilla_contrato: {
-        Args: { p_contenido: string }
-        Returns: number
+      generar_contrato_servicio: {
+        Args: { p_servicio_id: string; p_tipo: string }
+        Returns: string
       }
+      guardar_plantilla_contrato:
+        | { Args: { p_contenido: string }; Returns: number }
+        | { Args: { p_contenido: string; p_tipo: string }; Returns: number }
       historial_membresia: {
         Args: { p_membresia_id: string }
         Returns: {
@@ -3924,7 +4008,9 @@ export type Database = {
           tipo: Database["public"]["Enums"]["tipo_cuenta_contable"]
         }[]
       }
-      vista_previa_contrato: { Args: { p_contenido: string }; Returns: string }
+      vista_previa_contrato:
+        | { Args: { p_contenido: string }; Returns: string }
+        | { Args: { p_contenido: string; p_tipo: string }; Returns: string }
     }
     Enums: {
       actividad: "ambulancias" | "alquileres" | "transportes" | "general"

@@ -16,7 +16,7 @@ const adminApi = await sesionApi(env.E2E_ADMIN_CORREO, env.E2E_ADMIN_CLAVE);
 const plan = (await api(adminApi.token, "POST", "planes", {
   nombre: `${MARCA} Plan navegador ${sufijo}`, precio_mensual: "650.00", cupo_mensual: 2, modalidad_cupo: "compartido", dias_gracia: 5,
 })).datos[0].id;
-const plantillaAntes = (await api(adminApi.token, "GET", "plantillas_contrato?select=version,contenido&order=version.desc&limit=1")).datos[0];
+const plantillaAntes = (await api(adminApi.token, "GET", "plantillas_contrato?select=version,contenido&tipo=eq.membresia&order=version.desc&limit=1")).datos[0];
 const titular = `${MARCA} Titular navegador ${sufijo}`;
 const hijo = `${MARCA} Hijo navegador ${sufijo}`;
 const descartado = `${MARCA} Descartado ${sufijo}`;
@@ -142,9 +142,9 @@ try {
   await llenar("#campo-contenido", original);
   await pulsar("Guardar nueva versión");
   comprobar("guardar crea una versión nueva", await esperar("document.body.innerText.includes('Plantilla guardada como versión nueva')", 20000));
-  const plantillaDespues = (await api(adminApi.token, "GET", "plantillas_contrato?select=version,contenido&order=version.desc&limit=1")).datos[0];
+  const plantillaDespues = (await api(adminApi.token, "GET", "plantillas_contrato?select=version,contenido&tipo=eq.membresia&order=version.desc&limit=1")).datos[0];
   comprobar("la versión nueva conserva el texto (sin cambios de esta prueba)",
-    plantillaDespues.version === plantillaAntes.version + 1 && plantillaDespues.contenido === plantillaAntes.contenido.replace(/\r\n/g, "\n").trim());
+    plantillaDespues.version > plantillaAntes.version && plantillaDespues.contenido === plantillaAntes.contenido.replace(/\r\n/g, "\n").trim());
   await capturar("e66-04-plantilla");
 
   // Condiciones particulares: en una ventana flotante dentro del formulario.

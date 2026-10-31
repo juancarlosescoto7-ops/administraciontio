@@ -44,7 +44,7 @@ const vinculos = (membresia) =>
   leer(admin, `membresia_beneficiarios?membresia_id=eq.${membresia}&activo=eq.true&select=beneficiario_id,beneficiarios(nombre,identificacion)`);
 const contrato = async (membresia) => (await leer(admin, `contratos_membresia?membresia_id=eq.${membresia}&select=*`))?.[0];
 
-const plantillaOriginal = (await leer(admin, "plantillas_contrato?select=version,contenido&order=version.desc&limit=1"))[0];
+const plantillaOriginal = (await leer(admin, "plantillas_contrato?select=version,contenido&tipo=eq.membresia&order=version.desc&limit=1"))[0];
 
 // --- 1. Titular nuevo, dos beneficiarios nuevos y el titular como beneficiario
 let membresia1;
@@ -156,7 +156,7 @@ const titular1 = nombre("Titular Uno");
 
   const antes = await contrato(membresia1);
   const nueva = exigir(await rpc(admin, "guardar_plantilla_contrato", { p_contenido: `${MARCA} Versión de prueba para {{cliente_nombre}}.` }), "guardar");
-  comprobar("7. guardar crea una versión nueva", nueva === plantillaOriginal.version + 1, String(nueva));
+  comprobar("7. guardar crea una versión nueva", nueva > plantillaOriginal.version, String(nueva));
   const despues = await contrato(membresia1);
   comprobar("7. el contrato ya generado no cambia al cambiar la plantilla",
     despues.contenido === antes.contenido && despues.plantilla_version === antes.plantilla_version);
@@ -165,7 +165,7 @@ const titular1 = nombre("Titular Uno");
   comprobar("7. una membresía nueva usa la versión nueva", c?.plantilla_version === nueva && c.contenido === `${MARCA} Versión de prueba para ${nombre("Con versión nueva")}.`);
   // Restaurar el texto original como versión vigente.
   const restaurada = exigir(await rpc(admin, "guardar_plantilla_contrato", { p_contenido: plantillaOriginal.contenido }), "restaurar");
-  const vigente = (await leer(admin, "plantillas_contrato?select=version,contenido&order=version.desc&limit=1"))[0];
+  const vigente = (await leer(admin, "plantillas_contrato?select=version,contenido&tipo=eq.membresia&order=version.desc&limit=1"))[0];
   comprobar("7. se restauró el texto original como versión vigente", vigente.version === restaurada && vigente.contenido === plantillaOriginal.contenido);
 }
 

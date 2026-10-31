@@ -17,12 +17,10 @@ import {
   camposBaja,
   camposBeneficiarioNuevo,
   camposEditarCondiciones,
-  camposPlantillaContrato,
   describirActualizacion,
   indicesBeneficiariosNuevos,
   PREFIJO_BENEFICIARIO,
   prefijoNuevo,
-  variablesDesconocidas,
   type ResumenActualizacion,
 } from "./definiciones";
 
@@ -117,23 +115,6 @@ export async function agregarBeneficiarioNuevo(
     });
     if (error) return traducir(error);
     return { destino: `/membresias/${membresiaId}?beneficiario=1` };
-  });
-}
-
-/** Guarda una versión nueva de la plantilla del contrato (solo administrador). */
-export async function guardarPlantillaContrato(anterior: EstadoFormulario, formData: FormData): Promise<EstadoFormulario> {
-  return procesar(anterior, formData, camposPlantillaContrato(), "gestionarContrato", async (datos, supabase) => {
-    // Los navegadores envían los saltos de línea de un textarea como \r\n.
-    const contenido = String(datos.contenido).replace(/\r\n?/g, "\n");
-    const desconocidas = variablesDesconocidas(contenido);
-    if (desconocidas.length > 0) {
-      return fallo("Revise los campos marcados.", {
-        contenido: `Variable desconocida: ${desconocidas.map((v) => `{{${v}}}`).join(", ")}. Use solo las de la lista.`,
-      });
-    }
-    const { error } = await supabase.rpc("guardar_plantilla_contrato", { p_contenido: contenido });
-    if (error) return traducir(error);
-    return { destino: "/configuracion/contrato?guardado=1" };
   });
 }
 

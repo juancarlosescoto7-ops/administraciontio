@@ -1,5 +1,36 @@
 # Estado del proyecto
 
+## Contratos de membresía y de cada servicio (2026-10-31)
+
+**Solicitud:** cambiar el contrato de membresía tomando como modelo el contrato de arrendamiento de vehículo de la empresa, y tener contrato para cualquier servicio con los datos que el sistema ya registra. El propietario confirmó: los montos del alquiler (depósito de L 3,000.00, recargo de L 300.00 por hora o fracción y lavado de L 300.00) se escriben fijos en el texto, y firma por la empresa Jorge Alberto Rodríguez Lagos. Migración aplicada exclusivamente en Supabase de desarrollo `cgohbizokewvivxmvbij`. No se inicia E7.
+
+### Funcionalidad
+
+- **Plantillas por tipo:** membresía, alquiler de vehículo, viaje con conductor y traslado en ambulancia. Cada una tiene sus variables y su texto vigente; el administrador las edita en Configuración › Contratos (pestañas por tipo, lista de variables y vista previa con datos de ejemplo). Guardar crea una versión nueva y conserva las anteriores.
+- **Textos iniciales** con el modelo de la empresa: SERVICIOS MÚLTIPLES Y TRANSPORTE J.A.R.L. S. DE R.L., RTN 08249025198349, Talanga, Francisco Morazán; representante Jorge Alberto Rodríguez Lagos; pago en efectivo o transferencia; cláusulas de narcotráfico y lavado de activos, de cumplimiento de la ley y antisoborno; cierre «a los 31 días del mes de octubre de 2026» y firmas del representante y del cliente. El de alquiler sigue casi literal el contrato del propietario. La membresía es la versión 4 de su plantilla; las anteriores se conservan.
+- **Contrato de cada servicio:** botón «Contrato» en la ficha del alquiler, del viaje y del traslado (`/…/[id]/contrato`). Se genera a pedido con cliente, vehículo (código, placa, marca, modelo, año), conductor, fechas, duración, origen, destino, motivo, tarifa y precio pactado; lo no asignado se escribe «Por asignar». Queda congelado. «Generar de nuevo» crea otra versión si los datos cambiaron (si no cambiaron, devuelve la misma) y conserva las anteriores. No se genera para servicios cancelados. Se imprime o guarda como PDF desde el navegador, con el logo.
+- **Permisos:** generan contratos de servicio el administrador y el operador; finanzas solo los lee. Las plantillas las edita solo el administrador.
+- Generar o imprimir un contrato **no** crea cargos, cobros ni depósitos: el depósito y los recargos del alquiler son texto del contrato. Si se cobran, se registran como hasta ahora (cobro o cargo adicional al devolver).
+- Datos que el sistema no registra y por eso no aparecen: color, motor y cilindraje del vehículo, y nacionalidad del cliente.
+
+### Migración
+
+| Versión | Contenido | MD5 (SQL aplicado = archivo) |
+|---|---|---|
+| `20261031225533_contratos_servicios.sql` | `plantillas_contrato.tipo` y único (tipo, versión); tabla `contratos_servicio` (inmutable, RLS de solo lectura, una referencia por servicio); `generar_contrato_servicio`, `guardar_plantilla_contrato(p_contenido, p_tipo)` y `vista_previa_contrato(p_contenido, p_tipo)`; `{{vigencia}}` y `{{fecha_contrato_letras}}` en la membresía; plantillas iniciales | `4986dd7b017bf706ed4fe3fed0a31e22` |
+
+Sin instrucciones destructivas: el servidor MCP de Supabase rechazaba automáticamente la primera versión, que eliminaba restricciones y funciones. Por eso el número de versión de las plantillas sigue siendo único entre todos los tipos (membresía 4, alquiler 5, viaje 6, traslado 7) y las firmas anteriores sin tipo (`guardar_plantilla_contrato(text)`, `vista_previa_contrato(text)`) se conservan y equivalen a membresía. La interfaz no muestra el número global. Tipos de TypeScript actualizados a mano en las partes afectadas. Asesores: sin hallazgos nuevos aparte del patrón ya existente de funciones `SECURITY DEFINER` con control de rol interno, e índices aún sin uso.
+
+### Pruebas y evidencia
+
+- `npm run lint` (archivos tocados) OK, `npm run typecheck` OK, `npm test` **130/130** (nuevo `lib/contratos/contratos.test.ts`).
+- `scripts/verificar-contratos.sql` **20/20** en Supabase de desarrollo dentro de una transacción revertida: plantillas vigentes firmadas por el representante y vistas previas sin variables pendientes; variables por tipo; solo el administrador edita; membresía con vigencia y sin párrafo de vencimiento duplicado; alquiler con placa, precio, fecha «06/03/2027 a las 12:00 PM» y montos fijos; doble envío sin copia; inserción directa rechazada; cancelado rechazado; viaje «Por asignar» y versión nueva al asignar recursos; traslado particular; finanzas no genera. Comprobado después: 0 contratos de servicio residuales.
+- `scripts/e2e-membresia-contrato.mjs` y `scripts/verificar-membresia-contrato.mjs` filtran ahora la plantilla de membresía (`tipo=eq.membresia`), porque el número de versión es global.
+
+### Pendiente
+
+- Prueba en navegador con sesión iniciada (generar, regenerar, imprimir y editar plantillas): en esta sesión no había `E2E_CREDENCIALES`.
+
 ## Empleados y pago de salarios (2026-10-31)
 
 **Solicitud:** módulo de empleados en Gastos para seleccionar un empleado y registrar el pago de su salario, y en los gastos operativos o de cada servicio la opción de pagar el salario/remuneración del conductor. Primera implementación hecha por Codex; revisada, completada y verificada por Claude Code. Migración aplicada exclusivamente en Supabase de desarrollo `cgohbizokewvivxmvbij`. No se inicia E7.

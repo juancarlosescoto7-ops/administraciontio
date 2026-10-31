@@ -52,7 +52,7 @@ export function gruposNavegacion(rol: Rol): GrupoNavegacion[] {
       enlaces: [
         { href: "/planes", etiqueta: "Planes de membresía" },
         { href: "/tarifas", etiqueta: "Tarifas" },
-        ...(puede("gestionarContrato", rol) ? [{ href: "/configuracion/contrato", etiqueta: "Contrato de membresía" }] : []),
+        ...(puede("gestionarContrato", rol) ? [{ href: "/configuracion/contrato", etiqueta: "Contratos" }] : []),
         ...(puedeAdministrarUsuarios(rol) ? [{ href: "/configuracion/usuarios", etiqueta: "Usuarios" }] : []),
       ],
     },

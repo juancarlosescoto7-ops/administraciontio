@@ -9,8 +9,6 @@ import {
   describirActualizacion,
   indicesBeneficiariosNuevos,
   prefijoNuevo,
-  VARIABLES_CONTRATO,
-  variablesDesconocidas,
 } from "./definiciones";
 import { periodosDesde, siguienteRenovacion, sumarDias } from "./fechas";
 
@@ -121,10 +119,4 @@ describe("alta integrada y contrato", () => {
     expect(campos(true).some((nombre) => nombre.startsWith("cliente_"))).toBe(false);
   });
 
-  it("variables del contrato: sin repetir y detección de las desconocidas", () => {
-    const nombres = VARIABLES_CONTRATO.map((v) => v.nombre);
-    expect(new Set(nombres).size).toBe(nombres.length);
-    expect(variablesDesconocidas("Hola {{cliente_nombre}} y {{ plan }}")).toEqual([]);
-    expect(variablesDesconocidas("{{cliente_nonbre}} {{precio}} {{cliente_nonbre}}")).toEqual(["cliente_nonbre", "precio"]);
-  });
 });
