@@ -1,5 +1,18 @@
 # Estado del proyecto
 
+## Limpieza de operaciones conservando catálogos (2026-10-31)
+
+**Solicitud expresa:** «limpiar todos los registros, menos los clientes, vehículos o cualquier tipo de catálogo». Limpieza excepcional ejecutada únicamente en desarrollo `cgohbizokewvivxmvbij`; no modifica las reglas normales que impiden borrar historial desde la aplicación ni inicia otra etapa.
+
+- **Eliminados:** 257 registros de 21 tablas operativas: alquileres, aplicaciones de cobro, asientos y líneas, bitácora, cargos adicionales, cargos de clientes, cobros, contratos individuales, gastos y vínculos a servicios, asociaciones membresía/beneficiarios, membresías, movimientos de dinero, ocupaciones de recursos, pagos de gastos, períodos, reservas de beneficio, transferencias, transportes y traslados. Todas quedaron con 0 filas.
+- **Conservados íntegros:** clientes **8**, vehículos **6**, beneficiarios **6**, conductores **1**, proveedores **5**, planes **3**, tarifas **2**, cuentas de dinero **1**, cuentas contables **14**, categorías de gasto **5**, plantillas de contrato **3**, perfiles **2**. No se tocaron usuarios ni sesiones de Auth.
+- Las cuentas de caja/banco se conservaron como catálogo; al quitar sus movimientos, sus saldos quedaron en **0**. Clientes sin deuda ni anticipos. No se guardaron datos personales ni credenciales en Git.
+- Migración aplicada y guardada: `supabase/migrations/20261031101037_limpiar_operaciones_conservar_catalogos.sql`. MD5 del SQL aplicado y del archivo local: `9b3ac6fe91d026daf8887b36e84c8557`. Es una limpieza de datos exclusiva de desarrollo, **no debe reutilizarse en producción con datos**.
+- Seguridad de ejecución: una transacción, lista explícita de tablas, bloqueo contra escrituras concurrentes y `TRUNCATE ... RESTRICT` sin cascada. Solo se deshabilitaron temporalmente los triggers que impiden truncar las tablas autorizadas. Comparación interna de hashes de todas las filas de los 12 catálogos antes/después; comprobación de restauración exacta del estado de los triggers. Cualquier diferencia habría revertido todo.
+- Prueba previa en PostgreSQL temporal con datos ficticios y relaciones reales: aprobada. Reproducible con `node scripts/verificar-limpieza-local.mjs` (PGlite ya instalado en `.temp`, sin Docker).
+- Verificación posterior por MCP: inventario de las 33 tablas; 21 vacías y 12 conservadas con los conteos indicados; **0** clientes con saldo, **0** cuentas con saldo, **0** gastos y **0** triggers deshabilitados.
+- No hubo cambios de interfaz, esquema permanente o permisos. No se requieren compilación ni pruebas de navegador para este vaciado. Sin defectos ni pendientes de limpieza. `.claude/` preexistente quedó intacto.
+
 ## Gastos por servicio, vigencia, duración y plan de cuotas (2026-10-31)
 
 **Resultado:** cambios solicitados el 2026-10-30 implementados en el código local y migraciones aplicadas exclusivamente en Supabase de desarrollo `cgohbizokewvivxmvbij`. La aclaración final sobre reactivación se recibió el 2026-10-31. No se inicia E7 ni se despliega a producción.
