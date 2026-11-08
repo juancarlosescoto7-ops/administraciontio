@@ -455,6 +455,12 @@ body {
     color: var(--advertencia-texto);
   }
 
+  /* Problema que exige acción: fuera de servicio, vencido, no válido. */
+  .insignia-peligro {
+    background: var(--error-fondo);
+    color: var(--error-texto);
+  }
+
   .enlace-nav {
     display: flex;
     align-items: center;
@@ -641,6 +647,25 @@ body {
 
   .tabla tbody tr:hover {
     background: var(--neutro-fondo);
+  }
+
+  /* Fila (o tarjeta en móvil) con saldo pendiente: fondo rojo suave y filete a la izquierda. */
+  .tabla tbody tr.fila-alerta {
+    background: var(--error-fondo);
+  }
+
+  .tabla tbody tr.fila-alerta td:first-child {
+    box-shadow: inset 3px 0 0 var(--error-texto);
+  }
+
+  .tabla tbody tr.fila-alerta:hover {
+    background: color-mix(in srgb, var(--error-texto) 9%, var(--error-fondo));
+  }
+
+  .tarjeta.fila-alerta {
+    background: var(--error-fondo);
+    border-color: color-mix(in srgb, var(--error-texto) 25%, transparent);
+    border-left: 3px solid var(--error-texto);
   }
 
   /* Tabla o lista dentro de una sección que ya es tarjeta. */

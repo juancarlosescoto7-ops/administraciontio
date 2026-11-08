@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { ReactNode } from "react";
 import type { Campo } from "@/lib/catalogos/definiciones";
 import { estadoInicial, type EstadoFormulario } from "@/lib/catalogos/estado";
 import { valoresDesdeRegistro } from "@/lib/catalogos/validacion";
@@ -23,6 +24,7 @@ export function FormularioOperacion({
   registro = null,
   prefijo,
   tono,
+  extra,
 }: {
   campos: readonly Campo[];
   accion: Accion;
@@ -33,6 +35,8 @@ export function FormularioOperacion({
   /** Prefijo de los id si la página tiene varios formularios. */
   prefijo?: string;
   tono?: "primario" | "exito" | "peligro";
+  /** Contenido propio dentro del formulario (bonos y gastos del servicio). */
+  extra?: ReactNode;
 }) {
   return (
     <FormularioCatalogo
@@ -45,6 +49,7 @@ export function FormularioOperacion({
       ocultos={{ idempotencia: randomUUID() }}
       prefijo={prefijo}
       tono={tono}
+      extra={extra}
     />
   );
 }

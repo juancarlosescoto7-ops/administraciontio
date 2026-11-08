@@ -41,6 +41,7 @@ const ICONOS: [RegExp, NombreIcono][] = [
   [/vehículo|entrega|devoluci/i, "flota"],
   [/acceso/i, "mas"],
   [/catálogo/i, "configuracion"],
+  [/resultado|ganancia/i, "grafico"],
   [/servicio/i, "servicios"],
   [/membres/i, "membresia"],
 ];

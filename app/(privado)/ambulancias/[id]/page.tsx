@@ -1,10 +1,10 @@
-import { GastosServicio } from "@/components/finanzas/gastos-servicio";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 import { requerirUsuario } from "@/lib/auth/sesion";
 import { puede } from "@/lib/auth/roles";
 import type { Opcion } from "@/lib/catalogos/definiciones";
+import { camposKmSalida, formatearKm } from "@/lib/flota/definiciones";
 import { esUuid } from "@/lib/catalogos/presentacion";
 import {
   ajustarDuracion,
@@ -34,9 +34,11 @@ import {
 import { aFechaHoraLocal, formatearFecha, formatearFechaHora, formatearMoneda } from "@/lib/formato";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/tipos-bd";
+import { ResultadoServicio } from "@/components/bonos/resultado-servicio";
 import { Cargando, Encabezado } from "@/components/encabezado";
 import type { ParametrosBusqueda } from "@/components/finanzas/filtros";
 import { AvisoOperacion, FormularioOperacion } from "@/components/finanzas/operaciones";
+import { PreguntaSaldoAFavor } from "@/components/finanzas/pregunta-saldo";
 import { Datos, ResumenImportes, Seccion } from "@/components/finanzas/resumen";
 import { Tabla } from "@/components/finanzas/tabla";
 import { InsigniaCobertura, InsigniaFinanciera, InsigniaTraslado } from "@/components/ambulancias/insignias";
@@ -60,7 +62,9 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
   const { data: t } = await supabase.from("saldos_traslados").select("*").eq("id", id).maybeSingle();
   if (!t || !t.estado || !t.tipo || !t.cliente_id || !t.inicio_previsto || !t.minutos_estimados) notFound();
 
-  const [{ data: reservas }, { data: saldo }, { data: recursos }, { data: avisos }, { data: historial }, { data: membresia }] = await Promise.all([
+  const sinIniciar = t.estado === "solicitado" || t.estado === "programado";
+  const [{ data: reservas }, { data: saldo }, { data: recursos }, { data: avisos }, { data: historial }, { data: membresia }, { data: km }, { data: kmEsperado }] =
+    await Promise.all([
     supabase
       .from("reservas_beneficio")
       .select("id, estado, periodo_inicio, periodo_id, fecha_servicio, motivo_liberacion, created_at, consumida_en, liberada_en")
@@ -72,6 +76,11 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
     supabase.rpc("historial_traslado", { p_traslado_id: id }),
     t.membresia_id
       ? supabase.from("saldos_membresias").select("id, plan_nombre, estado").eq("id", t.membresia_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase.from("traslados_ambulancia").select("km_salida, km_llegada, motivo_descuadre_km").eq("id", id).maybeSingle(),
+    // Lectura esperada al salir: la última llegada registrada de la ambulancia.
+    sinIniciar && t.vehiculo_id
+      ? supabase.rpc("kilometraje_vehiculo", { p_vehiculo_id: t.vehiculo_id })
       : Promise.resolve({ data: null }),
   ]);
 
@@ -106,6 +115,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
         parametros={parametros}
         mensajes={{
           guardado: "Solicitud registrada.",
+          gastos: "Bonos y gastos registrados.",
           programado: "Traslado programado.",
           recursos: "Recursos actualizados.",
           reprogramado: "Traslado reprogramado.",
@@ -114,6 +124,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
           revalidado: "Cobertura revalidada.",
           iniciado: "Traslado iniciado.",
           completado: "Traslado completado.",
+          aplicado: "Saldo a favor aplicado.",
           cancelado: "Traslado cancelado.",
           convertido: "El traslado pasó a ser particular.",
           revertido: "Beneficio devuelto al período.",
@@ -129,7 +140,22 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
 
       {(acciones.programar || acciones.iniciar || acciones.revalidar) && (
         <div className="mb-6 flex flex-wrap gap-3">
-          {acciones.iniciar && <BotonAccion accion={iniciarTraslado.bind(null, id)} texto="Iniciar traslado" />}
+          {acciones.iniciar && (
+            <Desplegable titulo="Iniciar traslado">
+              <p className="mb-4 text-sm texto-tenue">
+                Registre el kilometraje de la ambulancia al salir. Ya viene la última llegada registrada; si el odómetro marca otra
+                cifra, corríjala e indique el motivo.
+              </p>
+              <FormularioOperacion
+                campos={camposKmSalida(kmEsperado ?? null)}
+                accion={iniciarTraslado.bind(null, id)}
+                textoEnviar="Confirmar inicio"
+                registro={{ km_salida: kmEsperado ?? null, motivo_descuadre_km: null }}
+                prefijo="iniciar-"
+                tono="exito"
+              />
+            </Desplegable>
+          )}
           {acciones.programar && <BotonAccion accion={programarTraslado.bind(null, id)} texto="Programar" />}
           {acciones.revalidar && <BotonAccion accion={revalidarCobertura.bind(null, id)} texto="Revalidar cobertura" />}
         </div>
@@ -163,8 +189,23 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
             [t.inicio_real ? "Fin estimado (desde el inicio real)" : "Fin estimado", formatearFechaHora(finEstimado)],
             ["Inicio real", formatearFechaHora(t.inicio_real)],
             ["Fin real", formatearFechaHora(t.fin_real)],
-            ["Ambulancia", t.vehiculo_codigo ?? "Sin asignar"],
+            [
+              "Ambulancia",
+              t.vehiculo_id ? (
+                <Link key="v" href={`/flota/${t.vehiculo_id}`} className="text-enlace hover:underline">{t.vehiculo_nombre}</Link>
+              ) : (
+                "Sin asignar"
+              ),
+            ],
             ["Conductor", t.conductor_nombre ?? "Sin asignar"],
+            ...(km?.km_salida != null
+              ? ([
+                  ["Kilometraje de salida", formatearKm(km.km_salida)],
+                  ["Kilometraje de llegada", formatearKm(km.km_llegada)],
+                  ...(km.km_llegada != null ? ([["Recorrido", formatearKm(km.km_llegada - km.km_salida)]] as [string, string][]) : []),
+                ] as [string, string][])
+              : []),
+            ...(km?.motivo_descuadre_km ? ([["Descuadre de kilometraje", km.motivo_descuadre_km]] as [string, string][]) : []),
             ...(t.notas_finales ? ([["Observaciones finales", t.notas_finales]] as [string, string][]) : []),
           ]}
         />
@@ -255,6 +296,18 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
                 </Link>
               )}
             </p>
+            {t.cargo_id && (
+              <PreguntaSaldoAFavor
+                cargoId={t.cargo_id}
+                concepto="Traslado de ambulancia particular"
+                vigente={t.cargo_estado === "vigente"}
+                pendiente={t.pendiente}
+                aFavor={aFavor}
+                rol={usuario.rol}
+                volver={`/ambulancias/${id}`}
+                recienAplicado={parametros.aplicado === "1"}
+              />
+            )}
             {!t.cargo_id && t.estado !== "cancelado" && (
               <p className="text-sm texto-tenue">El cargo se genera al completar el servicio, por el precio pactado. Los anticipos quedan como saldo a favor.</p>
             )}
@@ -267,6 +320,22 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
         )}
       </Seccion>
 
+      <ResultadoServicio
+        tipo="traslado"
+        id={id}
+        rol={usuario.rol}
+        conductorId={t.conductor_id}
+        estimado={
+          t.estado === "cancelado"
+            ? null
+            : t.tipo === "cubierto"
+              ? { monto: 0, nota: "Traslado cubierto por la membresía: su ingreso está en las cuotas." }
+              : { monto: t.precio_pactado, nota: "Precio pactado: se convierte en cargo al finalizar el traslado." }
+        }
+        abierta={parametros.gastos === "1"}
+        recomendacion={parametros.completado === "1" ? { titulo: "Traslado finalizado: resultado del servicio", parametro: "completado" } : null}
+      />
+
       {acciones.finalizar && (
         <Seccion titulo="Finalizar">
           <div className="tarjeta p-4 sm:p-6">
@@ -276,7 +345,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
                 : "Consume el beneficio reservado de la membresía. No genera cargo."}
             </p>
             <FormularioOperacion
-              campos={camposFinalizar(particular && aFavor > 0)}
+              campos={camposFinalizar(particular && aFavor > 0, km?.km_salida ?? null)}
               accion={finalizarTraslado.bind(null, id, particular && aFavor > 0)}
               textoEnviar="Finalizar traslado"
               tono="exito"
@@ -339,7 +408,6 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       <Seccion titulo="Historial">
         <Historial eventos={historial} acciones={ACCIONES} describir={describirEvento} />
       </Seccion>
-      <GastosServicio tipo="traslado" id={id} rol={usuario.rol} conductorId={t.conductor_id} />
     </>
   );
 }
@@ -366,8 +434,10 @@ function describirEvento(accion: string, despues: Json): string | null {
       return `Nueva condición: ${String(d.condicion_cobertura).replace("_", " ")}.`;
     case "reprogramar_traslado":
       return `Nueva hora: ${formatearFechaHora(String(d.inicio_previsto))} (${d.minutos_estimados} min).`;
+    case "iniciar_traslado":
+      return d.km_salida != null ? `Kilometraje de salida ${formatearKm(Number(d.km_salida))}.` : null;
     case "finalizar_traslado":
-      return d.beneficio_consumido ? "Se consumió el beneficio de la membresía." : `Cargo generado${d.anticipo_aplicado ? `, saldo a favor aplicado ${formatearMoneda(String(d.anticipo_aplicado))}` : ""}.`;
+      return (d.km_llegada != null ? `Llegada ${formatearKm(Number(d.km_llegada))}. ` : "") + (d.beneficio_consumido ? "Se consumió el beneficio de la membresía." : `Cargo generado${d.anticipo_aplicado ? `, saldo a favor aplicado ${formatearMoneda(String(d.anticipo_aplicado))}` : ""}.`);
     case "convertir_a_particular":
       return `Precio pactado: ${formatearMoneda(String(d.precio_pactado))}.`;
     default:

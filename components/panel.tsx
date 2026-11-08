@@ -240,7 +240,7 @@ export function LineaTiempo({
                 <span className="flex items-start justify-between gap-2">
                   <span className="text-sm font-semibold">{ETIQUETAS_SERVICIO_PROXIMO[servicio.tipo]}</span>
                   {servicio.codigo && (
-                    <span className="shrink-0 rounded-md border border-borde px-1.5 py-0.5 text-[0.625rem] font-medium texto-tenue">
+                    <span className="min-w-0 rounded-md border border-borde px-1.5 py-0.5 text-right text-[0.625rem] font-medium break-words texto-tenue">
                       {servicio.codigo}
                     </span>
                   )}
@@ -249,7 +249,7 @@ export function LineaTiempo({
                   {[servicio.cliente, servicio.detalle].filter(Boolean).join(" · ") || "—"}
                 </span>
                 <span className="flex flex-wrap gap-1">
-                  {devolucionVencida && <span className="insignia insignia-advertencia">Devolución vencida</span>}
+                  {devolucionVencida && <span className="insignia insignia-peligro">Devolución vencida</span>}
                   <InsigniaEstado estado={servicio.estado} etiquetas={etiquetas} atencion={atencion} />
                 </span>
               </span>

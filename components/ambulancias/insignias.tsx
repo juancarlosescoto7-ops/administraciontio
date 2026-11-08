@@ -19,7 +19,7 @@ const CLASE_ESTADO: Record<EstadoTraslado, string> = {
 const CLASE_COBERTURA: Record<Cobertura, string> = {
   valida: "insignia-activo",
   pendiente_validacion: "insignia-advertencia",
-  no_valida: "insignia-advertencia",
+  no_valida: "insignia-peligro",
 };
 
 export function InsigniaTraslado({ estado }: { estado: EstadoTraslado | null }) {

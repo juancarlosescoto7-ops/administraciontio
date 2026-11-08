@@ -1,5 +1,6 @@
 import type { Campo, Opcion } from "@/lib/catalogos/definiciones";
 import { puede, type Rol } from "@/lib/auth/roles";
+import { camposKmSalida } from "@/lib/flota/definiciones";
 import type { Database } from "@/lib/supabase/tipos-bd";
 
 type Enums = Database["public"]["Enums"];
@@ -89,11 +90,14 @@ export function camposModificar(vehiculos: readonly Opcion[]): Campo[] {
   ];
 }
 
-export function camposEntrega(): Campo[] {
+/** esperado: última llegada registrada del vehículo (la salida debe coincidir). */
+export function camposEntrega(esperado: number | null = null): Campo[] {
+  const [km, motivo] = camposKmSalida(esperado);
   return [
-    { nombre: "km", etiqueta: "Kilometraje de salida", tipo: "entero", requerido: true, min: 0, max: 9_999_999 },
+    { ...km, nombre: "km", predeterminado: esperado === null ? undefined : String(esperado) },
     { nombre: "combustible", etiqueta: "Combustible de salida", tipo: "seleccion", requerido: true, opciones: OPCIONES_COMBUSTIBLE },
     { nombre: "notas", etiqueta: "Observaciones de entrega", tipo: "texto_largo", max: 1000 },
+    motivo,
   ];
 }
 

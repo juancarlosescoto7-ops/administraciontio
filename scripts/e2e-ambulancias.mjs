@@ -40,6 +40,19 @@ await api(adminApi.token, "POST", "rpc/registrar_cobro", {
 const { evaluar, esperar, ruta, texto, ir, llenar, pulsar, capturar, vista, iniciarSesion, cerrar, abrirVentana } = await abrirNavegador();
 const marcar = (selector) => evaluar(`document.querySelector(${JSON.stringify(selector)}).click()`);
 const abrir = (titulo) => abrirVentana(titulo);
+// Inicio con kilometraje (flota): se respeta la última llegada que propone el
+// formulario; si el vehículo no tiene recorridos, se usa 1000. Devuelve la salida.
+const iniciarConKm = async (titulo) => {
+  await abrir(titulo);
+  await visible("#campo-iniciar-km_salida");
+  let km = Number(await evaluar("document.querySelector('#campo-iniciar-km_salida').value") || 0);
+  if (!km) {
+    km = 1000;
+    await llenar("#campo-iniciar-km_salida", String(km));
+  }
+  await pulsar("Confirmar inicio");
+  return km;
+};
 const visible = (selector) => esperar(`document.querySelector(${JSON.stringify(selector)})?.checkVisibility()`);
 const faltan = async (...fragmentos) => {
   const actual = await texto();
@@ -84,11 +97,12 @@ try {
   const detalle = await faltan("Programado", "Cobertura válida", "Beneficio reservado", codigo, "no genera cargo");
   comprobar("detalle: programado, cobertura válida con beneficio reservado y recursos asignados", detalle.length === 0, detalle.join(" | "));
 
-  await pulsar("Iniciar traslado");
+  const kmCubierto = await iniciarConKm("Iniciar traslado");
   comprobar("iniciar: en curso con hora real",
     (await esperar("document.body.innerText.includes('Traslado iniciado')", 20000)) && (await faltan("En curso", "Inicio real")).length === 0);
   await visible("#campo-finalizar-notas_finales");
   await llenar("#campo-finalizar-notas_finales", `${MARCA} paciente entregado`);
+  await llenar("#campo-finalizar-km_llegada", String(kmCubierto + 15));
   await pulsar("Finalizar traslado");
   const fin = await esperar("document.body.innerText.includes('Traslado completado.')", 20000);
   const consumido = await faltan("Completado", "Beneficio consumido", "paciente entregado");
@@ -112,8 +126,9 @@ try {
     await esperar("location.pathname.startsWith('/ambulancias/') && document.body.innerText.includes('Solicitud registrada')", 20000));
   const rutaParticular = (await ruta()).split("?")[0];
   comprobar("detalle particular: sin asignar y sin cargo todavía", (await faltan("Sin asignar", "Sin cargo todavía", L("1,200.00"))).length === 0);
-  await pulsar("Iniciar traslado");
+  await iniciarConKm("Iniciar traslado");
   comprobar("no se inicia sin destino ni recursos (mensaje claro)", await esperar("document.body.innerText.includes('Indique el destino antes de iniciar')"));
+  await evaluar("document.querySelector('dialog[open] button[aria-label^=\"Cerrar\"]')?.click()");
 
   await abrir("Editar datos");
   await llenar("#campo-editar-destino", "Hospital San Felipe");
@@ -125,9 +140,10 @@ try {
   await pulsar("Guardar recursos");
   comprobar("asignar recursos después de registrar",
     (await esperar("document.body.innerText.includes('Recursos actualizados')", 20000)) && (await texto()).includes(codigo));
-  await pulsar("Iniciar traslado");
+  const kmParticular = await iniciarConKm("Iniciar traslado");
   await esperar("document.body.innerText.includes('Traslado iniciado')", 20000);
   await visible("#campo-finalizar-aplicar_anticipo");
+  await llenar("#campo-finalizar-km_llegada", String(kmParticular + 15));
   await llenar("#campo-finalizar-aplicar_anticipo", "500");
   await pulsar("Finalizar traslado");
   await esperar("document.body.innerText.includes('Traslado completado.')", 20000);

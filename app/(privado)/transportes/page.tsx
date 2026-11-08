@@ -56,13 +56,13 @@ async function Listado({ searchParams }: { searchParams: ParametrosBusqueda }) {
   const activos = filtros.estado === "activos";
   let consulta = supabase
     .from("saldos_transportes")
-    .select("id, inicio_previsto, cliente_nombre, origen, destino, vehiculo_codigo, conductor_nombre, estado, precio_pactado, pendiente, estado_financiero")
+    .select("id, inicio_previsto, cliente_nombre, origen, destino, vehiculo_nombre, conductor_nombre, estado, precio_pactado, pendiente, estado_financiero")
     .order("inicio_previsto", { ascending: activos })
     .limit(LIMITE_LISTADO + 1);
   if (activos) consulta = consulta.in("estado", ESTADOS_ACTIVOS_TRANSPORTE as EstadoTransporte[]);
   else if (filtros.estado !== "todos") consulta = consulta.eq("estado", filtros.estado as EstadoTransporte);
   if (filtros.busqueda) {
-    consulta = consulta.or(filtroBusqueda(["cliente_nombre", "origen", "destino", "vehiculo_codigo", "conductor_nombre"], filtros.busqueda));
+    consulta = consulta.or(filtroBusqueda(["cliente_nombre", "origen", "destino", "vehiculo_nombre", "conductor_nombre"], filtros.busqueda));
   }
   if (filtros.desde) consulta = consulta.gte("inicio_previsto", momentoDesdeLocal(`${filtros.desde}T00:00`));
   if (filtros.hasta) consulta = consulta.lte("inicio_previsto", momentoDesdeLocal(`${filtros.hasta}T23:59`));
@@ -83,7 +83,7 @@ async function Listado({ searchParams }: { searchParams: ParametrosBusqueda }) {
             { clave: "fecha", etiqueta: "Fecha y hora", celda: (f) => formatearFechaHora(f.inicio_previsto) },
             { clave: "cliente", etiqueta: "Cliente", celda: (f) => f.cliente_nombre },
             { clave: "ruta", etiqueta: "Origen → destino", celda: (f) => `${f.origen} → ${f.destino}` },
-            { clave: "vehiculo", etiqueta: "Vehículo", celda: (f) => f.vehiculo_codigo ?? "Sin asignar" },
+            { clave: "vehiculo", etiqueta: "Vehículo", celda: (f) => f.vehiculo_nombre ?? "Sin asignar" },
             { clave: "conductor", etiqueta: "Conductor", celda: (f) => f.conductor_nombre ?? "Sin asignar" },
             {
               clave: "estado",

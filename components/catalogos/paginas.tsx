@@ -15,9 +15,10 @@ import {
 } from "@/lib/catalogos/presentacion";
 import { tablaCatalogo, type Fila } from "@/lib/catalogos/tabla";
 import { filtroBusqueda, limpiarBusqueda, valoresDesdeRegistro } from "@/lib/catalogos/validacion";
-import { formatearFechaHora, hoyEnTegucigalpa } from "@/lib/formato";
+import { formatearFechaHora, formatearMoneda, hoyEnTegucigalpa } from "@/lib/formato";
 import { createClient } from "@/lib/supabase/server";
 import { Cargando, Encabezado, EstadoVacio, InsigniaEstado, SinPermiso } from "@/components/encabezado";
+import { InsigniaVehiculo } from "@/components/flota/insignias";
 import { Desplegable } from "@/components/operaciones";
 import { Notificacion } from "@/components/notificacion";
 import { Plegable } from "@/components/plegable";
@@ -88,6 +89,7 @@ async function ContenidoListado({
 
   const filas = ((data ?? []) as unknown as Fila[]).slice(0, LIMITE_LISTADO);
   const hayMas = (data?.length ?? 0) > LIMITE_LISTADO;
+  const conPendiente = def.clave === "clientes" ? await clientesConPendiente(filas.map((f) => f.id)) : new Set<string>();
 
   return (
     <>
@@ -135,7 +137,7 @@ async function ContenidoListado({
           }
         />
       ) : (
-        <ListadoFilas def={def} filas={filas} />
+        <ListadoFilas def={def} filas={filas} conPendiente={conPendiente} />
       )}
 
       <p className="mt-3 text-sm texto-tenue">
@@ -147,12 +149,21 @@ async function ContenidoListado({
   );
 }
 
+/** Clientes del listado con algún cargo pendiente de pago (su fila va en rojo). */
+async function clientesConPendiente(ids: string[]): Promise<Set<string>> {
+  if (ids.length === 0) return new Set();
+  const supabase = await createClient();
+  const { data } = await supabase.from("saldos_clientes").select("cliente_id").in("cliente_id", ids).gt("pendiente", 0);
+  return new Set((data ?? []).map((s) => s.cliente_id!));
+}
+
 function Celda({ def, fila, campo }: { def: DefinicionCatalogo; fila: Fila; campo: string }) {
   if (campo === "activo") return <InsigniaEstado activo={fila.activo} />;
+  if (def.clave === "vehiculos" && campo === "estado") return <InsigniaVehiculo estado={fila.estado as string | null} />;
   return <>{mostrarValor(buscarCampo(def, campo), fila[campo])}</>;
 }
 
-function ListadoFilas({ def, filas }: { def: DefinicionCatalogo; filas: Fila[] }) {
+function ListadoFilas({ def, filas, conPendiente }: { def: DefinicionCatalogo; filas: Fila[]; conPendiente: Set<string> }) {
   const [principal, ...resto] = def.columnas;
   return (
     <>
@@ -160,7 +171,10 @@ function ListadoFilas({ def, filas }: { def: DefinicionCatalogo; filas: Fila[] }
       <ul className="flex flex-col gap-2 sm:hidden">
         {filas.map((fila) => (
           <li key={fila.id}>
-            <Link href={`${def.ruta}/${fila.id}`} className="tarjeta tarjeta-enlace flex flex-col gap-1 p-4">
+            <Link
+              href={`${def.ruta}/${fila.id}`}
+              className={`tarjeta tarjeta-enlace${conPendiente.has(fila.id) ? " fila-alerta" : ""} flex flex-col gap-1 p-4`}
+            >
               <span className="flex items-start justify-between gap-2">
                 <span className="font-medium break-words">
                   <Celda def={def} fila={fila} campo={principal.campo} />
@@ -193,7 +207,7 @@ function ListadoFilas({ def, filas }: { def: DefinicionCatalogo; filas: Fila[] }
           </thead>
           <tbody>
             {filas.map((fila) => (
-              <tr key={fila.id}>
+              <tr key={fila.id} className={conPendiente.has(fila.id) ? "fila-alerta" : undefined}>
                 {def.columnas.map((columna, indice) => (
                   <td key={columna.campo}>
                     {indice === 0 ? (
@@ -287,16 +301,38 @@ async function ContenidoDetalle({
   if (!data) notFound();
   const fila = data as unknown as Fila;
   const editable = puedeEditar(def.clave, usuario.rol);
+  const pendiente =
+    def.clave === "clientes"
+      ? Number((await supabase.from("saldos_clientes").select("pendiente").eq("cliente_id", id).maybeSingle()).data?.pendiente ?? 0)
+      : 0;
 
   return (
     <>
       <Encabezado
         titulo={String(fila[def.campoTitulo] ?? def.singular)}
-        descripcion={<InsigniaEstado activo={fila.activo} />}
+        descripcion={
+          def.clave === "vehiculos" ? (
+            <span className="inline-flex flex-wrap gap-1.5">
+              <InsigniaVehiculo estado={fila.estado as string | null} />
+              <InsigniaEstado activo={fila.activo} />
+            </span>
+          ) : (
+            <InsigniaEstado activo={fila.activo} />
+          )
+        }
         volver={{ href: def.ruta, etiqueta: def.titulo }}
       />
 
       {guardado === "1" && <Notificacion mensaje="Datos guardados correctamente." />}
+
+      {pendiente > 0 && (
+        <p role="status" className="aviso aviso-error mb-4 text-sm">
+          Este cliente tiene cargos pendientes por {formatearMoneda(pendiente)}.{" "}
+          <Link href={`/finanzas/pendientes/${id}`} className="font-medium underline">
+            Ver estado de cuenta
+          </Link>
+        </p>
+      )}
 
       {/* Ficha en lectura y edición, ambas plegadas hasta que se necesiten. */}
       <Plegable titulo="Datos">
@@ -309,7 +345,7 @@ async function ContenidoDetalle({
                   {campo.nombre === "activo" ? (
                     <InsigniaEstado activo={fila.activo} />
                   ) : (
-                    mostrarValor(campo, fila[campo.nombre])
+                    <Celda def={def} fila={fila} campo={campo.nombre} />
                   )}
                 </dd>
               </div>

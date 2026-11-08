@@ -1,5 +1,298 @@
 # Estado del proyecto
 
+## Bonos por servicio, vouchers y resultado del servicio (2026-11-05)
+
+**Solicitud:** dar un bono a un empleado o prestador con cada servicio vendido, pagarlo en el momento de registrar el servicio o dejarlo pendiente, generar un voucher del pago, y que el módulo muestre «tienes este ingreso, le restas estos gastos y te queda esto». Registrado en el §16 de `ESPECIFICACION_MAESTRA.md`. No se inicia E7.
+
+**Decisiones del propietario:**
+1. «Por ahora el mismo usuario»: quien registra el servicio (también el operador) registra y paga sus bonos y gastos.
+2. Categoría «Bonos».
+3. Ingreso estimado (precio pactado) mientras no hay cargo.
+4. Voucher con numeración propia.
+
+### Funcionalidad
+
+- **Al registrar** un alquiler, un viaje con chofer, un traslado (cubierto o particular) o una membresía: sección «Bonos y gastos de este servicio» dentro del mismo formulario.
+  - «+ Agregar bono» y «+ Agregar otro gasto». Cada línea lleva tipo (Bonos primero), a quién (empleados, conductores, proveedores y prestadores), concepto, importe y «Pagarlo ahora» (caja o banco, método, referencia) o «Dejarlo pendiente».
+  - Resumen en vivo: ingreso (lee el precio escrito en el formulario) − bonos y gastos = «Le queda (ganancia)», con lo pagado ahora y lo pendiente. En membresías se usa la cuota mensual del plan.
+  - Todas las líneas se validan antes de guardar el servicio y se registran juntas en una transacción (todas o ninguna). Si el servicio se guarda pero las líneas fallan, el mensaje lo dice y el mismo formulario se puede reenviar: las claves de idempotencia impiden duplicar el servicio, los gastos y los pagos.
+- **En la ficha del servicio**, nueva sección fija «Resultado del servicio» (sustituye a «Gastos de este servicio»):
+  - Ingreso: el cargo al cliente si ya existe; si no, el precio pactado marcado como estimado. En membresías, las cuotas emitidas. Un traslado cubierto se muestra con ingreso directo 0 («su ingreso está en las cuotas»). Si el servicio se canceló, el ingreso es 0.
+  - Cada bono o gasto con destinatario y estado (Pagado / Abonado · Pendiente / Anulado, tachado y fuera del total).
+  - «Le ganaste» (o «Ganancia estimada»), en rojo si es negativa, más lo cobrado al cliente, lo pagado y lo que falta por pagar.
+  - Botones «+ Agregar bono o gasto» y, si el servicio tiene conductor, «Bono al conductor».
+  - «Pagar» en cada pendiente: total o abono parcial, y abre el voucher.
+  - Un enlace «Voucher V-000123» por cada pago.
+- **Voucher** (`/comprobantes/[id]`), imprimible o guardable como PDF:
+  - Logotipo, número consecutivo, fecha, importe en cifras y en letras («Quinientos lempiras con 00/100»).
+  - Pagado a (empleado, conductor o proveedor), concepto, tipo, servicio de origen con enlace, forma de pago, caja o banco, estado del gasto, quién lo registró.
+  - Firmas «Entregado por» y «Recibí conforme».
+  - Si el pago se reversa, aparece «Pago reversado: este voucher no es válido». También se enlaza desde la tabla de pagos de Finanzas › Gastos.
+- **Gastos generales** (Finanzas › Registrar gasto): un empleado o conductor puede recibir ahora Salarios o Bonos.
+
+#### Ajuste del 2026-11-07: resultado como barra y recomendación al finalizar
+
+- «Resultado del servicio» deja de ser una sección fija: es una barra plegable más, como «Datos del servicio», «Cobros» o «Cambios», con ícono de gráfico y la ganancia visible aun cerrada («Ganancia: L 3,700.00»). Va después de «Cobros» (alquiler y viaje), de «Datos financieros» (traslado) y de «Mensualidades» (membresía). Se abre sola al volver de agregar un bono.
+- **Recomendación flotante** (`components/bonos/recomendacion.tsx`): al registrar la devolución del alquiler (`?devuelto=1`), completar el viaje o el traslado (`?completado=1`) o vender la membresía (`?guardado=1`, opción confirmada por el propietario), aparece una ventana con ingreso, cada bono o gasto y «Le ganaste» (o «Ganancia estimada»). Ofrece tres opciones:
+  - «+ Agregar bono o gasto»: el mismo formulario, dentro de la ventana.
+  - «Ver resultado»: cierra y lleva a la barra, que ya está abierta.
+  - «Ahora no».
+- Sale una sola vez: al abrirse quita el parámetro de la dirección, así que recargar no la repite. Solo la ven los roles que pueden agregar bonos.
+- Pruebas: `npm test` **168/168** (nuevo `components/bonos/recomendacion.test.ts`), typecheck, lint y `next build` en copia temporal OK. Sin cambios de base de datos. El recorrido con sesión sigue sin ejecutarse por falta de `E2E_CREDENCIALES`.
+
+### Migración
+
+| Versión | Contenido | MD5 (SQL aplicado = archivo) |
+|---|---|---|
+| `20261105234321_bonos_vouchers_resultado_servicio.sql` | Cuenta 5350 «Gasto de bonos» y categoría «Bonos». `registrar_gasto`, `registrar_gasto_servicio` y `registrar_gasto_personal` pasan a ser envoltorios con el mismo control de rol sobre núcleos privados (`private.*_base`, cuerpos idénticos; el personal acepta Salarios o Bonos). RPC `registrar_gastos_de_servicio` (lote atómico; la actividad sale del servicio; un bono exige destinatario) y `registrar_pago_gasto_servicio` (solo gastos ligados a un servicio). Tabla `comprobantes_pago`: número consecutivo sin saltos por trigger en la misma transacción del pago, los 7 pagos anteriores numerados por orden, inmutable y sin borrado. RLS de lectura para el operador limitada a gastos de servicio, sus pagos, vouchers y destinatarios, y a los empleados. Vista `gastos_de_servicio` (`security_invoker`) | `5e9d76ba688ec3749d3b770e06518ec7` |
+
+- Aplicada solo en desarrollo `cgohbizokewvivxmvbij`; tipos regenerados por MCP.
+- **Limpieza:** `comprobantes_pago` se clasificó como operación en `scripts/limpiar-operaciones-desarrollo.sql` y en su verificación (28 tablas).
+- **Permisos:** el operador sigue sin ver gastos generales, asientos, movimientos ni saldos de caja. Tampoco anula ni reversa. Nuevo permiso de la app: `gestionarGastosServicio` (los tres roles).
+
+### Pruebas
+
+- `npm run typecheck` OK, `eslint` sin avisos, `npm test` **166/166**:
+  - `lib/bonos/bonos.test.ts`: lectura y validación de líneas, totales en centavos, ganancia, número de voucher, importe en letras y permisos.
+  - `components/bonos/lineas-gasto.test.ts`: render del editor, campo oculto, controles fuera del formulario y resumen.
+- `next build` OK (Turbopack) en una copia temporal del árbol, sin tocar el `next dev` del usuario en :3000. Copia eliminada después. Las rutas nuevas responden en el servidor del usuario (redirigen a inicio de sesión).
+- `scripts/verificar-bonos.sql`, **33 comprobaciones**, en PGlite (`node scripts/verificar-bonos-local.mjs`, con la regresión de servicios 38/38 y personal 21/21) y en desarrollo dentro de una transacción revertida:
+  - El operador registra un bono pagado y un gasto pendiente en una operación; voucher consecutivo.
+  - Reintento sin duplicar gasto, pago ni voucher.
+  - Todo o nada; bono sin destinatario, lista vacía y servicio inexistente rechazados.
+  - Abono posterior con el voucher siguiente; sobrepago rechazado.
+  - El operador no paga ni registra gastos generales ni ve su contenido. Ve exactamente los vouchers de servicio y no ve asientos.
+  - Asiento del bono en 5350; asientos cuadrados.
+  - Bono a conductor desde Gastos; categoría errónea para el personal rechazada; voucher inmutable.
+  - Después se comprobó: 7 vouchers (1–7), sin datos ficticios.
+- `verificar-limpiar-operaciones.mjs` aprobado (28 tablas vacías, 14 catálogos idénticos) y `verificar-bienes-local.mjs` aprobado.
+- Se ajustaron dos afirmaciones de pruebas anteriores que exigían que el operador no viera nada de gastos (`verificar-servicios-contrato.sql` n.º 16 y `verificar-personal.sql`). Ahora comprueban la regla nueva: ve los gastos de servicio y los empleados, no los generales.
+- Asesores de seguridad: sin errores; solo el patrón ya existente de funciones `SECURITY DEFINER` con control de rol interno (incluye las dos RPC nuevas) y la protección de contraseñas filtradas.
+- **No ejecutado:** recorrido en navegador con sesión iniciada; no hay `E2E_CREDENCIALES` en esta sesión. Recorrido manual sugerido:
+  1. Nueva reserva de alquiler: escribir el precio › «+ Agregar bono» a un empleado con «Pagarlo ahora» y otro gasto pendiente › ver el resumen › confirmar.
+  2. En la ficha, «Resultado del servicio» › «Pagar» en el pendiente › voucher › «Imprimir o guardar PDF».
+
+### Defectos encontrados y corregidos
+
+- El importe en letras escribía «veintiun» (orden de las sustituciones); lo detectó la prueba unitaria.
+- La primera ejecución en la nube de la prueba SQL fallaba porque contaba solo los vouchers propios, y en desarrollo ya había 5 pagos de servicio que el operador debe ver. Era una afirmación de la prueba, no un defecto: ahora compara con todos los pagos de servicio.
+
+### Límites
+
+- El estado «pagado/pendiente» y el resultado son actuales, no a una fecha pasada.
+- El resultado del servicio no reparte gastos generales ni la depreciación.
+- El voucher es un comprobante interno, no una factura fiscal.
+- El bono no se calcula solo (no hay porcentajes ni comisiones automáticas): lo indica el usuario.
+- Sin commit.
+
+## Bienes de la empresa en los estados financieros (2026-11-04)
+
+**Solicitud:** «un módulo para registrar bienes de la empresa (vehículos, terrenos, edificios, muebles, mobiliario…) y que aparezcan reflejados en los estados financieros». Amplía el alcance: se registró en el §16 de `ESPECIFICACION_MAESTRA.md`. Es un registro de activos fijos, no un inventario. No se inicia E7.
+
+**Decisiones del propietario** (consultadas porque afectan dinero y contabilidad):
+1. Tres formas de ingreso: *ya era de la empresa*, *compra de contado* y *compra a crédito*.
+2. Depreciación lineal mensual.
+3. Baja con motivo.
+4. Registran y consultan administrador y finanzas.
+
+### Funcionalidad
+
+- **Menú** Finanzas › «Bienes de la empresa» (`/finanzas/bienes`, solo administrador y finanzas):
+  - Listado con totales de los bienes en uso: costo, depreciación acumulada, valor en libros y saldo por pagar.
+  - Filtros por estado (en uso, con saldo por pagar, dados de baja, anulados), clase, búsqueda y fechas.
+- **Registrar bien** (`/finanzas/bienes/nuevo`):
+  - Datos: nombre, clase (terreno, edificio, vehículo, mobiliario y enseres, maquinaria y equipo, otro), descripción, actividad a la que se carga la depreciación y, opcionalmente, el vehículo del catálogo (un vehículo solo se registra una vez).
+  - **Ya era de la empresa:** asiento D bien / H 3100 Capital y saldos iniciales; no mueve caja. Admite una fecha de incorporación a los libros y la depreciación acumulada hasta entonces (D bien / H 1600 / H 3100). La fecha de adquisición original puede ser anterior a 2000.
+  - **Compra de contado:** D bien / H 2110, y el pago completo el mismo día (D 2110 / H caja o banco, con su movimiento de egreso).
+  - **Compra a crédito:** D bien / H 2110, con proveedor y vencimiento opcionales y un abono inicial opcional.
+  - La compra **no es gasto**: el gasto es la depreciación.
+- **Depreciación lineal mensual:**
+  - Cuota = (costo − residual) / vida útil, redondeada a centavos. La última cuota absorbe el redondeo: por ejemplo, 1,000 − 100 en 7 meses son seis cuotas de 128.57 y una de 128.58.
+  - Empieza el mes siguiente al registro. Un asiento por bien y mes cumplido, fechado el último día del mes (D 5600 / H 1600), en la actividad del bien. Termina al llegar al valor residual. Los terrenos no se deprecian.
+  - Un bien registrado con fecha pasada recibe de una vez las cuotas ya cumplidas.
+  - Sin cron: `public.actualizar_depreciaciones()` es idempotente (UNIQUE bien + mes). Se lanza por POST desde el navegador al abrir el panel, Bienes o Reportes, como las mensualidades.
+- **Ficha del bien:**
+  - Importes, datos y pagos de la compra (registrar pago; reverso con motivo, solo el administrador).
+  - Cuotas de depreciación, edición limitada (nombre y descripción, con bitácora) y asientos.
+  - **Dar de baja** (fecha, motivo y confirmación): registra las cuotas cumplidas hasta la fecha; luego D 1600 acumulada, D 5700 valor en libros / H bien. Lo que se deba de la compra sigue pendiente. No se puede fechar antes de una cuota ya registrada.
+  - **Anular** (solo el administrador, registro equivocado y sin pagos confirmados): reversa el asiento del bien y el de cada cuota.
+- **Estados financieros** (sin cambios en la interfaz de reportes; todo sale del libro):
+  - Situación financiera: las cuentas 1510–1590 por clase, 1600 restando dentro del activo y 2110 en el pasivo.
+  - Resultados: 5600 Gasto por depreciación y 5700 Pérdida por baja, por actividad.
+  - Comprobaciones: se agregaron tres controles, que se verifican a la fecha de hoy: bienes (1510–1590) = costo de los bienes en uso, 1600 = depreciación de los bienes en uso, y 2110 = pendiente de las compras.
+- **Pendientes:** nueva sección «Por pagar por compras de bienes» y su total. El «Por pagar» del panel y de Reportes sigue siendo solo de gastos (2100); las compras a crédito se muestran aparte (2110).
+
+### Migraciones
+
+| Versión | Contenido | MD5 (SQL aplicado = archivo) |
+|---|---|---|
+| `20261104234321_bienes_origenes.sql` | Valores `bien`, `pago_bien`, `depreciacion` y `baja_bien` en `origen_financiero` (separada: un valor de enum no se usa en la transacción que lo crea) | `df99b4d09fe038d264796af15f547770` |
+| `20261104234528_bienes.sql` | 10 cuentas contables nuevas; enums `clase_bien`, `origen_bien` y `estado_bien`; tablas `bienes`, `depreciaciones_bien` y `pagos_bien` (sin borrado ni truncado, documentos protegidos, RLS de solo lectura para administrador y finanzas, índices en todas las FK); trigger `validar_pago_bien` (sin sobrepago); vista `saldos_bienes` (`security_invoker`); RPC `registrar_bien`, `registrar_pago_bien`, `reversar_pago_bien`, `actualizar_depreciaciones`, `dar_de_baja_bien`, `editar_bien` y `anular_bien`; `comprobaciones_financieras` con los controles 8–10 (los 1–7 no cambian) | `4a2bd6efec58eb4fe12da3995fcb3e8a` |
+
+- Aplicadas solo en desarrollo `cgohbizokewvivxmvbij`. Sin instrucciones destructivas ni cambios en funciones de E2–E6 aparte de `comprobaciones_financieras`. Tipos de TypeScript regenerados por MCP.
+- **Comando de limpieza:** `bienes`, `depreciaciones_bien` y `pagos_bien` se clasificaron como operaciones (ahora son 27 tablas) en `scripts/limpiar-operaciones-desarrollo.sql` y en su verificación. Las cuentas contables nuevas son catálogo y se conservan.
+
+### Pruebas
+
+- `npm run typecheck` OK, `eslint` sin avisos, `npm test` **155/155** (nuevo `lib/bienes/bienes.test.ts`: formas de ingreso, pago de contado completo, abonos, datos que no corresponden a la forma elegida y validación de formularios).
+- `scripts/verificar-bienes.sql`: 70 comprobaciones en 13 grupos. Se ejecutó en PGlite antes de aplicar (`node scripts/verificar-bienes-local.mjs`) y en Supabase de desarrollo, dentro de una transacción revertida:
+  - Permisos: el operador no registra ni ve.
+  - Contado con fecha pasada: siete cuotas exactas, asiento del 29/02/2024 y una sola salida de caja.
+  - Idempotencia del bien y del pago.
+  - Ocho validaciones: vehículo repetido, terreno con vida útil, mueble sin vida útil, previa en compra, existente con proveedor, mueble con vehículo, previa + residual > costo y fecha futura.
+  - Crédito: abono parcial, sobrepago, pago anterior a la compra, pago sobre compra pagada.
+  - Finanzas no reversa ni anula.
+  - Edificio de 1995 con depreciación previa (asiento de tres líneas) y terreno sin depreciación.
+  - Cuotas de los meses cumplidos y `actualizar_depreciaciones` sin duplicar; baja anterior a una cuota rechazada.
+  - Edición y baja con su asiento; doble baja y edición tras la baja rechazadas.
+  - Anulaciones con reverso por asiento y bitácora; escritura directa bloqueada; `anon` sin acceso.
+  - Con los datos reales de desarrollo, las **10 comprobaciones cuadran**, los bienes aparecen en la situación financiera y la depreciación en resultados por actividad.
+  - Después se comprobó que no quedaron bienes, cuotas ni usuarios de prueba.
+- Defecto encontrado y corregido antes de aplicar: la última cuota dejaba un mes extra de L 0.01 por redondeo. Además, la prueba ahora toma la fecha de `private.hoy()`, que otras pruebas simulan.
+- Regresión local: `verificar-servicios-local.mjs` 38/38 y 21/21; `verificar-limpiar-operaciones.mjs` aprobado (27 tablas vacías, 14 catálogos idénticos, con datos de bienes sembrados).
+- Asesores: en seguridad, solo el patrón ya existente de funciones `SECURITY DEFINER` con control de rol interno y la protección de contraseñas filtradas; en rendimiento, solo índices aún sin uso (tablas vacías).
+- `next build` **no se ejecutó** porque el `next dev` del usuario estaba activo en :3000. Las rutas nuevas responden en ese servidor (redirigen a inicio de sesión sin sesión).
+- **No ejecutado:** recorrido en navegador con sesión iniciada; no hay `E2E_CREDENCIALES` en esta sesión. Recorrido manual sugerido: Finanzas › Bienes de la empresa › Registrar bien (uno «ya era de la empresa» y una compra a crédito) › abono desde la ficha › Reportes › Situación financiera y Comprobaciones.
+
+### Pendientes y límites
+
+- **Venta de un bien:** la baja registra todo el valor en libros como pérdida. Este módulo no registra el dinero de una venta. Registrarlo como cobro a un cliente lo dejaría como anticipo (2200), no como ingreso. Si hace falta, se decide una «baja por venta» con cuenta de dinero y ganancia o pérdida.
+- La baja no se puede revertir; su confirmación lo advierte.
+- Las anulaciones y reversos restan en la fecha en que se registran (comportamiento de E2).
+- Los controles 8–10 solo se comparan a la fecha de hoy, como los de cuentas por cobrar y por pagar.
+- Informe gerencial: la vida útil y el residual los fija el propietario. No se aplican tablas fiscales de depreciación.
+
+## Vehículos identificados por marca y modelo (2026-11-03)
+
+**Solicitud:** «al momento de seleccionar un vehículo, que aparezca el nombre del vehículo y no la placa»; confirmado después para listados, fichas y panel. El catálogo no tenía un campo de nombre: se usa marca y modelo, con el código interno al final para distinguir dos vehículos del mismo modelo. No se inicia E7.
+
+- **Antes:** «001 · HAU7421» en los selectores y solo «001» en listados. **Ahora:** «HYNDAY STAREX · 001». Sin marca ni modelo, código y placa.
+- **Una sola fuente:** `vehiculos.nombre`, columna generada con `private.nombre_vehiculo` (se recalcula sola al editar código, marca, modelo o placa; el formulario no la escribe).
+- **Selectores:** Alquileres, Transportes y Ambulancias (nuevo y detalle), con su tabla de disponibilidad, vía `disponibilidad_recursos` y `recursos_disponibles`.
+- **Listados y fichas:** columna Vehículo/Ambulancia de Alquileres, Transportes y Ambulancias; título y datos del alquiler; enlace al vehículo en traslados y transportes; listado (columna «Vehículo» en lugar de Código y Marca) y título de la ficha de Vehículos; Flota y su detalle; panel (próximos servicios y Estado de vehículos, con tipo y placa debajo); buscador general. La búsqueda acepta el nombre completo («honda crv»). Las plantillas de contrato conservan `{{vehiculo_codigo}}`.
+- **Migraciones** (aplicadas en desarrollo, idénticas en el repositorio):
+  - `20261103215924_vehiculos_nombre_en_selectores.sql`: crea `private.nombre_vehiculo` y redefine las dos funciones cambiando solo la columna `nombre`; firmas, filtros, permisos y conflictos no cambian.
+  - `20261103220326_vehiculos_nombre_en_listados.sql`: concede a `authenticated` ejecutar esa función pura (la columna generada se evalúa como quien guarda), agrega `vehiculos.nombre` y añade `vehiculo_nombre` al final de `saldos_alquileres`, `saldos_transportes` y `saldos_traslados`, y `nombre` al final de `resumen_flota`, sin tocar el resto de cada vista (siguen con `security_invoker`).
+- `lib/supabase/tipos-bd.ts` regenerado.
+
+### Pruebas
+
+- Con sesión simulada de administrador (transacciones revertidas): las dos funciones devuelven los 4 vehículos operativos como «CHEVROLET MICRO BUS · 007», «HONDA CRV 4X2 EX · 006», «HONDA CRV 4X4 EX · 002» y «HONDA ODYSSEY · 003»; al cambiar la marca del 001 a «HYUNDAI», `vehiculos.nombre` y `resumen_flota` muestran «HYUNDAI STAREX · 001» (revertido: el dato sigue «HYNDAY»); las tres vistas de saldos se leen sin error. Casos límite: sin marca ni modelo, «X1 · ABC123»; solo marca, «TOYOTA · X3». `anon` sigue sin ejecutar las funciones públicas.
+- `npm run typecheck` OK, `eslint` sin avisos, `npm test` **148/148**.
+- **No ejecutado:** recorrido en navegador con sesión iniciada (no hay `E2E_CREDENCIALES` en esta sesión).
+
+## Colores de estado (semáforo) y clientes con cargo pendiente (2026-11-03)
+
+**Solicitud:** identificar con color todos los estados (p. ej., vehículo operativo en verde, en mantenimiento en amarillo, fuera de servicio en rojo) y marcar en rojo, la fila completa, a los clientes con cargo pendiente. Confirmado con el usuario: rojo apenas haya saldo pendiente (no solo vencido); en Alquileres, Transportes, Ambulancias y Membresías **no** se pinta la fila (casi todo servicio en curso tiene saldo). Solo interfaz; sin migración. No se inicia E7.
+
+- **Regla:** verde = bien o al día; amarillo = requiere atención; **rojo (nuevo `.insignia-peligro`)** = problema (fuera de servicio, vencido, no válido, no cuadra, descuadre); azul = en proceso; gris = cerrado o sin efecto.
+- **Filas en rojo (`.fila-alerta`, tabla y tarjeta móvil):** `Tabla` admite `resaltar`. Se usa en Clientes (catálogo, consulta `saldos_clientes` con `pendiente > 0`), Finanzas › Pendientes, Finanzas › Cargos y en los cargos del estado de cuenta del cliente. La ficha del cliente muestra un aviso rojo con el monto pendiente y enlace al estado de cuenta.
+- **Vehículos:** `InsigniaVehiculo` ([components/flota/insignias.tsx](../components/flota/insignias.tsx)) en el panel, el listado y la ficha de Vehículos (antes texto sin color) y en Flota y su detalle. «Fuera de servicio» pasa de gris a rojo; mantenimiento «Vencido», descuadres y el aviso de descuadres, a rojo.
+- **Otras etiquetas a rojo:** membresía o cuota «Vencida» (y el importe de la columna «Vencido» si es mayor que 0), cobro «Vencido» en Reportes, cobertura «No válida», «Devolución vencida» y «No cuadra». A amarillo: cuota «Pendiente» (era gris) y estado de pago «Parcial» en Reportes (era azul).
+
+### Pruebas
+
+- `npm run typecheck` OK, `eslint` sin avisos en `components` y `app/(privado)`, `npm test` **148/148**. El CSS servido por el `next dev` del usuario (`:3000`) ya incluye `insignia-peligro` y `fila-alerta`.
+- **No ejecutado:** recorrido en navegador con sesión iniciada (no hay `E2E_CREDENCIALES` en esta sesión). Datos de desarrollo: 2 vehículos fuera de servicio y 4 operativos; ningún cliente con saldo pendiente, por lo que las filas rojas no se ven hasta registrar un cargo.
+- **Recorrido manual sugerido:** Vehículos (los 2 fuera de servicio en rojo) › Finanzas › Cargos › registrar un cargo a un cliente › Clientes, Pendientes y Cargos deben mostrar la fila en rojo; al cobrarlo completo vuelve a la normalidad.
+
+## Pregunta automática para aplicar saldo a favor (2026-11-03)
+
+**Solicitud:** «cuando el cliente tenga saldo a su favor y se detecte que se le aplicó un cargo, que automáticamente se pregunte si se quiere asignar ese saldo a favor a ese cargo pendiente». Desarrolla la regla del §5 («Al crear un cargo, el operador puede aplicar saldo a favor»), anotada en `ESPECIFICACION_MAESTRA.md`. No se inicia E7. Sin migración: usa `aplicar_saldo_a_favor` de E2.
+
+- **Cuándo pregunta:** el cargo está vigente, tiene pendiente, el cliente tiene saldo a favor y el usuario puede registrar cobros (los tres roles). Al abrir la página aparece sola una ventana «¿Aplicar saldo a favor a este cargo?», con el importe ya escrito: lo menor entre el pendiente y el saldo a favor. Se puede cambiar a una parte.
+- **Dónde:** el detalle del cargo (al registrarlo a mano se llega ahí); el traslado particular, el alquiler y el transporte cuando ya tienen cargo (después de finalizar o devolver); y la membresía, por la cuota pendiente más antigua (las cuotas se generan solas).
+- **Respuestas:** «Sí, aplicar saldo» aplica y vuelve a la misma página con «Saldo a favor aplicado.». «Ahora no» (o Esc, o la X) la cierra y no vuelve a abrirse sola en esa sesión del navegador mientras no cambien el pendiente o el saldo. El botón «Aplicar saldo a favor» queda en la página para abrirla a mano. En el detalle del cargo esta ventana sustituye la antigua sección «Aplicar saldo a favor».
+- **No aplica nada sin confirmación:** la regla de cobros automáticos del 2026-10-28 sigue igual, sin consumir sola anticipos anteriores. El campo opcional de saldo a favor al finalizar o devolver se conserva.
+- **Código:** [components/finanzas/pregunta-saldo.tsx](../components/finanzas/pregunta-saldo.tsx) (condiciones y formulario) y [components/finanzas/pregunta-automatica.tsx](../components/finanzas/pregunta-automatica.tsx) (ventana que se abre sola y recuerda «Ahora no» en `sessionStorage`). `Dialogo` admite `alCerrar`. `aplicarSaldo` recibe la página de regreso y solo acepta detalles de cargo, traslado, alquiler, transporte o membresía.
+
+### Pruebas
+
+- `npm run lint` OK, `npm run typecheck` OK, `npm test` **148/148**. Nuevo `lib/finanzas/aplicar-saldo-acciones.test.ts`: aplica el importe confirmado y vuelve a la página que preguntó; rechaza destinos externos, ajenos o con parámetros sin llamar a la base; y si la base rechaza el importe, no redirige y muestra el error.
+- `scripts/e2e-finanzas.mjs`: nuevo paso 3b. Con un anticipo de L 700 y un cargo de L 1,000, la ventana se abre sola con L 700. Tras «Ahora no» no se reabre; al aplicar desde el botón quedan L 300 pendientes. **No se ejecutó:** no hay `E2E_CREDENCIALES` en esta sesión.
+- **Recorrido manual sugerido:** registrar un cobro a un cliente sin deuda (queda saldo a favor) › Cargos › Registrar cargo a ese cliente › debe abrirse la pregunta.
+
+## Flota: kilometraje encadenado y mantenimientos (2026-11-02)
+
+**Solicitud:** módulo de flota con kilometraje en todos los servicios; cada viaje con chofer con kilometraje de salida y de entrada, controlado por vehículo, de modo que cada nuevo viaje coincida con el kilometraje de llegada anterior; y un control de mantenimientos para cuadrar mejor el kilometraje. Registrado como ampliación en el §16 de `ESPECIFICACION_MAESTRA.md`. No se inicia E7.
+
+### Funcionalidad
+
+- **Viajes con conductor y traslados:** «Iniciar» abre una ventana que pide el kilometraje de salida, con la última llegada del vehículo ya escrita. «Finalizar» pide el kilometraje de llegada, que no puede ser menor que la salida. La ficha muestra salida, llegada, recorrido y, si lo hubo, el motivo del descuadre; el vehículo enlaza a su informe de flota.
+- **Alquileres:** la entrega propone la última llegada y valida la misma regla; la devolución no cambia.
+- **Regla de cuadre (en la base de datos):** la salida debe ser igual a la última llegada registrada del vehículo, sea de un viaje, traslado, alquiler o mantenimiento. Si no coincide, solo se acepta con **motivo del descuadre**, que queda guardado y señalado en el informe. *Decisión de implementación:* no se bloquea del todo, porque el contrato prohíbe retrasar una ambulancia por controles de interfaz y porque el odómetro puede cambiarse o haber un error previo sin forma de corregirlo. El primer recorrido de cada vehículo fija su base. No se puede iniciar si el vehículo tiene un recorrido sin llegada.
+- **Mantenimientos** (`/flota/[id]` › «Registrar mantenimiento», administrador y operador): tipo preventivo o correctivo, trabajo realizado, salida y regreso del taller con su kilometraje (entra en la cadena), motivo de descuadre si aplica, próximo mantenimiento por kilometraje o por fecha, y observaciones. Se registra al regresar el vehículo; la salida no puede ser anterior al último recorrido, y el regreso no puede estar en el futuro. No genera gastos: el costo sigue registrándose en Gastos.
+- **Pantallas:** menú Flota y personal › «Kilometraje y mantenimiento».
+  - `/flota`: cada vehículo con kilometraje actual, último movimiento, número de descuadres y próximo mantenimiento (Al día, Vencido o Sin programar). Avisos arriba si hay descuadres o mantenimientos vencidos.
+  - `/flota/[id]`: situación del vehículo, el **informe de cuadre** y la lista de mantenimientos. El informe muestra cada movimiento, de más reciente a más antiguo, con llegada anterior, km de salida, diferencia (debe ser cero), km de llegada y recorrido. Tiene filtros «Solo descuadres» y «Solo mantenimientos», búsqueda y fechas, y el total recorrido.
+  - La ficha del vehículo muestra un resumen y el enlace al informe.
+
+### Migración
+
+| Versión | Contenido | MD5 (SQL aplicado = archivo) |
+|---|---|---|
+| `20261103002515_flota_kilometraje_mantenimientos.sql` | Columnas `km_salida`, `km_llegada` y `motivo_descuadre_km` en transportes y traslados, `motivo_descuadre_km` en alquileres; tabla `mantenimientos_vehiculo` (inmutable, RLS de solo lectura, idempotente); vistas `recorridos_vehiculo` (cadena con `lag`) y `resumen_flota`; `private.validar_km_salida` (bloquea el vehículo); RPC `kilometraje_vehiculo`, `registrar_mantenimiento` y nuevas firmas de `iniciar_/finalizar_transporte`, `iniciar_/finalizar_traslado` y `entregar_alquiler` | `f3cc69f2f7c62bf561aafdc06258c875` |
+
+Aplicada solo en desarrollo `cgohbizokewvivxmvbij`. Sin instrucciones destructivas. Las firmas anteriores se conservan: las de iniciar y finalizar ahora responden «Indique el kilometraje…», y la `entregar_alquiler` de cuatro parámetros equivale a la nueva sin motivo. Tipos de TypeScript regenerados por MCP. En desarrollo, el vehículo 006 ya tiene base de **162,000 km** por un alquiler existente.
+
+- **Comando de limpieza:** `mantenimientos_vehiculo` se clasificó como operación a vaciar (ahora son 24 tablas) en `scripts/limpiar-operaciones-desarrollo.sql` y en su verificación.
+- **Scripts E2E** contra la nube (`verificar-ambulancias.mjs`, `verificar-alquileres-transportes.mjs`) y de navegador (`e2e-ambulancias.mjs`, `e2e-alquileres-transportes.mjs`): actualizados a las firmas con kilometraje y a la ventana «Iniciar» › «Confirmar inicio». **No se ejecutaron** (requieren credenciales y dejan registros permanentes).
+
+### Pruebas
+
+- `npm run lint` OK, `npm run typecheck` OK, `npm test` **140/140** (nuevo `lib/flota/flota.test.ts`: estado del mantenimiento, formatos, enlaces y campos de kilometraje en los tres servicios).
+- `scripts/verificar-flota.sql` **34/34** en PGlite (antes de aplicar) y en Supabase de desarrollo, dentro de una transacción revertida:
+  - Firmas anteriores rechazadas y kilometraje obligatorio.
+  - Primer recorrido como base; no se inicia con el vehículo en otro recorrido; llegada menor que salida rechazada.
+  - Reintento sin cargo duplicado; descuadre sin motivo rechazado y con motivo guardado; cadena por alquiler, viaje, traslado y mantenimiento.
+  - Mantenimiento: anterior al último recorrido, regreso futuro o próximo km inválido, rechazados; reintento idempotente.
+  - Informe: 5 recorridos, 1 descuadre de +50 km, 360 km recorridos, resumen con 5,000 km para el próximo mantenimiento; cadenas independientes por vehículo.
+  - Permisos: finanzas no registra mantenimientos pero consulta el informe; sin escritura directa; anon sin acceso.
+  - Después se comprobó que no quedaron vehículos, clientes, usuarios ni mantenimientos de prueba.
+- Regresión local: `node scripts/verificar-servicios-local.mjs` 38/38 y 21/21; `node scripts/verificar-limpiar-operaciones.mjs` aprobado (24 tablas vacías, 14 catálogos idénticos).
+- Asesor de seguridad: nada nuevo aparte del patrón ya existente de funciones `SECURITY DEFINER` con control de rol interno y la protección de contraseñas filtradas.
+- `next build` **no se ejecutó** porque el `next dev` del usuario estaba activo en :3000. Las rutas nuevas responden en ese servidor (redirigen a inicio de sesión sin sesión).
+- **No ejecutado:** recorrido en navegador con sesión iniciada; no hay `E2E_CREDENCIALES` en esta sesión. Recorrido manual sugerido: un viaje con conductor › «Iniciar servicio» (km propuesto) › «Finalizar» con km de llegada › iniciar otro viaje con el mismo vehículo cambiando el km (pide motivo) › Flota › vehículo › «Solo descuadres» › «Registrar mantenimiento».
+
+### Pendientes
+
+- Opcional, no pedido: enlazar un mantenimiento con su gasto. Hoy el costo se registra aparte en Gastos (categoría Mantenimiento).
+
+## Peticiones de cambio al sistema (2026-11-02)
+
+**Solicitud:** «un componente que pueda usar todo el sistema (por ahora no hay usuarios) y donde se registre una petición y su estado», sin complicarlo. Es un agregado fuera de `ESPECIFICACION_MAESTRA.md` pedido por el propietario. No se inicia E7.
+
+- **Solo desde el menú lateral** (Configuración › Peticiones, visible para los tres roles). Por indicación del propietario no hay botón flotante en las demás pantallas.
+- **Pantalla `/peticiones`:**
+  - Arriba, un formulario con un solo campo, «¿Qué necesita?» ([components/peticiones/formulario-peticion.tsx](../components/peticiones/formulario-peticion.tsx)). Toda petición nace como **Pendiente**.
+  - Debajo, el listado: primero las abiertas (pendiente, en proceso) y luego las cerradas, de la más reciente a la más antigua. Cada fila tiene un selector de estado que se guarda al elegir: Pendiente, En proceso, Resuelta o Descartada.
+  - La columna `pantalla` queda vacía. Se conserva por si después se registra desde otras pantallas.
+- Sin autor, comentarios, prioridades ni adjuntos, a propósito. La tabla ya guarda `creado_por`/`actualizado_por` (por el trigger de auditoría), por si más adelante se quieren mostrar.
+- **Migración** `20261102174302_peticiones.sql`, aplicada solo en desarrollo `cgohbizokewvivxmvbij` e idéntica en `supabase/migrations/`. Tabla `public.peticiones` con `CHECK` de estados y RLS para cualquier usuario interno activo (`private.es_usuario_activo()`). Permisos por columna: al crear solo se envían `descripcion` y `pantalla`, y al editar solo `estado`. Nadie puede borrar ni reescribir el texto desde la web. `lib/supabase/tipos-bd.ts` regenerado.
+- **Comando de limpieza:** `peticiones` se clasificó como conservada en `scripts/limpiar-operaciones-desarrollo.sql` y en su verificación. Sin esto, el comando se detendría por encontrar una tabla sin clasificar.
+
+### Pruebas
+
+- `lint` OK, `typecheck` OK, `npm test` **134/134** (incluye `lib/peticiones/peticiones.test.ts`: validación, rutas solo internas, estados válidos y orden) y `build` OK con `/peticiones`. No había `next dev` del usuario en ejecución.
+- **RLS en desarrollo**, dentro de una transacción revertida (no quedó ningún registro), 9/9 casos:
+  - Usuario activo: crea (nace Pendiente, con `creado_por` sellado) y cambia el estado.
+  - No puede editar la descripción, borrar, usar un estado inexistente ni fijar el estado al crear.
+  - Autenticado sin perfil activo: no ve nada y no puede crear.
+  - `anon`: sin acceso.
+- `node scripts/verificar-limpiar-operaciones.mjs` aprobado con la nueva migración: 23 tablas vacías y 14 catálogos idénticos, con `peticiones` entre los conservados.
+- Asesor de seguridad: ningún aviso nuevo; siguen solo los previos de funciones `SECURITY DEFINER` y la protección de contraseñas filtradas.
+- **No ejecutado:** prueba en navegador con sesión iniciada, porque en esta sesión no hay `E2E_CREDENCIALES`. Recorrido manual sugerido: menú › Configuración › Peticiones › escribir › «Registrar petición» › cambiar el estado en el listado.
+
+## Comando reutilizable de limpieza conservando catálogos (2026-10-31)
+
+**Solicitud:** «crea el nuevo comando para limpiar el sistema sin borrar los catálogos». La limpieza anterior (`20261031101037_limpiar_operaciones_conservar_catalogos.sql`) ya no sirve: desde entonces existen `empleados`, `gastos_personal` y `contratos_servicio`, y su protección contra tablas sin clasificar la detendría.
+
+- **Comando:** `scripts/limpiar-operaciones-desarrollo.sql`. Exclusivo de desarrollo `cgohbizokewvivxmvbij`; se ejecuta por MCP o editor SQL. **No es una migración**, para que nunca viaje en un despliegue ni se aplique en producción. **No se ha ejecutado** contra la base de desarrollo.
+- **Vacía 23 tablas operativas:** las 21 de la limpieza anterior más `gastos_personal` (remuneraciones) y `contratos_servicio`. **Conserva 13 catálogos:** los 12 anteriores más `empleados`. No toca usuarios Auth, configuración, esquema ni permisos.
+- Mismas garantías que la limpieza anterior: una transacción, bloqueo exclusivo, `TRUNCATE ... RESTRICT` sin cascada, desactivación temporal solo de `impedir_truncate`, firmas MD5 de todas las filas de los catálogos antes/después y comprobación del estado de los triggers. Si aparece una tabla nueva, se detiene sin borrar nada hasta clasificarla en el script. Al final devuelve un resumen (catálogos conservados y `operaciones_restantes`, que debe ser 0).
+- Clasificación contrastada por MCP (solo lectura) con las 36 tablas actuales de desarrollo: 23 + 13, sin tablas sobrantes.
+- **Prueba:** `node scripts/verificar-limpiar-operaciones.mjs` en PostgreSQL temporal (PGlite, sin Docker) con todas las migraciones actuales y datos ficticios de servicios, membresías, gastos, remuneraciones y contratos de servicio. Aprobada: 6 gastos, 2 remuneraciones, 4 contratos de servicio, 4 membresías y 17 asientos vaciados; conteos de catálogos idénticos; además confirma que aborta ante una tabla sin clasificar. La prueba reproduce los privilegios por defecto de Supabase sobre tablas de `public`.
+
 ## Contratos de membresía y de cada servicio (2026-10-31)
 
 **Solicitud:** cambiar el contrato de membresía tomando como modelo el contrato de arrendamiento de vehículo de la empresa, y tener contrato para cualquier servicio con los datos que el sistema ya registra. El propietario confirmó: los montos del alquiler (depósito de L 3,000.00, recargo de L 300.00 por hora o fracción y lavado de L 300.00) se escriben fijos en el texto, y firma por la empresa Jorge Alberto Rodríguez Lagos. Migración aplicada exclusivamente en Supabase de desarrollo `cgohbizokewvivxmvbij`. No se inicia E7.

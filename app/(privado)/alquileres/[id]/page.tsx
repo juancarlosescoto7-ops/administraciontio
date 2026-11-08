@@ -1,4 +1,3 @@
-import { GastosServicio } from "@/components/finanzas/gastos-servicio";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -16,13 +15,16 @@ import {
   ETIQUETAS_COMBUSTIBLE,
   ETIQUETAS_ESTADO_ALQUILER,
 } from "@/lib/alquileres/definiciones";
+import { formatearKm } from "@/lib/flota/definiciones";
 import { formatearFechaHora, formatearMoneda } from "@/lib/formato";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/tipos-bd";
+import { ResultadoServicio } from "@/components/bonos/resultado-servicio";
 import { Cargando, Encabezado } from "@/components/encabezado";
 import { InsigniaFinanciera } from "@/components/ambulancias/insignias";
 import type { ParametrosBusqueda } from "@/components/finanzas/filtros";
 import { AvisoOperacion, FormularioOperacion } from "@/components/finanzas/operaciones";
+import { PreguntaSaldoAFavor } from "@/components/finanzas/pregunta-saldo";
 import { Datos, ResumenImportes, Seccion } from "@/components/finanzas/resumen";
 import { Tabla } from "@/components/finanzas/tabla";
 import { Desplegable, Historial, InsigniaEstado, ListaAvisos } from "@/components/operaciones";
@@ -45,7 +47,8 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
   const { data: a } = await supabase.from("saldos_alquileres").select("*").eq("id", id).maybeSingle();
   if (!a || !a.estado || !a.cliente_id || !a.entrega_prevista || !a.devolucion_prevista) notFound();
 
-  const [{ data: adicionales }, { data: saldo }, { data: avisos }, { data: historial }, { data: tarifa }, { data: vehiculos }] = await Promise.all([
+  const [{ data: adicionales }, { data: saldo }, { data: avisos }, { data: historial }, { data: tarifa }, { data: vehiculos }, { data: km }, { data: kmEsperado }] =
+    await Promise.all([
     supabase.from("cargos_adicionales_alquiler").select("id, concepto, monto, created_at").eq("alquiler_id", id).order("created_at"),
     supabase.from("saldos_clientes").select("saldo_a_favor").eq("cliente_id", a.cliente_id).maybeSingle(),
     supabase.rpc("avisos_operacion", { p_origen_tipo: "alquiler", p_origen_id: id }),
@@ -60,6 +63,11 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
           p_origen_id: id,
         })
       : Promise.resolve({ data: null }),
+    supabase.from("alquileres").select("motivo_descuadre_km").eq("id", id).maybeSingle(),
+    // Lectura esperada al entregar: la última llegada registrada del vehículo.
+    a.estado === "reservado" && a.vehiculo_id
+      ? supabase.rpc("kilometraje_vehiculo", { p_vehiculo_id: a.vehiculo_id })
+      : Promise.resolve({ data: null }),
   ]);
 
   const acciones = accionesAlquiler(a.estado, usuario.rol);
@@ -73,7 +81,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
   return (
     <>
       <Encabezado
-        titulo={`Alquiler · ${a.vehiculo_codigo}`}
+        titulo={`Alquiler · ${a.vehiculo_nombre}`}
         descripcion={
           <span className="flex flex-wrap items-center gap-2">
             <InsigniaEstado estado={a.estado} etiquetas={ETIQUETAS_ESTADO_ALQUILER} finales={["devuelto", "cancelado"]} />
@@ -91,9 +99,11 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
         parametros={parametros}
         mensajes={{
           guardado: "Reserva registrada.",
+          gastos: "Bonos y gastos registrados.",
           modificado: "Reserva modificada.",
           entregado: "Entrega registrada.",
           devuelto: "Devolución registrada.",
+          aplicado: "Saldo a favor aplicado.",
           cancelado: "Reserva cancelada.",
         }}
       />
@@ -103,7 +113,12 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
         <Datos
           filas={[
             ["Cliente", <Link key="c" href={`/clientes/${a.cliente_id}`} className="text-enlace hover:underline">{a.cliente_nombre}</Link>],
-            ["Vehículo", `${a.vehiculo_codigo}${a.vehiculo_placa ? ` · ${a.vehiculo_placa}` : ""}`],
+            [
+              "Vehículo",
+              <Link key="v" href={`/flota/${a.vehiculo_id}`} className="text-enlace hover:underline">
+                {`${a.vehiculo_nombre}${a.vehiculo_placa ? ` · ${a.vehiculo_placa}` : ""}`}
+              </Link>,
+            ],
             ["Entrega prevista", formatearFechaHora(a.entrega_prevista)],
             ["Devolución prevista", formatearFechaHora(a.devolucion_prevista)],
             ["Tarifa de referencia", tarifa?.nombre ?? "Sin tarifa"],
@@ -142,6 +157,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
             filas={[
               ["Entregado", formatearFechaHora(a.entrega_real)],
               ["Kilometraje de salida", a.km_salida?.toLocaleString("es-HN") ?? null],
+              ...(km?.motivo_descuadre_km ? ([["Descuadre de kilometraje", km.motivo_descuadre_km]] as [string, string][]) : []),
               ["Combustible de salida", a.combustible_salida ? ETIQUETAS_COMBUSTIBLE[a.combustible_salida] : null],
               ["Observaciones", a.notas_entrega],
             ]}
@@ -151,8 +167,11 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
         )}
         {acciones.entregar && (
           <div className="tarjeta mt-4 p-4 sm:p-6">
-            <p className="mb-4 text-sm">El vehículo queda ocupado hasta su devolución real. Puede entregarse con saldo pendiente.</p>
-            <FormularioOperacion campos={camposEntrega()} accion={entregarAlquiler.bind(null, id)} textoEnviar="Registrar entrega" prefijo="entrega-" tono="exito" />
+            <p className="mb-4 text-sm">
+              El vehículo queda ocupado hasta su devolución real. Puede entregarse con saldo pendiente.
+              {kmEsperado != null && ` Última llegada registrada: ${formatearKm(kmEsperado)}.`}
+            </p>
+            <FormularioOperacion campos={camposEntrega(kmEsperado ?? null)} accion={entregarAlquiler.bind(null, id)} textoEnviar="Registrar entrega" prefijo="entrega-" tono="exito" />
           </div>
         )}
       </Seccion>
@@ -227,10 +246,31 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
             </Link>
           )}
         </p>
+        {a.cargo_id && (
+          <PreguntaSaldoAFavor
+            cargoId={a.cargo_id}
+            concepto="Alquiler de vehículo"
+            vigente={a.cargo_estado === "vigente"}
+            pendiente={a.pendiente}
+            aFavor={aFavor}
+            rol={usuario.rol}
+            volver={`/alquileres/${id}`}
+            recienAplicado={parametros.aplicado === "1"}
+          />
+        )}
         {a.estado === "cancelado" && aFavor > 0 && (
           <p className="text-sm texto-tenue">El dinero recibido sigue como saldo a favor del cliente hasta que se aplique o se devuelva.</p>
         )}
       </Seccion>
+
+      <ResultadoServicio
+        tipo="alquiler"
+        id={id}
+        rol={usuario.rol}
+        estimado={a.estado === "cancelado" ? null : { monto: a.precio_pactado, nota: "Precio pactado: se convierte en cargo al devolver el vehículo." }}
+        abierta={parametros.gastos === "1"}
+        recomendacion={parametros.devuelto === "1" ? { titulo: "Vehículo devuelto: resultado del alquiler", parametro: "devuelto" } : null}
+      />
 
       {acciones.cancelar && (
         <Seccion titulo="Cancelación de la reserva">
@@ -244,7 +284,6 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       <Seccion titulo="Historial">
         <Historial eventos={historial} acciones={ACCIONES} describir={describir} />
       </Seccion>
-      <GastosServicio tipo="alquiler" id={id} rol={usuario.rol} />
     </>
   );
 }

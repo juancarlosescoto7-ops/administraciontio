@@ -45,8 +45,12 @@ const reservar = (sesion, args) =>
     p_idempotencia: randomUUID(), p_cliente_id: clientes.Alquiler, p_vehiculo_id: null, p_entrega_prevista: null,
     p_devolucion_prevista: null, p_tarifa_id: null, p_precio: "3600.00", p_notas: null, ...args,
   });
+// Los kilometrajes de prueba no siguen la cadena real del vehículo (flota): se justifica el descuadre.
 const entregar = (sesion, id, km = 1000, combustible = "lleno") =>
-  rpc(sesion, "entregar_alquiler", { p_alquiler_id: id, p_km_salida: km, p_combustible: combustible, p_notas: `${MARCA} sin rayones` });
+  rpc(sesion, "entregar_alquiler", {
+    p_alquiler_id: id, p_km_salida: km, p_combustible: combustible, p_notas: `${MARCA} sin rayones`,
+    p_motivo_descuadre_km: `${MARCA} lectura de prueba`,
+  });
 const devolver = (sesion, id, extra = {}) =>
   rpc(sesion, "devolver_alquiler", {
     p_alquiler_id: id, p_km_regreso: 1250, p_combustible: "medio", p_notas: `${MARCA} devuelto`,
@@ -60,9 +64,19 @@ const solicitar = (sesion, args) =>
   });
 const asignarT = (sesion, id, vehiculo, conductor) =>
   rpc(sesion, "asignar_recursos_transporte", { p_transporte_id: id, p_vehiculo_id: vehiculo, p_conductor_id: conductor, p_motivo: null });
-const iniciarT = (sesion, id) => rpc(sesion, "iniciar_transporte", { p_transporte_id: id });
-const finalizarT = (sesion, id, anticipo = null) =>
-  rpc(sesion, "finalizar_transporte", { p_transporte_id: id, p_notas_finales: `${MARCA} sin novedad`, p_aplicar_anticipo: anticipo });
+// Kilometraje (flota): sale con la última llegada del vehículo y llega 25 km después.
+const kmSalida = async (tabla, id) => {
+  const t = await uno(admin, `${tabla}?id=eq.${id}&select=vehiculo_id`);
+  return t?.vehiculo_id ? ((await rpc(admin, "kilometraje_vehiculo", { p_vehiculo_id: t.vehiculo_id })).datos ?? 0) : 0;
+};
+const iniciarT = async (sesion, id) =>
+  rpc(sesion, "iniciar_transporte", { p_transporte_id: id, p_km_salida: await kmSalida("transportes", id) });
+const finalizarT = async (sesion, id, anticipo = null) => {
+  const t = await uno(admin, `transportes?id=eq.${id}&select=km_salida`);
+  return rpc(sesion, "finalizar_transporte", {
+    p_transporte_id: id, p_km_llegada: (t?.km_salida ?? 0) + 25, p_notas_finales: `${MARCA} sin novedad`, p_aplicar_anticipo: anticipo,
+  });
+};
 const cancelarT = (sesion, id, motivo = `${MARCA} se suspende el viaje`) => rpc(sesion, "cancelar_transporte", { p_transporte_id: id, p_motivo: motivo });
 const traslado = (sesion, args) =>
   rpc(sesion, "registrar_traslado", {
@@ -357,7 +371,9 @@ let tA;
   const trasSiguiente = (await traslado(operador, { p_inicio_previsto: dentroDe(100), p_vehiculo_id: m2, p_conductor_id: c2 })).datos;
   await esperarMs(65000); // la ocupación en curso supera su fin previsto (entrega + 1 minuto)
   const inicioTr = await iniciarT(operador, siguiente);
-  const inicioAmb = await rpc(operador, "iniciar_traslado", { p_traslado_id: trasSiguiente });
+  const inicioAmb = await rpc(operador, "iniciar_traslado", {
+    p_traslado_id: trasSiguiente, p_km_salida: await kmSalida("traslados_ambulancia", trasSiguiente),
+  });
   comprobar("20. vehículo todavía entregado después del horario previsto: no inicia un transporte ni un traslado",
     inicioTr.codigo === "22023" && /en un servicio en curso/.test(inicioTr.mensaje) && inicioAmb.codigo === "22023",
     `${inicioTr.mensaje} | ${inicioAmb.mensaje}`);

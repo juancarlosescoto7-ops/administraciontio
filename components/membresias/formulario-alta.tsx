@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Campo } from "@/lib/catalogos/definiciones";
 import type { EstadoFormulario } from "@/lib/catalogos/estado";
 import { CampoFormulario } from "@/components/catalogos/formulario-catalogo";
@@ -27,6 +27,7 @@ export function FormularioAltaMembresia({
   camposNuevo,
   camposCondiciones,
   campoConfirmar,
+  extra,
 }: {
   accion: Accion;
   estadoInicial: EstadoFormulario;
@@ -40,6 +41,8 @@ export function FormularioAltaMembresia({
   /** Condiciones particulares (solo administrador); vacío para el resto. */
   camposCondiciones: readonly Campo[];
   campoConfirmar: Campo;
+  /** Bonos y gastos de la venta (se registran junto con la membresía). */
+  extra?: ReactNode;
 }) {
   const [estado, despachar, pendiente] = useActionState(accion, estadoInicial);
   const hidratado = useHidratado();
@@ -181,6 +184,8 @@ export function FormularioAltaMembresia({
 
         <div className="border-t border-borde pt-5">{campo(campoConfirmar)}</div>
       </div>
+
+      {extra}
 
       {estado.error && (
         <p role="alert" className={`aviso ${hayErrores ? "aviso-advertencia" : "aviso-error"}`}>

@@ -4,7 +4,10 @@ import type { EstadoFormulario } from "@/lib/catalogos/estado";
 import { esUuid } from "@/lib/catalogos/presentacion";
 import { decimal, decimalOpcional, opcional } from "@/lib/finanzas/montos";
 import { aFechaHoraLocal } from "@/lib/formato";
+import { camposKmSalida } from "@/lib/flota/definiciones";
 import { clave, fallo, procesar, SIN_CLAVE, texto, traducir } from "@/lib/operaciones";
+import { leerLineas, NOMBRE_CAMPO_LINEAS } from "@/lib/bonos/lineas";
+import { falloTrasServicio, registrarLineas } from "@/lib/bonos/servidor";
 import {
   camposCancelarTransporte,
   camposDuracionTransporte,
@@ -29,6 +32,9 @@ export async function registrarTransporte(
     const idempotencia = clave(formData);
     if (!idempotencia) return SIN_CLAVE;
     if (!esUuid(clienteId) || (tarifaId !== null && !esUuid(tarifaId))) return INVALIDA;
+    // Bonos y gastos del viaje: se validan antes de guardar nada.
+    const lectura = leerLineas(formData.get(NOMBRE_CAMPO_LINEAS));
+    if (lectura.error !== undefined) return fallo(lectura.error);
     const { data, error } = await supabase.rpc("registrar_transporte", {
       p_idempotencia: idempotencia,
       p_cliente_id: clienteId,
@@ -44,6 +50,8 @@ export async function registrarTransporte(
       p_programar: datos.programar === true,
     });
     if (error) return traducir(error);
+    const errorLineas = await registrarLineas(supabase, "transporte", data, lectura.lineas);
+    if (errorLineas) return falloTrasServicio("el viaje", errorLineas);
     return { destino: `${ruta(data)}?guardado=1` };
   });
 }
@@ -121,9 +129,13 @@ export async function editarTransporte(
 }
 
 export async function iniciarTransporte(id: string, anterior: EstadoFormulario, formData: FormData): Promise<EstadoFormulario> {
-  return procesar(anterior, formData, [], "gestionarTransportes", async (_datos, supabase) => {
+  return procesar(anterior, formData, camposKmSalida(null), "gestionarTransportes", async (datos, supabase) => {
     if (!esUuid(id)) return INVALIDA;
-    const { error } = await supabase.rpc("iniciar_transporte", { p_transporte_id: id });
+    const { error } = await supabase.rpc("iniciar_transporte", {
+      p_transporte_id: id,
+      p_km_salida: Number(datos.km_salida),
+      p_motivo_descuadre_km: opcional(texto(datos.motivo_descuadre_km)),
+    });
     if (error) return traducir(error);
     return { destino: `${ruta(id)}?iniciado=1` };
   });
@@ -140,6 +152,7 @@ export async function finalizarTransporte(
     const anticipo = texto(datos.aplicar_anticipo);
     const { error } = await supabase.rpc("finalizar_transporte", {
       p_transporte_id: id,
+      p_km_llegada: Number(datos.km_llegada),
       p_notas_finales: opcional(texto(datos.notas_finales)),
       ...(anticipo !== null && Number(anticipo) > 0 ? { p_aplicar_anticipo: decimal(anticipo) } : {}),
     });

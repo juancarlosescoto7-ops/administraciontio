@@ -8,6 +8,8 @@ import { esUuid } from "@/lib/catalogos/presentacion";
 import { esFechaValida, type Datos } from "@/lib/catalogos/validacion";
 import { decimal } from "@/lib/finanzas/montos";
 import { clave, fallo, procesar, SIN_CLAVE, texto, traducir } from "@/lib/operaciones";
+import { leerLineas, NOMBRE_CAMPO_LINEAS } from "@/lib/bonos/lineas";
+import { falloTrasServicio, registrarLineas } from "@/lib/bonos/servidor";
 import { createClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/lib/supabase/tipos-bd";
 import { camposVencimiento } from "./vigencia";
@@ -80,6 +82,10 @@ export async function registrarMembresiaCompleta(
       return fallo("Agregue al menos un beneficiario: marque uno existente, registre uno nuevo o marque al titular.");
     }
 
+    // Bonos y gastos de la venta: se validan antes de guardar nada.
+    const lectura = leerLineas(formData.get(NOMBRE_CAMPO_LINEAS));
+    if (lectura.error !== undefined) return fallo(lectura.error);
+
     const condiciones = administrador ? condicionesParticulares(datos) : null;
     const { data, error } = await supabase.rpc("registrar_membresia_completa", {
       p_idempotencia: idempotencia,
@@ -93,6 +99,8 @@ export async function registrarMembresiaCompleta(
       p_condiciones: condiciones ?? undefined,
     });
     if (error) return traducir(error);
+    const errorLineas = await registrarLineas(supabase, "membresia", data, lectura.lineas);
+    if (errorLineas) return falloTrasServicio("la membresía", errorLineas);
     return { destino: `/membresias/${data}?guardado=1` };
   });
 }

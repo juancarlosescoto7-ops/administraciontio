@@ -136,6 +136,31 @@ try {
   comprobar("tras el reverso el cargo vuelve a L 1,300 pendientes", await contiene(L("1,300.00")));
   await capturar("e2-03-cargo-escritorio");
 
+  // 3b. Pregunta automática: anticipo de L 700 y luego un cargo de L 1,000.
+  const clienteAnticipo = (await api(adminApi.token, "POST", "clientes", { nombre: `${MARCA} Anticipo ${sufijo}` })).datos[0].id;
+  await api(adminApi.token, "POST", "rpc/registrar_cobro_automatico", {
+    p_idempotencia: randomUUID(), p_cliente_id: clienteAnticipo, p_cuenta_dinero_id: caja, p_fecha: hoy,
+    p_metodo: "efectivo", p_referencia: null, p_monto: "700.00",
+  });
+  const cargoAnticipo = (await api(adminApi.token, "POST", "rpc/registrar_cargo", {
+    p_idempotencia: randomUUID(), p_cliente_id: clienteAnticipo, p_cuenta_ingreso: "4300", p_concepto: `${MARCA} Cargo con anticipo`,
+    p_fecha: hoy, p_vencimiento: null, p_monto: "1000.00",
+  })).datos;
+  await ir(`/finanzas/cargos/${cargoAnticipo}`);
+  comprobar("con saldo a favor, el cargo pregunta solo si aplicarlo (L 700 propuestos)",
+    (await esperar("document.querySelector('dialog[open]')?.innerText.includes('¿Aplicar saldo a favor')")) &&
+      (await evaluar("document.querySelector('dialog[open] #campo-saldo-monto').value === '700.00'")));
+  await capturar("e2-03b-pregunta-saldo");
+  await pulsarEnVentana("Ahora no");
+  await ir(`/finanzas/cargos/${cargoAnticipo}`);
+  await contiene("Aplicar saldo a favor");
+  comprobar("tras «Ahora no» no vuelve a abrirse sola", !(await evaluar("Boolean(document.querySelector('dialog[open]'))")));
+  await abrirVentana("Aplicar saldo a favor");
+  await pulsarEnVentana("Sí, aplicar saldo");
+  comprobar("aplicado desde la ventana: pendiente L 300 y sin nueva pregunta",
+    (await esperar("document.body.innerText.includes('Saldo a favor aplicado')", 20000)) && (await contiene(L("300.00"))) &&
+      !(await evaluar("Boolean(document.querySelector('dialog[open]'))")));
+
   // 4. Móvil
   await vista(390, 844, true);
   await ir("/finanzas/cobros");

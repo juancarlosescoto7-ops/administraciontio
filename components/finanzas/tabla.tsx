@@ -17,6 +17,7 @@ export function Tabla<T extends { id: string }>({
   enlace,
   vacio,
   totales,
+  resaltar,
 }: {
   filas: readonly T[];
   columnas: readonly Columna<T>[];
@@ -24,6 +25,8 @@ export function Tabla<T extends { id: string }>({
   vacio: string;
   /** Fila de totales, por clave de columna. */
   totales?: Partial<Record<string, ReactNode>>;
+  /** Filas que exigen atención (p. ej., saldo pendiente): se pintan en rojo. */
+  resaltar?: (fila: T) => boolean;
 }) {
   if (filas.length === 0) {
     return <EstadoVacio mensaje={vacio} />;
@@ -35,6 +38,7 @@ export function Tabla<T extends { id: string }>({
       <ul className="flex flex-col gap-2 sm:hidden">
         {filas.map((fila) => {
           const href = enlace?.(fila);
+          const alerta = resaltar?.(fila) ? " fila-alerta" : "";
           const detalles = resto.map((columna) => (
             <span key={columna.clave} className="flex justify-between gap-3 text-sm">
               <span className="texto-tenue">{columna.etiqueta}</span>
@@ -47,7 +51,7 @@ export function Tabla<T extends { id: string }>({
                 // Un enlace no puede contener otro (p. ej., «Dar de baja» en una
                 // celda): el título es el enlace y se estira sobre la tarjeta; los
                 // enlaces y botones de las celdas quedan por encima y siguen activos.
-                <div className="tarjeta tarjeta-enlace relative flex flex-col gap-1.5 p-4 [&_a:not([data-principal])]:relative [&_a:not([data-principal])]:z-[1] [&_button]:relative [&_button]:z-[1]">
+                <div className={`tarjeta tarjeta-enlace${alerta} relative flex flex-col gap-1.5 p-4 [&_a:not([data-principal])]:relative [&_a:not([data-principal])]:z-[1] [&_button]:relative [&_button]:z-[1]`}>
                   <Link
                     href={href}
                     data-principal
@@ -58,7 +62,7 @@ export function Tabla<T extends { id: string }>({
                   {detalles}
                 </div>
               ) : (
-                <div className="tarjeta flex flex-col gap-1.5 p-4">
+                <div className={`tarjeta${alerta} flex flex-col gap-1.5 p-4`}>
                   <span className="font-medium break-words">{principal.celda(fila)}</span>
                   {detalles}
                 </div>
@@ -96,7 +100,7 @@ export function Tabla<T extends { id: string }>({
             {filas.map((fila) => {
               const href = enlace?.(fila);
               return (
-                <tr key={fila.id}>
+                <tr key={fila.id} className={resaltar?.(fila) ? "fila-alerta" : undefined}>
                   {columnas.map((columna, indice) => (
                     <td key={columna.clave} className={columna.numerica ? "text-right tabular-nums whitespace-nowrap" : undefined}>
                       {indice === 0 && href ? (

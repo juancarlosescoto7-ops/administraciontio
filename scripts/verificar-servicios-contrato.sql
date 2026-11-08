@@ -85,7 +85,8 @@ begin
   perform public.registrar_gasto_servicio(gen_random_uuid(),null,cat,'ambulancias',v_hoy,null,'Traslado',50,null,null,'traslado',tr);
   assert (select count(*)=4 from public.gastos_servicio), '23 cuatro clases de servicio';
   perform set_config('request.jwt.claim.sub',current_setting('prueba.operador'),true);
-  assert (select count(*)=0 from public.gastos_servicio), '16 RLS operador';
+  -- Desde 2026-11-05 el operador ve los gastos ligados a servicios (no los generales).
+  assert (select count(*)=4 from public.gastos_servicio), '16 RLS operador';
   begin
     perform public.registrar_gasto_servicio(gen_random_uuid(),null,cat,'transportes',v_hoy,null,'Prueba',50,null,null,'transporte',t);
     raise exception '17 operador registró gasto';

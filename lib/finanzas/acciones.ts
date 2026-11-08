@@ -80,14 +80,20 @@ export async function registrarCargo(
   });
 }
 
+/** Páginas que preguntan si aplicar saldo a favor y a las que se puede volver. */
+const RETORNO_APLICAR_SALDO = /^\/(finanzas\/cargos|ambulancias|alquileres|transportes|membresias)\/[0-9a-f-]{36}$/i;
+
 export async function aplicarSaldo(
   cargoId: string,
+  volver: string,
   anterior: EstadoFormulario,
   formData: FormData,
 ): Promise<EstadoFormulario> {
   return procesar(anterior, formData, camposAplicarSaldo(), "registrarCobro", async (datos, supabase) => {
     const idempotencia = clave(formData);
     if (!idempotencia || !esUuid(cargoId)) return SIN_CLAVE;
+    // El destino llega enlazado desde el cliente: solo rutas de detalle conocidas.
+    if (!RETORNO_APLICAR_SALDO.test(volver)) return fallo("Operación no válida.");
     const { error } = await supabase.rpc("aplicar_saldo_a_favor", {
       p_idempotencia: idempotencia,
       p_cargo_id: cargoId,
@@ -96,7 +102,7 @@ export async function aplicarSaldo(
     if (error) return traducir(error);
     const { data: cargo } = await supabase.from("cargos_cliente").select("cliente_id").eq("id", cargoId).maybeSingle();
     if (cargo) await actualizarMembresiasDe(supabase, cargo.cliente_id);
-    return { destino: `/finanzas/cargos/${cargoId}?aplicado=1` };
+    return { destino: `${volver}?aplicado=1` };
   });
 }
 
@@ -231,6 +237,8 @@ const CORRECCIONES = {
   pago_gasto: { funcion: "reversar_pago_gasto", parametro: "p_pago_id" },
   transferencia: { funcion: "reversar_transferencia", parametro: "p_transferencia_id" },
   apertura: { funcion: "reversar_apertura", parametro: "p_apertura_id" },
+  bien: { funcion: "anular_bien", parametro: "p_bien_id" },
+  pago_bien: { funcion: "reversar_pago_bien", parametro: "p_pago_id" },
 } as const;
 
 export type TipoCorreccion = keyof typeof CORRECCIONES;

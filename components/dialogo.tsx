@@ -19,6 +19,7 @@ export function Dialogo({
   abierto = false,
   claseBoton = "boton boton-secundario",
   descripcion,
+  alCerrar,
 }: {
   titulo: string;
   /** Texto del botón que la abre (por omisión, el título). */
@@ -30,6 +31,8 @@ export function Dialogo({
   abierto?: boolean;
   claseBoton?: string;
   descripcion?: string;
+  /** Se llama al cerrarla por cualquier vía (botón, Esc, clic fuera). */
+  alCerrar?: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const hidratado = useHidratado();
@@ -55,6 +58,7 @@ export function Dialogo({
         ref={ref}
         aria-labelledby={`${id}-titulo`}
         className={`dialogo ${peligro ? "dialogo-peligro" : ""}`}
+        onClose={alCerrar}
         // Un clic fuera del contenido (en el fondo) la cierra.
         onClick={(evento) => {
           if (evento.target === ref.current) ref.current.close();

@@ -42,7 +42,7 @@ async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda })
     .limit(LIMITE);
   if (busqueda) consulta = consulta.ilike("cliente_nombre", `%${busqueda}%`);
 
-  const [clientes, gastos] = await Promise.all([
+  const [clientes, gastos, bienes] = await Promise.all([
     consulta,
     verPagar
       ? supabase
@@ -53,6 +53,14 @@ async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda })
           .order("vencimiento", { ascending: true, nullsFirst: false })
           .limit(LIMITE)
       : null,
+    verPagar
+      ? supabase
+          .from("saldos_bienes")
+          .select("id, nombre, proveedor_nombre, fecha_registro, vencimiento, costo, pagado, por_pagar")
+          .gt("por_pagar", 0)
+          .order("vencimiento", { ascending: true, nullsFirst: false })
+          .limit(LIMITE)
+      : null,
   ]);
 
   const filasClientes = (clientes.data ?? []).map((c) => ({ ...c, id: c.cliente_id! }));
@@ -60,6 +68,8 @@ async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda })
   const totalCobrar = sumarMontos(filasClientes.map((c) => c.pendiente));
   const totalAFavor = sumarMontos(filasClientes.map((c) => c.saldo_a_favor));
   const totalPagar = sumarMontos(filasGastos.map((g) => g.pendiente));
+  const filasBienes = (bienes?.data ?? []).map((b) => ({ ...b, id: b.id! }));
+  const totalBienes = sumarMontos(filasBienes.map((b) => b.por_pagar));
 
   return (
     <>
@@ -67,7 +77,12 @@ async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda })
         importes={[
           { etiqueta: "Por cobrar", valor: totalCobrar, destacado: true },
           { etiqueta: "Saldos a favor de clientes", valor: totalAFavor },
-          ...(verPagar ? [{ etiqueta: "Por pagar a proveedores", valor: totalPagar }] : []),
+          ...(verPagar
+            ? [
+                { etiqueta: "Por pagar a proveedores", valor: totalPagar },
+                { etiqueta: "Por pagar por compras de bienes", valor: totalBienes },
+              ]
+            : []),
         ]}
       />
 
@@ -86,6 +101,7 @@ async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda })
             filas={filasClientes}
             enlace={(c) => `/finanzas/pendientes/${c.id}`}
             vacio="Ningún cliente tiene saldo pendiente ni a favor."
+            resaltar={(c) => Number(c.pendiente) > 0}
             columnas={[
               { clave: "cliente", etiqueta: "Cliente", celda: (c) => c.cliente_nombre },
               { clave: "total", etiqueta: "Total cargos", numerica: true, celda: (c) => formatearMoneda(c.total_cargos) },
@@ -115,6 +131,26 @@ async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda })
               { clave: "pendiente", etiqueta: "Pendiente", numerica: true, celda: (g) => formatearMoneda(g.pendiente) },
             ]}
             totales={{ pendiente: formatearMoneda(totalPagar) }}
+          />
+        </Seccion>
+      )}
+
+      {verPagar && (
+        <Seccion titulo="Por pagar por compras de bienes" fija>
+          <Tabla
+            filas={filasBienes}
+            enlace={(b) => `/finanzas/bienes/${b.id}`}
+            vacio="No hay compras de bienes pendientes de pago."
+            columnas={[
+              { clave: "nombre", etiqueta: "Bien", celda: (b) => b.nombre },
+              { clave: "proveedor", etiqueta: "Proveedor", celda: (b) => b.proveedor_nombre ?? "—" },
+              { clave: "fecha", etiqueta: "Compra", celda: (b) => formatearFecha(b.fecha_registro) },
+              { clave: "vence", etiqueta: "Vence", celda: (b) => formatearFecha(b.vencimiento) },
+              { clave: "costo", etiqueta: "Costo", numerica: true, celda: (b) => formatearMoneda(b.costo) },
+              { clave: "pagado", etiqueta: "Pagado", numerica: true, celda: (b) => formatearMoneda(b.pagado) },
+              { clave: "por_pagar", etiqueta: "Por pagar", numerica: true, celda: (b) => formatearMoneda(b.por_pagar) },
+            ]}
+            totales={{ por_pagar: formatearMoneda(totalBienes) }}
           />
         </Seccion>
       )}

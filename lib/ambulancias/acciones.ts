@@ -4,7 +4,10 @@ import type { EstadoFormulario } from "@/lib/catalogos/estado";
 import { esUuid } from "@/lib/catalogos/presentacion";
 import { decimal, decimalOpcional, opcional } from "@/lib/finanzas/montos";
 import { aFechaHoraLocal } from "@/lib/formato";
+import { camposKmSalida } from "@/lib/flota/definiciones";
 import { fallo, procesar, clave, SIN_CLAVE, texto, traducir } from "@/lib/operaciones";
+import { leerLineas, NOMBRE_CAMPO_LINEAS } from "@/lib/bonos/lineas";
+import { falloTrasServicio, registrarLineas } from "@/lib/bonos/servidor";
 import {
   camposCancelar,
   camposConvertir,
@@ -38,6 +41,9 @@ export async function registrarTraslado(
     if (!esUuid(clienteId) || (membresiaId !== null && !esUuid(membresiaId)) || (tarifaId !== null && !esUuid(tarifaId))) {
       return INVALIDA;
     }
+    // Bonos y gastos del traslado: se validan antes de guardar nada.
+    const lectura = leerLineas(formData.get(NOMBRE_CAMPO_LINEAS));
+    if (lectura.error !== undefined) return fallo(lectura.error);
     const { data, error } = await supabase.rpc("registrar_traslado", {
       p_idempotencia: idempotencia,
       p_tipo: tipo,
@@ -58,11 +64,13 @@ export async function registrarTraslado(
       p_programar: datos.programar === true,
     });
     if (error) return traducir(error);
+    const errorLineas = await registrarLineas(supabase, "traslado", data, lectura.lineas);
+    if (errorLineas) return falloTrasServicio("el traslado", errorLineas);
     return { destino: `${ruta(data)}?guardado=1` };
   });
 }
 
-/** Acciones sin campos (programar, iniciar, revalidar). */
+/** Acciones sin campos (programar, revalidar). */
 export async function programarTraslado(id: string, anterior: EstadoFormulario, formData: FormData): Promise<EstadoFormulario> {
   return procesar(anterior, formData, [], "gestionarTraslados", async (_datos, supabase) => {
     if (!esUuid(id)) return INVALIDA;
@@ -82,9 +90,13 @@ export async function revalidarCobertura(id: string, anterior: EstadoFormulario,
 }
 
 export async function iniciarTraslado(id: string, anterior: EstadoFormulario, formData: FormData): Promise<EstadoFormulario> {
-  return procesar(anterior, formData, [], "gestionarTraslados", async (_datos, supabase) => {
+  return procesar(anterior, formData, camposKmSalida(null), "gestionarTraslados", async (datos, supabase) => {
     if (!esUuid(id)) return INVALIDA;
-    const { data, error } = await supabase.rpc("iniciar_traslado", { p_traslado_id: id });
+    const { data, error } = await supabase.rpc("iniciar_traslado", {
+      p_traslado_id: id,
+      p_km_salida: Number(datos.km_salida),
+      p_motivo_descuadre_km: opcional(texto(datos.motivo_descuadre_km)),
+    });
     if (error) return traducir(error);
     // Sin cobertura válida no se inicia, pero la revalidación quedó guardada.
     const resultado = data as { iniciado?: boolean } | null;
@@ -170,6 +182,7 @@ export async function finalizarTraslado(
     const anticipo = texto(datos.aplicar_anticipo);
     const { error } = await supabase.rpc("finalizar_traslado", {
       p_traslado_id: id,
+      p_km_llegada: Number(datos.km_llegada),
       p_notas_finales: opcional(texto(datos.notas_finales)),
       ...(anticipo !== null && Number(anticipo) > 0 ? { p_aplicar_anticipo: decimal(anticipo) } : {}),
     });

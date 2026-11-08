@@ -1,6 +1,5 @@
 import { establecerVencimiento } from "@/lib/membresias/acciones";
 import { camposVencimiento } from "@/lib/membresias/vigencia";
-import { GastosServicio } from "@/components/finanzas/gastos-servicio";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -25,9 +24,11 @@ import {
 import { formatearFecha, formatearFechaHora, formatearMoneda, hoyEnTegucigalpa } from "@/lib/formato";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/tipos-bd";
+import { ResultadoServicio } from "@/components/bonos/resultado-servicio";
 import { Cargando, Encabezado, EstadoVacio } from "@/components/encabezado";
 import type { ParametrosBusqueda } from "@/components/finanzas/filtros";
 import { AvisoOperacion, FormularioOperacion } from "@/components/finanzas/operaciones";
+import { PreguntaSaldoAFavor } from "@/components/finanzas/pregunta-saldo";
 import { Datos, ResumenImportes, Seccion } from "@/components/finanzas/resumen";
 import { Tabla } from "@/components/finanzas/tabla";
 import { BotonActualizarMensualidades } from "@/components/membresias/actualizar";
@@ -90,6 +91,8 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
   const vinculadosIds = new Set(vigentes.map((v) => v.beneficiario_id));
   const opcionesAgregar = (activos ?? []).filter((b) => !vinculadosIds.has(b.id)).map((b) => ({ valor: b.id, etiqueta: b.nombre }));
   const filasPeriodos = (periodos ?? []).map((p) => ({ ...p, id: p.id! }));
+  // El saldo a favor se propone para la cuota pendiente más antigua (los períodos vienen del más reciente).
+  const cuotaPendiente = filasPeriodos.findLast((p) => p.cargo_id && p.cargo_estado === "vigente" && Number(p.pendiente) > 0);
 
   return (
     <>
@@ -111,11 +114,13 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
         parametros={parametros}
         mensajes={{
           guardado: "Membresía registrada.",
+          gastos: "Bonos y gastos registrados.",
           vigencia: "Vencimiento actualizado.",
           condiciones: "Condiciones actualizadas para los próximos ciclos.",
           beneficiario: "Beneficiario agregado.",
           baja: "Beneficiario dado de baja.",
           cancelada: "Membresía cancelada.",
+          aplicado: "Saldo a favor aplicado.",
         }}
       />
 
@@ -147,10 +152,17 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
           Estado de cuenta del cliente
         </Link>
       </p>
-      {Number(saldoCliente?.saldo_a_favor ?? 0) > 0 && Number(membresia.pendiente) > 0 && (
-        <p className="mb-6 text-sm texto-tenue">
-          El cliente tiene saldo a favor: abra la cuota pendiente para aplicarlo sin registrar dinero nuevo.
-        </p>
+      {cuotaPendiente?.cargo_id && (
+        <PreguntaSaldoAFavor
+          cargoId={cuotaPendiente.cargo_id}
+          concepto={`Mensualidad del ${formatearFecha(cuotaPendiente.inicio)}`}
+          vigente
+          pendiente={cuotaPendiente.pendiente}
+          aFavor={saldoCliente?.saldo_a_favor}
+          rol={usuario.rol}
+          volver={ruta}
+          recienAplicado={parametros.aplicado === "1"}
+        />
       )}
 
       {vencida && <p className="aviso aviso-advertencia mb-4">Membresía vencida: sin cobertura ni nuevas cuotas. La deuda pendiente se conserva.</p>}
@@ -341,6 +353,15 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
         />
       </Seccion>
 
+      <ResultadoServicio
+        tipo="membresia"
+        id={id}
+        rol={usuario.rol}
+        estimado={cancelada ? null : { monto: membresia.precio_pactado, nota: "Aún sin cuotas emitidas: se muestra la cuota mensual pactada." }}
+        abierta={parametros.gastos === "1"}
+        recomendacion={parametros.guardado === "1" ? { titulo: "Membresía vendida: resultado de la venta", parametro: "guardado" } : null}
+      />
+
       {administrador && (
         <Seccion titulo="Baja de la membresía">
           <Desplegable titulo="Cancelar la membresía" peligro>
@@ -379,7 +400,6 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
           <EstadoVacio mensaje="Sin eventos registrados." />
         )}
       </Seccion>
-      <GastosServicio tipo="membresia" id={id} rol={usuario.rol} />
     </>
   );
 }

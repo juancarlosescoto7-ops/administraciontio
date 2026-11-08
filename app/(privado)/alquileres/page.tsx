@@ -51,12 +51,12 @@ async function Listado({ searchParams }: { searchParams: ParametrosBusqueda }) {
   const activos = filtros.estado === "activos";
   let consulta = supabase
     .from("saldos_alquileres")
-    .select("id, cliente_nombre, vehiculo_codigo, entrega_prevista, devolucion_prevista, estado, importe_total, pendiente, estado_financiero")
+    .select("id, cliente_nombre, vehiculo_nombre, entrega_prevista, devolucion_prevista, estado, importe_total, pendiente, estado_financiero")
     .order("entrega_prevista", { ascending: activos })
     .limit(LIMITE_LISTADO + 1);
   if (activos) consulta = consulta.in("estado", ["reservado", "entregado"]);
   else if (filtros.estado !== "todos") consulta = consulta.eq("estado", filtros.estado as EstadoAlquiler);
-  if (filtros.busqueda) consulta = consulta.or(filtroBusqueda(["cliente_nombre", "vehiculo_codigo"], filtros.busqueda));
+  if (filtros.busqueda) consulta = consulta.or(filtroBusqueda(["cliente_nombre", "vehiculo_nombre"], filtros.busqueda));
   if (filtros.desde) consulta = consulta.gte("entrega_prevista", momentoDesdeLocal(`${filtros.desde}T00:00`));
   if (filtros.hasta) consulta = consulta.lte("entrega_prevista", momentoDesdeLocal(`${filtros.hasta}T23:59`));
   const { data, error } = await consulta;
@@ -74,7 +74,7 @@ async function Listado({ searchParams }: { searchParams: ParametrosBusqueda }) {
           vacio="No hay alquileres que coincidan con el filtro."
           columnas={[
             { clave: "cliente", etiqueta: "Cliente", celda: (f) => f.cliente_nombre },
-            { clave: "vehiculo", etiqueta: "Vehículo", celda: (f) => f.vehiculo_codigo },
+            { clave: "vehiculo", etiqueta: "Vehículo", celda: (f) => f.vehiculo_nombre },
             { clave: "entrega", etiqueta: "Entrega", celda: (f) => formatearFechaHora(f.entrega_prevista) },
             { clave: "devolucion", etiqueta: "Devolución", celda: (f) => formatearFechaHora(f.devolucion_prevista) },
             {

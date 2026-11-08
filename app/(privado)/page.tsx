@@ -7,7 +7,7 @@ import { ejemplosPara, opcionesFijas } from "@/lib/busqueda/intencion";
 import { gruposNavegacion } from "@/lib/navegacion";
 import { ESTADOS_ACTIVOS, type EstadoTraslado } from "@/lib/ambulancias/definiciones";
 import { ESTADOS_ACTIVOS_TRANSPORTE } from "@/lib/transportes/definiciones";
-import { CATALOGOS, OPCIONES_ESTADO_VEHICULO, OPCIONES_TIPO_VEHICULO } from "@/lib/catalogos/definiciones";
+import { CATALOGOS, OPCIONES_TIPO_VEHICULO } from "@/lib/catalogos/definiciones";
 import { tablaCatalogo } from "@/lib/catalogos/tabla";
 import { ETIQUETAS_METODO } from "@/lib/finanzas/definiciones";
 import { sumarMontos } from "@/lib/finanzas/montos";
@@ -23,8 +23,10 @@ import { describirPeriodo, resolverPeriodo } from "@/lib/reportes/periodo";
 import { createClient } from "@/lib/supabase/server";
 import { BuscadorInicio } from "@/components/buscador";
 import { InsigniaFinanciera } from "@/components/finanzas/resumen";
+import { InsigniaVehiculo } from "@/components/flota/insignias";
 import { Tabla } from "@/components/finanzas/tabla";
 import { ActualizarAlAbrir } from "@/components/membresias/actualizar";
+import { ActualizarDepreciacionesAlAbrir } from "@/components/bienes/actualizar";
 import {
   BandaAccesos,
   EsqueletoPanel,
@@ -53,12 +55,6 @@ const ORDEN_PANEL: ClaveCatalogo[] = [
 const LIMITE_PROXIMOS = 6;
 const LIMITE_VEHICULOS = 5;
 
-const CLASE_ESTADO_VEHICULO: Record<string, string> = {
-  operativo: "insignia-activo",
-  mantenimiento: "insignia-advertencia",
-  fuera_servicio: "insignia-inactivo",
-};
-const ETIQUETA_ESTADO_VEHICULO = Object.fromEntries(OPCIONES_ESTADO_VEHICULO.map((o) => [o.valor, o.etiqueta]));
 const ETIQUETA_TIPO_VEHICULO = Object.fromEntries(OPCIONES_TIPO_VEHICULO.map((o) => [o.valor, o.etiqueta]));
 
 /** Filas de una consulta, o null si falló (para no mostrar 0 en lugar de un error). */
@@ -147,29 +143,29 @@ async function ContenidoPanel() {
       .select("estado, inicio_previsto")
       .or(`estado.eq.en_curso,and(inicio_previsto.gte.${inicioHoy},inicio_previsto.lte.${finHoy})`),
     supabase.from("transportes").select("id", { count: "exact", head: true }).eq("estado", "solicitado"),
-    supabase.from("vehiculos").select("id, codigo, marca, modelo, tipo, estado").eq("activo", true).order("codigo"),
+    supabase.from("vehiculos").select("id, nombre, placa, tipo, estado").eq("activo", true).order("codigo"),
     // Servicios sin terminar más cercanos de cada módulo (los atrasados quedan primero).
     supabase
       .from("saldos_traslados")
-      .select("id, inicio_previsto, cliente_nombre, origen, destino, vehiculo_codigo, estado")
+      .select("id, inicio_previsto, cliente_nombre, origen, destino, vehiculo_nombre, estado")
       .in("estado", ESTADOS_ACTIVOS as EstadoTraslado[])
       .order("inicio_previsto", { ascending: true })
       .limit(LIMITE_PROXIMOS),
     supabase
       .from("saldos_transportes")
-      .select("id, inicio_previsto, cliente_nombre, origen, destino, vehiculo_codigo, estado")
+      .select("id, inicio_previsto, cliente_nombre, origen, destino, vehiculo_nombre, estado")
       .in("estado", [...ESTADOS_ACTIVOS_TRANSPORTE])
       .order("inicio_previsto", { ascending: true })
       .limit(LIMITE_PROXIMOS),
     supabase
       .from("saldos_alquileres")
-      .select("id, entrega_prevista, cliente_nombre, vehiculo_codigo, estado")
+      .select("id, entrega_prevista, cliente_nombre, vehiculo_nombre, estado")
       .eq("estado", "reservado")
       .order("entrega_prevista", { ascending: true })
       .limit(LIMITE_PROXIMOS),
     supabase
       .from("saldos_alquileres")
-      .select("id, devolucion_prevista, cliente_nombre, vehiculo_codigo, estado")
+      .select("id, devolucion_prevista, cliente_nombre, vehiculo_nombre, estado")
       .eq("estado", "entregado")
       .order("devolucion_prevista", { ascending: true })
       .limit(LIMITE_PROXIMOS),
@@ -240,22 +236,22 @@ async function ContenidoPanel() {
     [
       (proximosTraslados.data ?? []).flatMap((t): ServicioProximo[] =>
         t.id && t.inicio_previsto
-          ? [{ tipo: "traslado", id: t.id, momento: t.inicio_previsto, cliente: t.cliente_nombre, detalle: recorrido(t.origen, t.destino), codigo: t.vehiculo_codigo, estado: t.estado, href: `/ambulancias/${t.id}` }]
+          ? [{ tipo: "traslado", id: t.id, momento: t.inicio_previsto, cliente: t.cliente_nombre, detalle: recorrido(t.origen, t.destino), codigo: t.vehiculo_nombre, estado: t.estado, href: `/ambulancias/${t.id}` }]
           : [],
       ),
       (proximosTransportes.data ?? []).flatMap((t): ServicioProximo[] =>
         t.id && t.inicio_previsto
-          ? [{ tipo: "transporte", id: t.id, momento: t.inicio_previsto, cliente: t.cliente_nombre, detalle: recorrido(t.origen, t.destino), codigo: t.vehiculo_codigo, estado: t.estado, href: `/transportes/${t.id}` }]
+          ? [{ tipo: "transporte", id: t.id, momento: t.inicio_previsto, cliente: t.cliente_nombre, detalle: recorrido(t.origen, t.destino), codigo: t.vehiculo_nombre, estado: t.estado, href: `/transportes/${t.id}` }]
           : [],
       ),
       (proximasEntregas.data ?? []).flatMap((a): ServicioProximo[] =>
         a.id && a.entrega_prevista
-          ? [{ tipo: "entrega", id: a.id, momento: a.entrega_prevista, cliente: a.cliente_nombre, detalle: null, codigo: a.vehiculo_codigo, estado: a.estado, href: `/alquileres/${a.id}` }]
+          ? [{ tipo: "entrega", id: a.id, momento: a.entrega_prevista, cliente: a.cliente_nombre, detalle: null, codigo: a.vehiculo_nombre, estado: a.estado, href: `/alquileres/${a.id}` }]
           : [],
       ),
       (proximasDevoluciones.data ?? []).flatMap((a): ServicioProximo[] =>
         a.id && a.devolucion_prevista
-          ? [{ tipo: "devolucion", id: a.id, momento: a.devolucion_prevista, cliente: a.cliente_nombre, detalle: null, codigo: a.vehiculo_codigo, estado: a.estado, href: `/alquileres/${a.id}` }]
+          ? [{ tipo: "devolucion", id: a.id, momento: a.devolucion_prevista, cliente: a.cliente_nombre, detalle: null, codigo: a.vehiculo_nombre, estado: a.estado, href: `/alquileres/${a.id}` }]
           : [],
       ),
     ],
@@ -288,6 +284,7 @@ async function ContenidoPanel() {
   return (
     <>
       <ActualizarAlAbrir />
+      {puede("gestionarBienes", rol) && <ActualizarDepreciacionesAlAbrir />}
 
       {/* Sin cabecera visible: el buscador abre la página. */}
       <h1 className="sr-only">Inicio</h1>
@@ -417,12 +414,12 @@ async function ContenidoPanel() {
                   <Link href={`/vehiculos/${vehiculo.id}`} className="fila-enlace flex items-center gap-3 rounded-lg px-2 py-2">
                     <IconoTono icono={vehiculo.tipo === "ambulancia" ? "servicios" : "flota"} tono="azul" className="size-10" />
                     <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="text-sm font-semibold">{vehiculo.codigo}</span>
+                      <span className="text-sm font-semibold break-words">{vehiculo.nombre}</span>
                       <span className="truncate text-xs texto-tenue">
-                        {[ETIQUETA_TIPO_VEHICULO[vehiculo.tipo], [vehiculo.marca, vehiculo.modelo].filter(Boolean).join(" ")].filter(Boolean).join(" · ")}
+                        {[ETIQUETA_TIPO_VEHICULO[vehiculo.tipo], vehiculo.placa].filter(Boolean).join(" · ")}
                       </span>
                     </span>
-                    <span className={`insignia ${CLASE_ESTADO_VEHICULO[vehiculo.estado]}`}>{ETIQUETA_ESTADO_VEHICULO[vehiculo.estado]}</span>
+                    <InsigniaVehiculo estado={vehiculo.estado} />
                   </Link>
                 </li>
               ))}

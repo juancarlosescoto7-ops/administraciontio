@@ -4,14 +4,14 @@ import { Suspense } from "react";
 import { puede } from "@/lib/auth/roles";
 import { requerirUsuario } from "@/lib/auth/sesion";
 import { esUuid } from "@/lib/catalogos/presentacion";
-import { aplicarSaldo } from "@/lib/finanzas/acciones";
-import { camposAplicarSaldo, ETIQUETAS_ACTIVIDAD } from "@/lib/finanzas/definiciones";
+import { ETIQUETAS_ACTIVIDAD } from "@/lib/finanzas/definiciones";
 import { aCentavos } from "@/lib/finanzas/montos";
 import { formatearFecha, formatearFechaHora, formatearMoneda } from "@/lib/formato";
 import { createClient } from "@/lib/supabase/server";
 import { Cargando, Encabezado } from "@/components/encabezado";
 import type { ParametrosBusqueda } from "@/components/finanzas/filtros";
-import { AvisoOperacion, FormularioCorreccion, FormularioOperacion } from "@/components/finanzas/operaciones";
+import { AvisoOperacion, FormularioCorreccion } from "@/components/finanzas/operaciones";
+import { PreguntaSaldoAFavor } from "@/components/finanzas/pregunta-saldo";
 import { AsientosDocumento, Datos, InsigniaFinanciera, ResumenImportes, Seccion } from "@/components/finanzas/resumen";
 import { Desplegable } from "@/components/operaciones";
 import { Tabla } from "@/components/finanzas/tabla";
@@ -56,7 +56,6 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
   const ruta = `/finanzas/cargos/${id}`;
   const vigente = cargo.estado === "vigente";
   const pendiente = aCentavos(cargo.pendiente) ?? 0;
-  const aFavor = aCentavos(saldoCliente?.saldo_a_favor) ?? 0;
 
   return (
     <>
@@ -107,17 +106,16 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
         ]}
       />
 
-      {vigente && pendiente > 0 && aFavor > 0 && puede("registrarCobro", usuario.rol) && (
-        <Seccion titulo="Aplicar saldo a favor">
-          <div className="tarjeta p-4 sm:p-6">
-            <p className="mb-4 text-sm">
-              El cliente tiene {formatearMoneda(saldoCliente?.saldo_a_favor)} a favor. Se toma de sus cobros más antiguos y no
-              vuelve a entrar dinero a caja.
-            </p>
-            <FormularioOperacion campos={camposAplicarSaldo()} accion={aplicarSaldo.bind(null, id)} textoEnviar="Aplicar saldo" />
-          </div>
-        </Seccion>
-      )}
+      <PreguntaSaldoAFavor
+        cargoId={id}
+        concepto={cargo.concepto ?? "Cargo"}
+        vigente={vigente}
+        pendiente={cargo.pendiente}
+        aFavor={saldoCliente?.saldo_a_favor}
+        rol={usuario.rol}
+        volver={ruta}
+        recienAplicado={parametros.aplicado === "1"}
+      />
       {vigente && pendiente > 0 && (
         <p className="mb-6">
           <Link href={`/finanzas/cobros/nuevo?cliente=${cargo.cliente_id}`} className="boton boton-secundario">

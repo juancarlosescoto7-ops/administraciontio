@@ -8,6 +8,8 @@ import { limpiarBusqueda } from "@/lib/catalogos/validacion";
 import { registrarTransporte } from "@/lib/transportes/acciones";
 import { camposSolicitudTransporte } from "@/lib/transportes/definiciones";
 import { aFechaHoraLocal, formatearMoneda } from "@/lib/formato";
+import { LineasGasto } from "@/components/bonos/lineas-gasto";
+import { opcionesLineas } from "@/lib/bonos/servidor";
 import { createClient } from "@/lib/supabase/server";
 import { Cargando, Encabezado, SinPermiso } from "@/components/encabezado";
 import { BuscarCliente, type ParametrosBusqueda } from "@/components/finanzas/filtros";
@@ -55,6 +57,7 @@ async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda })
     }),
   ]);
   if (!cliente) return <BuscarCliente ruta="/transportes/nuevo" busqueda="" />;
+  const opcionesGasto = await opcionesLineas(supabase);
 
   const tarifa = (tarifas ?? []).find((t) => t.id === primerValor(parametros.tarifa)) ?? null;
   const opciones = (tipo: string): Opcion[] =>
@@ -112,6 +115,7 @@ async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda })
           accion={registrarTransporte.bind(null, cliente.id, tarifa?.id ?? null)}
           textoEnviar="Registrar solicitud"
           rutaCancelar="/transportes"
+          extra={<LineasGasto opciones={opcionesGasto} ingreso={{ etiqueta: "Precio del viaje", campo: "precio", nota: "Estimado: el ingreso se registra al completar el viaje." }} />}
         />
       </div>
     </>

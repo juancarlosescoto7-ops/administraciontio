@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useActionState } from "react";
+import { Fragment, useActionState, type ReactNode } from "react";
 import type { Campo } from "@/lib/catalogos/definiciones";
 import type { EstadoFormulario } from "@/lib/catalogos/estado";
 import { useHidratado } from "@/components/use-hidratado";
@@ -20,6 +20,7 @@ export function FormularioCatalogo({
   ocultos,
   prefijo = "",
   tono = "primario",
+  extra,
 }: {
   campos: readonly Campo[];
   accion: Accion;
@@ -35,6 +36,8 @@ export function FormularioCatalogo({
   prefijo?: string;
   /** «peligro» para cancelaciones, reversos y anulaciones. */
   tono?: "primario" | "exito" | "peligro";
+  /** Contenido propio dentro del formulario (p. ej., bonos y gastos del servicio); conserva su estado entre envíos. */
+  extra?: ReactNode;
 }) {
   const [estado, despachar, pendiente] = useActionState(accion, estadoInicial);
   const hidratado = useHidratado();
@@ -63,6 +66,8 @@ export function FormularioCatalogo({
           </Fragment>
         ))}
       </div>
+
+      {extra}
 
       {estado.error && (
         <p role="alert" className={`aviso ${hayErrores ? "aviso-advertencia" : "aviso-error"}`}>

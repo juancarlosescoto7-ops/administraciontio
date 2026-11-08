@@ -6,6 +6,8 @@ import type { EstadoFormulario } from "@/lib/catalogos/estado";
 import { esUuid } from "@/lib/catalogos/presentacion";
 import { decimal, opcional } from "@/lib/finanzas/montos";
 import { clave, fallo, procesar, SIN_CLAVE, texto, traducir } from "@/lib/operaciones";
+import { leerLineas, NOMBRE_CAMPO_LINEAS } from "@/lib/bonos/lineas";
+import { falloTrasServicio, registrarLineas } from "@/lib/bonos/servidor";
 import {
   camposCancelarAlquiler,
   camposDevolucion,
@@ -33,6 +35,9 @@ export async function registrarAlquiler(
     const idempotencia = clave(formData);
     if (!idempotencia) return SIN_CLAVE;
     if (!esUuid(clienteId) || !esMomento(entrega) || !esMomento(devolucion) || (tarifaId !== null && !esUuid(tarifaId))) return INVALIDA;
+    // Bonos y gastos de la reserva: se validan antes de guardar nada.
+    const lectura = leerLineas(formData.get(NOMBRE_CAMPO_LINEAS));
+    if (lectura.error !== undefined) return fallo(lectura.error);
     const { data, error } = await supabase.rpc("registrar_alquiler", {
       p_idempotencia: idempotencia,
       p_cliente_id: clienteId,
@@ -44,6 +49,8 @@ export async function registrarAlquiler(
       p_notas: opcional(texto(datos.notas)),
     });
     if (error) return traducir(error);
+    const errorLineas = await registrarLineas(supabase, "alquiler", data, lectura.lineas);
+    if (errorLineas) return falloTrasServicio("la reserva", errorLineas);
     return { destino: `${ruta(data)}?guardado=1` };
   });
 }
@@ -79,6 +86,7 @@ export async function entregarAlquiler(id: string, anterior: EstadoFormulario, f
       p_km_salida: Number(datos.km),
       p_combustible: datos.combustible as NivelCombustible,
       p_notas: opcional(texto(datos.notas)),
+      p_motivo_descuadre_km: opcional(texto(datos.motivo_descuadre_km)),
     });
     if (error) return traducir(error);
     return { destino: `${ruta(id)}?entregado=1` };

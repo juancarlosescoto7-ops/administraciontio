@@ -81,7 +81,7 @@ async function Listado({ searchParams }: { searchParams: ParametrosBusqueda }) {
           columnas={[
             { clave: "cliente", etiqueta: "Cliente", celda: (f) => f.cliente_nombre },
             { clave: "plan", etiqueta: "Plan", celda: (f) => f.plan_nombre },
-            { clave: "estado", etiqueta: "Estado", celda: (f) => f.estado !== "cancelada" && f.fecha_fin && f.fecha_fin < hoy ? <span className="insignia insignia-advertencia">Vencida</span> : <InsigniaMembresia estado={f.estado} /> },
+            { clave: "estado", etiqueta: "Estado", celda: (f) => f.estado !== "cancelada" && f.fecha_fin && f.fecha_fin < hoy ? <span className="insignia insignia-peligro">Vencida</span> : <InsigniaMembresia estado={f.estado} /> },
             { clave: "fin", etiqueta: "Vencimiento", celda: (f) => f.fecha_fin ? formatearFecha(f.fecha_fin) : "Por definir" },
             {
               clave: "renovacion",
@@ -90,7 +90,12 @@ async function Listado({ searchParams }: { searchParams: ParametrosBusqueda }) {
             },
             { clave: "beneficiarios", etiqueta: "Beneficiarios", numerica: true, celda: (f) => f.beneficiarios_activos },
             { clave: "pendiente", etiqueta: "Saldo pendiente", numerica: true, celda: (f) => formatearMoneda(f.pendiente) },
-            { clave: "vencido", etiqueta: "Vencido", numerica: true, celda: (f) => formatearMoneda(f.vencido) },
+            {
+              clave: "vencido",
+              etiqueta: "Vencido",
+              numerica: true,
+              celda: (f) => (Number(f.vencido) > 0 ? <span className="insignia insignia-peligro">{formatearMoneda(f.vencido)}</span> : formatearMoneda(f.vencido)),
+            },
           ]}
           totales={{
             pendiente: formatearMoneda(sumarMontos(filas.map((f) => f.pendiente))),

@@ -1,5 +1,6 @@
 import type { Campo, Opcion } from "@/lib/catalogos/definiciones";
 import { puede, type Rol } from "@/lib/auth/roles";
+import { campoKmLlegada } from "@/lib/flota/definiciones";
 import type { Database } from "@/lib/supabase/tipos-bd";
 
 export type EstadoTransporte = Database["public"]["Enums"]["estado_transporte"];
@@ -130,8 +131,9 @@ export function camposEditarTransporte(): Campo[] {
   ];
 }
 
-export function camposFinalizarTransporte(aplicaAnticipo: boolean): Campo[] {
+export function camposFinalizarTransporte(aplicaAnticipo: boolean, kmSalida: number | null = null): Campo[] {
   return [
+    campoKmLlegada(kmSalida),
     { nombre: "notas_finales", etiqueta: "Observaciones finales", tipo: "texto_largo", max: 1000 },
     ...(aplicaAnticipo
       ? ([

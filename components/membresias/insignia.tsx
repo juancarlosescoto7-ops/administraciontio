@@ -27,6 +27,6 @@ export function InsigniaCuota({
   if (Number(precio) === 0) return <span className="insignia insignia-inactivo">Sin costo</span>;
   if (anulada) return <span className="insignia insignia-inactivo">Cargo anulado</span>;
   if (Number(pendiente) === 0) return <span className="insignia insignia-activo">Pagada</span>;
-  if (vencida) return <span className="insignia insignia-advertencia">Vencida</span>;
-  return <span className="insignia insignia-inactivo">Pendiente</span>;
+  if (vencida) return <span className="insignia insignia-peligro">Vencida</span>;
+  return <span className="insignia insignia-advertencia">Pendiente</span>;
 }

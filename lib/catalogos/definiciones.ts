@@ -197,7 +197,7 @@ export const CATALOGOS: Record<ClaveCatalogo, DefinicionCatalogo> = {
     descripcion: "Flota propia: ambulancias, alquiler y transporte.",
     singular: "vehículo",
     etiquetaNuevo: "Nuevo vehículo",
-    campoTitulo: "codigo",
+    campoTitulo: "nombre",
     campos: [
       { nombre: "codigo", etiqueta: "Código interno", tipo: "texto", requerido: true, max: 30, mayusculas: true },
       { nombre: "placa", etiqueta: "Placa", tipo: "texto", max: 20, mayusculas: true, ayuda: "Opcional; si se indica debe ser única." },
@@ -215,15 +215,15 @@ export const CATALOGOS: Record<ClaveCatalogo, DefinicionCatalogo> = {
       },
       CAMPO_ACTIVO,
     ],
+    // «nombre» es columna generada en la base (marca, modelo y código): solo lectura.
     columnas: [
-      { campo: "codigo", etiqueta: "Código" },
+      { campo: "nombre", etiqueta: "Vehículo" },
       { campo: "placa", etiqueta: "Placa" },
       { campo: "tipo", etiqueta: "Tipo" },
-      { campo: "marca", etiqueta: "Marca" },
       { campo: "estado", etiqueta: "Estado operativo" },
       { campo: "activo", etiqueta: "Estado" },
     ],
-    camposBusqueda: ["codigo", "placa", "marca", "modelo"],
+    camposBusqueda: ["nombre", "codigo", "placa", "marca", "modelo"],
     orden: "codigo",
     restriccionesUnicas: {
       vehiculos_codigo_key: { campo: "codigo", mensaje: "Ya existe un vehículo con este código." },

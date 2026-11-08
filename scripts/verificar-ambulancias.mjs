@@ -50,9 +50,18 @@ const registrar = (sesion, args) =>
   });
 const asignar = (sesion, id, vehiculo, conductor, motivo = null) =>
   rpc(sesion, "asignar_recursos_traslado", { p_traslado_id: id, p_vehiculo_id: vehiculo, p_conductor_id: conductor, p_motivo: motivo });
-const iniciar = (sesion, id) => rpc(sesion, "iniciar_traslado", { p_traslado_id: id });
-const finalizar = (sesion, id, anticipo = null) =>
-  rpc(sesion, "finalizar_traslado", { p_traslado_id: id, p_notas_finales: `${MARCA} sin novedad`, p_aplicar_anticipo: anticipo });
+// Kilometraje (flota): sale con la última llegada de la ambulancia y llega 15 km después.
+const kmSalida = async (id) => {
+  const t = await uno(admin, `traslados_ambulancia?id=eq.${id}&select=vehiculo_id`);
+  return t?.vehiculo_id ? ((await rpc(admin, "kilometraje_vehiculo", { p_vehiculo_id: t.vehiculo_id })).datos ?? 0) : 0;
+};
+const iniciar = async (sesion, id) => rpc(sesion, "iniciar_traslado", { p_traslado_id: id, p_km_salida: await kmSalida(id) });
+const finalizar = async (sesion, id, anticipo = null) => {
+  const t = await uno(admin, `traslados_ambulancia?id=eq.${id}&select=km_salida`);
+  return rpc(sesion, "finalizar_traslado", {
+    p_traslado_id: id, p_km_llegada: (t?.km_salida ?? 0) + 15, p_notas_finales: `${MARCA} sin novedad`, p_aplicar_anticipo: anticipo,
+  });
+};
 const cancelar = (sesion, id, motivo = `${MARCA} el cliente desiste`) => rpc(sesion, "cancelar_traslado", { p_traslado_id: id, p_motivo: motivo });
 const cobrar = (sesion, cliente, monto) =>
   rpc(sesion, "registrar_cobro", {

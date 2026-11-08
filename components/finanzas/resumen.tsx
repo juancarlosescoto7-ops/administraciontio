@@ -55,15 +55,18 @@ export function Seccion({
   children,
   fija = false,
   abierta = false,
+  resumen,
 }: {
   titulo: string;
   children: ReactNode;
   fija?: boolean;
   abierta?: boolean;
+  /** Línea breve visible con la barra cerrada. */
+  resumen?: ReactNode;
 }) {
   if (!fija) {
     return (
-      <Plegable titulo={titulo} abierta={abierta}>
+      <Plegable titulo={titulo} abierta={abierta} resumen={resumen}>
         {children}
       </Plegable>
     );

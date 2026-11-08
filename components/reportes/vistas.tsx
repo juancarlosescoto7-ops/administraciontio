@@ -45,7 +45,7 @@ const ETIQUETAS_MOVIMIENTO: Record<TipoMovimiento, string> = {
 
 const CLASE_ESTADO_PAGO: Record<EstadoPago, string> = {
   pendiente: "insignia-advertencia",
-  parcial: "insignia-info",
+  parcial: "insignia-advertencia",
   pagado: "insignia-activo",
   anulado: "insignia-inactivo",
 };
@@ -83,7 +83,7 @@ function InsigniaPago({ estado, vencido = false }: { estado: EstadoPago; vencido
   return (
     <span className="inline-flex flex-wrap justify-end gap-1">
       <span className={`insignia ${CLASE_ESTADO_PAGO[estado]}`}>{ETIQUETAS_ESTADO_PAGO[estado]}</span>
-      {vencido && <span className="insignia insignia-advertencia">Vencido</span>}
+      {vencido && <span className="insignia insignia-peligro">Vencido</span>}
     </span>
   );
 }

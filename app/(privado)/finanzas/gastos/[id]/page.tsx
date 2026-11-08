@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SERVICIOS_GASTO } from "@/lib/finanzas/servicios";
+import { formatearVoucher } from "@/lib/bonos/lineas";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { puede } from "@/lib/auth/roles";
@@ -40,7 +41,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
     supabase.from("saldos_gastos").select("*").eq("id", id).maybeSingle(),
     supabase
       .from("pagos_gasto")
-      .select("id, fecha, metodo, referencia, monto, estado, motivo_reverso, cuentas_dinero(nombre)")
+      .select("id, fecha, metodo, referencia, monto, estado, motivo_reverso, cuentas_dinero(nombre), comprobantes_pago(numero)")
       .eq("gasto_id", id)
       .order("created_at"),
   ]);
@@ -117,6 +118,15 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
             { clave: "referencia", etiqueta: "Referencia", celda: (p) => p.referencia ?? "—" },
             { clave: "monto", etiqueta: "Importe", numerica: true, celda: (p) => formatearMoneda(p.monto) },
             { clave: "estado", etiqueta: "Estado", celda: (p) => <InsigniaFinanciera estado={p.estado} /> },
+            {
+              clave: "voucher",
+              etiqueta: "Voucher",
+              celda: (p) => (
+                <Link href={`/comprobantes/${p.id}`} className="text-enlace underline">
+                  {formatearVoucher(p.comprobantes_pago?.numero)}
+                </Link>
+              ),
+            },
             ...(corrige
               ? [{
                   clave: "accion",

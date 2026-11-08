@@ -19,6 +19,7 @@ import {
   type Parametros,
 } from "@/components/reportes/vistas";
 import { BalanzaComprobacion, EstadoResultados, SituacionFinanciera } from "@/components/reportes/estados";
+import { ActualizarDepreciacionesAlAbrir } from "@/components/bienes/actualizar";
 
 export default function PaginaReportes({ searchParams }: PageProps<"/reportes">) {
   return (
@@ -54,6 +55,8 @@ async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda })
 
   return (
     <>
+      {/* Los estados financieros incluyen la depreciación de los meses cumplidos. */}
+      <ActualizarDepreciacionesAlAbrir />
       <Pestanas vista={vista} periodo={periodo} />
       {vista !== "cobrar" && vista !== "pagar" && <SelectorPeriodo vista={vista} periodo={periodo} />}
       {periodo.aviso && (

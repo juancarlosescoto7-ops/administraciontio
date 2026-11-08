@@ -52,6 +52,14 @@ export const PERMISOS_FINANZAS = {
   registrarCargo: ["administrador"],
   /** Gastos y sus pagos. */
   gestionarGastos: ["administrador", "finanzas"],
+  /**
+   * Bonos y gastos de un servicio y su pago, desde el propio servicio
+   * (public.registrar_gastos_de_servicio y registrar_pago_gasto_servicio):
+   * quien registra el servicio también los registra (2026-11-05).
+   */
+  gestionarGastosServicio: ["administrador", "operador", "finanzas"],
+  /** Bienes de la empresa: registro, pagos, baja, edición y depreciación (public.*_bien). */
+  gestionarBienes: ["administrador", "finanzas"],
   /** Saldos y movimientos de caja/banco, gastos y asientos. */
   verTesoreria: ["administrador", "finanzas"],
   transferir: ["administrador", "finanzas"],
@@ -89,6 +97,8 @@ export const PERMISOS_OPERACIONES = {
   gestionarTransportes: ["administrador", "operador"],
   /** Corregir un kilometraje de regreso menor que el de salida. */
   corregirKilometraje: ["administrador"],
+  /** Registrar mantenimientos de vehículos (public.registrar_mantenimiento). */
+  gestionarFlota: ["administrador", "operador"],
 } as const satisfies Record<string, readonly Rol[]>;
 
 const PERMISOS = { ...PERMISOS_FINANZAS, ...PERMISOS_MEMBRESIAS, ...PERMISOS_AMBULANCIAS, ...PERMISOS_OPERACIONES };

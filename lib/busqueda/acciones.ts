@@ -40,13 +40,13 @@ export async function buscarUniversal(consulta: string): Promise<OpcionBusqueda[
   const [clientes, beneficiarios, vehiculos, conductores, proveedores, membresias, traslados, transportes, alquileres] = await Promise.all([
     supabase.from("clientes").select("id, nombre, identificacion, telefono").or(filtroBusqueda(["nombre", "identificacion", "telefono", "correo"], texto)).order("nombre").limit(POR_TIPO),
     supabase.from("beneficiarios").select("id, nombre, identificacion, telefono").or(filtroBusqueda(["nombre", "identificacion", "telefono"], texto)).order("nombre").limit(POR_TIPO),
-    supabase.from("vehiculos").select("id, codigo, placa, marca, modelo").or(filtroBusqueda(["codigo", "placa", "marca", "modelo"], texto)).order("codigo").limit(POR_TIPO),
+    supabase.from("vehiculos").select("id, nombre, placa").or(filtroBusqueda(["nombre", "codigo", "placa", "marca", "modelo"], texto)).order("codigo").limit(POR_TIPO),
     supabase.from("conductores").select("id, nombre, telefono").or(filtroBusqueda(["nombre", "identificacion", "telefono"], texto)).order("nombre").limit(POR_TIPO),
     supabase.from("proveedores").select("id, nombre, telefono").or(filtroBusqueda(["nombre", "identificacion", "telefono"], texto)).order("nombre").limit(POR_TIPO),
     supabase.from("saldos_membresias").select("id, cliente_nombre, plan_nombre, estado").or(filtroBusqueda(["cliente_nombre", "plan_nombre"], texto)).order("created_at", { ascending: false }).limit(POR_TIPO),
-    supabase.from("saldos_traslados").select("id, cliente_nombre, paciente, origen, destino, inicio_previsto, estado").or(filtroBusqueda(["cliente_nombre", "paciente", "beneficiario_nombre", "origen", "destino", "vehiculo_codigo"], texto)).order("inicio_previsto", { ascending: false }).limit(POR_TIPO),
-    supabase.from("saldos_transportes").select("id, cliente_nombre, origen, destino, inicio_previsto, estado").or(filtroBusqueda(["cliente_nombre", "origen", "destino", "vehiculo_codigo"], texto)).order("inicio_previsto", { ascending: false }).limit(POR_TIPO),
-    supabase.from("saldos_alquileres").select("id, cliente_nombre, vehiculo_codigo, entrega_prevista, estado").or(filtroBusqueda(["cliente_nombre", "vehiculo_codigo", "vehiculo_placa"], texto)).order("entrega_prevista", { ascending: false }).limit(POR_TIPO),
+    supabase.from("saldos_traslados").select("id, cliente_nombre, paciente, origen, destino, inicio_previsto, estado").or(filtroBusqueda(["cliente_nombre", "paciente", "beneficiario_nombre", "origen", "destino", "vehiculo_nombre"], texto)).order("inicio_previsto", { ascending: false }).limit(POR_TIPO),
+    supabase.from("saldos_transportes").select("id, cliente_nombre, origen, destino, inicio_previsto, estado").or(filtroBusqueda(["cliente_nombre", "origen", "destino", "vehiculo_nombre"], texto)).order("inicio_previsto", { ascending: false }).limit(POR_TIPO),
+    supabase.from("saldos_alquileres").select("id, cliente_nombre, vehiculo_nombre, entrega_prevista, estado").or(filtroBusqueda(["cliente_nombre", "vehiculo_nombre", "vehiculo_placa"], texto)).order("entrega_prevista", { ascending: false }).limit(POR_TIPO),
   ]);
   
 
@@ -71,8 +71,8 @@ export async function buscarUniversal(consulta: string): Promise<OpcionBusqueda[
     ...filas(membresias).flatMap((m) => registro("Membresía", m.id, `/membresias/${m.id}`, m.cliente_nombre, unir(m.plan_nombre, m.estado && ETIQUETAS_ESTADO_MEMBRESIA[m.estado]), "membresia")),
     ...filas(traslados).flatMap((t) => registro("Traslado", t.id, `/ambulancias/${t.id}`, t.paciente || t.cliente_nombre, unir(t.inicio_previsto && formatearFechaHora(t.inicio_previsto), t.estado && ETIQUETAS_ESTADO_TRASLADO[t.estado]), "servicios")),
     ...filas(transportes).flatMap((t) => registro("Transporte", t.id, `/transportes/${t.id}`, t.cliente_nombre, unir(t.inicio_previsto && formatearFechaHora(t.inicio_previsto), t.estado && ETIQUETAS_ESTADO_TRANSPORTE[t.estado]), "flota")),
-    ...filas(alquileres).flatMap((a) => registro("Alquiler", a.id, `/alquileres/${a.id}`, a.cliente_nombre, unir(a.vehiculo_codigo, a.estado && ETIQUETAS_ESTADO_ALQUILER[a.estado]), "llave")),
-    ...filas(vehiculos).flatMap((v) => registro("Vehículo", v.id, `/vehiculos/${v.id}`, v.codigo, unir(v.placa, [v.marca, v.modelo].filter(Boolean).join(" ")), "flota")),
+    ...filas(alquileres).flatMap((a) => registro("Alquiler", a.id, `/alquileres/${a.id}`, a.cliente_nombre, unir(a.vehiculo_nombre, a.estado && ETIQUETAS_ESTADO_ALQUILER[a.estado]), "llave")),
+    ...filas(vehiculos).flatMap((v) => registro("Vehículo", v.id, `/vehiculos/${v.id}`, v.nombre, unir(v.placa), "flota")),
     ...filas(conductores).flatMap((c) => registro("Conductor", c.id, `/conductores/${c.id}`, c.nombre, unir(c.telefono), "clientes")),
     ...filas(proveedores).flatMap((p) => registro("Proveedor", p.id, `/proveedores/${p.id}`, p.nombre, unir(p.telefono), "finanzas")),
   ];

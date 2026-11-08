@@ -25,7 +25,7 @@ export const ETIQUETAS_TIPO_MOVIMIENTO: Record<Enums["tipo_movimiento"], string>
 };
 
 /** Estados de documentos financieros: los finales se muestran apagados. */
-export const ESTADOS_FINALES = new Set(["anulado", "reversado", "reversada"]);
+export const ESTADOS_FINALES = new Set(["anulado", "reversado", "reversada", "dado_de_baja"]);
 
 export const ETIQUETAS_ESTADO: Record<string, string> = {
   vigente: "Vigente",
@@ -34,6 +34,9 @@ export const ETIQUETAS_ESTADO: Record<string, string> = {
   reversado: "Reversado",
   reversada: "Reversada",
   registrado: "Registrado",
+  // Bienes de la empresa.
+  activo: "En uso",
+  dado_de_baja: "Dado de baja",
 };
 
 const OPCIONES_METODO: readonly Opcion[] = Object.entries(ETIQUETAS_METODO).map(
@@ -122,8 +125,8 @@ export function camposGasto(
     { nombre: "categoria_id", etiqueta: "Categoría", tipo: "seleccion", requerido: true, opciones: categorias, opcionesDinamicas: true },
     { nombre: "actividad", etiqueta: "Actividad", tipo: "seleccion", requerido: true, opciones: OPCIONES_ACTIVIDAD_GASTO },
     { nombre: "proveedor_id", etiqueta: "Proveedor", tipo: "seleccion", opciones: proveedores, opcionesDinamicas: true, ayuda: "Opcional." },
-    { nombre: "empleado_id", etiqueta: "Salario de empleado", tipo: "seleccion", opciones: empleados, opcionesDinamicas: true, ayuda: "Para salarios, seleccione el empleado y la categoría Salarios. Deje proveedor y conductor vacíos." },
-    { nombre: "conductor_id", etiqueta: "Salario / remuneración de conductor", tipo: "seleccion", opciones: conductores, opcionesDinamicas: true, ayuda: "Para remuneraciones, seleccione el conductor y la categoría Salarios. Deje empleado y proveedor vacíos. Indique el período o servicio en el concepto." },
+    { nombre: "empleado_id", etiqueta: "Salario o bono de empleado", tipo: "seleccion", opciones: empleados, opcionesDinamicas: true, ayuda: "Seleccione el empleado y la categoría Salarios o Bonos. Deje proveedor y conductor vacíos." },
+    { nombre: "conductor_id", etiqueta: "Salario, remuneración o bono de conductor", tipo: "seleccion", opciones: conductores, opcionesDinamicas: true, ayuda: "Seleccione el conductor y la categoría Salarios o Bonos. Deje empleado y proveedor vacíos. Indique el período o servicio en el concepto." },
     campoFecha(hoy),
     { nombre: "vencimiento", etiqueta: "Vencimiento", tipo: "fecha", ayuda: "Opcional: fecha límite de pago." },
     { nombre: "notas", etiqueta: "Notas", tipo: "texto_largo", max: 1000 },

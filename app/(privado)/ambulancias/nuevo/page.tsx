@@ -9,6 +9,8 @@ import { registrarTraslado } from "@/lib/ambulancias/acciones";
 import { camposSolicitud } from "@/lib/ambulancias/definiciones";
 import { ETIQUETAS_MODALIDAD } from "@/lib/membresias/definiciones";
 import { aFechaHoraLocal, formatearFecha, formatearMoneda, hoyEnTegucigalpa } from "@/lib/formato";
+import { LineasGasto } from "@/components/bonos/lineas-gasto";
+import { opcionesLineas } from "@/lib/bonos/servidor";
 import { createClient } from "@/lib/supabase/server";
 import { Cargando, Encabezado, SinPermiso } from "@/components/encabezado";
 import { BuscarCliente, type ParametrosBusqueda } from "@/components/finanzas/filtros";
@@ -122,6 +124,7 @@ async function Cubierto({
 }) {
   const membresiaId = membresia.id!;
   const hoy = hoyEnTegucigalpa();
+  const opcionesGasto = await opcionesLineas(supabase);
   const [{ data: vinculos }, recursos] = await Promise.all([
     supabase
       .from("membresia_beneficiarios")
@@ -167,6 +170,7 @@ async function Cubierto({
           accion={registrarTraslado.bind(null, clienteId, membresiaId, null)}
           textoEnviar="Registrar solicitud"
           rutaCancelar="/ambulancias"
+          extra={<LineasGasto opciones={opcionesGasto} ingreso={{ etiqueta: "Ingreso directo del traslado", monto: 0, nota: "Cubierto por la membresía: su ingreso está en las cuotas mensuales." }} />}
         />
       </div>
     </>
@@ -184,6 +188,7 @@ async function Particular({
   base: string;
   tarifaParametro: string | undefined;
 }) {
+  const opcionesGasto = await opcionesLineas(supabase);
   const [{ data: tarifas }, { data: beneficiarios }, { data: saldo }, recursos] = await Promise.all([
     supabase.from("tarifas").select("id, nombre, precio_base, unidad").eq("actividad", "ambulancias").eq("activo", true).order("nombre"),
     supabase.from("beneficiarios").select("id, nombre").eq("activo", true).order("nombre").limit(300),
@@ -241,6 +246,7 @@ async function Particular({
           accion={registrarTraslado.bind(null, clienteId, null, tarifa?.id ?? null)}
           textoEnviar="Registrar solicitud"
           rutaCancelar="/ambulancias"
+          extra={<LineasGasto opciones={opcionesGasto} ingreso={{ etiqueta: "Precio del traslado", campo: "precio", nota: "Estimado: el ingreso se registra al finalizar el traslado." }} />}
         />
       </div>
     </>

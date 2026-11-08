@@ -207,7 +207,7 @@ export async function SituacionFinanciera({ periodo, hoy }: Props) {
                 ) : c.cuadra ? (
                   <span className="insignia insignia-activo">Cuadra</span>
                 ) : (
-                  <span className="insignia insignia-advertencia">No cuadra</span>
+                  <span className="insignia insignia-peligro">No cuadra</span>
                 ),
             },
           ]}

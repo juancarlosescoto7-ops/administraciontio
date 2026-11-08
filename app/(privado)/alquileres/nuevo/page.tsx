@@ -7,6 +7,8 @@ import { esFechaValida, limpiarBusqueda } from "@/lib/catalogos/validacion";
 import { registrarAlquiler } from "@/lib/alquileres/acciones";
 import { camposReserva, diasAlquiler, precioSugerido } from "@/lib/alquileres/definiciones";
 import { aFechaHoraLocal, formatearFechaHora, formatearMoneda, momentoDesdeLocal } from "@/lib/formato";
+import { LineasGasto } from "@/components/bonos/lineas-gasto";
+import { opcionesLineas } from "@/lib/bonos/servidor";
 import { createClient } from "@/lib/supabase/server";
 import { Cargando, Encabezado, SinPermiso } from "@/components/encabezado";
 import { BuscarCliente, type ParametrosBusqueda } from "@/components/finanzas/filtros";
@@ -127,6 +129,7 @@ async function Revision({
   const dias = diasAlquiler(inicio, fin);
   const sugerido = tarifa ? (tarifa.unidad === "dia" ? precioSugerido(tarifa.precio_base, dias) : precioSugerido(tarifa.precio_base, 1)) : null;
   const libres = (vehiculos ?? []).filter((v) => v.disponible).map((v) => ({ valor: v.recurso_id, etiqueta: v.nombre }));
+  const opciones = await opcionesLineas(supabase);
 
   return (
     <>
@@ -175,6 +178,7 @@ async function Revision({
             textoEnviar="Confirmar reserva"
             tono="exito"
             rutaCancelar="/alquileres"
+            extra={<LineasGasto opciones={opciones} ingreso={{ etiqueta: "Precio de la reserva", campo: "precio", nota: "Estimado: el ingreso se registra al devolver el vehículo." }} />}
           />
         </div>
       )}

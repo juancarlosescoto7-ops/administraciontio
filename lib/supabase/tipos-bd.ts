@@ -1,4 +1,4 @@
-// Generado con Supabase MCP tras empleados y remuneraciones (2026-10-31).
+// Generado con Supabase MCP tras bonos, vouchers y resultado por servicio (2026-11-05).
 // No editar a mano: regenerar después de cada migración.
 
 export type Json =
@@ -43,6 +43,7 @@ export type Database = {
           km_salida: number | null
           motivo_cancelacion: string | null
           motivo_correccion_km: string | null
+          motivo_descuadre_km: string | null
           notas: string | null
           notas_devolucion: string | null
           notas_entrega: string | null
@@ -76,6 +77,7 @@ export type Database = {
           km_salida?: number | null
           motivo_cancelacion?: string | null
           motivo_correccion_km?: string | null
+          motivo_descuadre_km?: string | null
           notas?: string | null
           notas_devolucion?: string | null
           notas_entrega?: string | null
@@ -109,6 +111,7 @@ export type Database = {
           km_salida?: number | null
           motivo_cancelacion?: string | null
           motivo_correccion_km?: string | null
+          motivo_descuadre_km?: string | null
           notas?: string | null
           notas_devolucion?: string | null
           notas_entrega?: string | null
@@ -173,6 +176,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tarifas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alquileres_vehiculo_id_fkey"
+            columns: ["vehiculo_id"]
+            isOneToOne: false
+            referencedRelation: "resumen_flota"
+            referencedColumns: ["vehiculo_id"]
           },
           {
             foreignKeyName: "alquileres_vehiculo_id_fkey"
@@ -377,6 +387,136 @@ export type Database = {
             columns: ["creado_por"]
             isOneToOne: false
             referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bienes: {
+        Row: {
+          actividad: Database["public"]["Enums"]["actividad"]
+          anulado_en: string | null
+          anulado_por: string | null
+          baja_en: string | null
+          baja_por: string | null
+          clase: Database["public"]["Enums"]["clase_bien"]
+          costo: number
+          creado_por: string | null
+          created_at: string
+          depreciacion_previa: number
+          descripcion: string | null
+          estado: Database["public"]["Enums"]["estado_bien"]
+          fecha_adquisicion: string
+          fecha_baja: string | null
+          fecha_registro: string
+          id: string
+          idempotencia: string
+          motivo_anulacion: string | null
+          motivo_baja: string | null
+          nombre: string
+          origen: Database["public"]["Enums"]["origen_bien"]
+          proveedor_id: string | null
+          valor_residual: number
+          vehiculo_id: string | null
+          vencimiento: string | null
+          vida_util_meses: number | null
+        }
+        Insert: {
+          actividad: Database["public"]["Enums"]["actividad"]
+          anulado_en?: string | null
+          anulado_por?: string | null
+          baja_en?: string | null
+          baja_por?: string | null
+          clase: Database["public"]["Enums"]["clase_bien"]
+          costo: number
+          creado_por?: string | null
+          created_at?: string
+          depreciacion_previa?: number
+          descripcion?: string | null
+          estado?: Database["public"]["Enums"]["estado_bien"]
+          fecha_adquisicion: string
+          fecha_baja?: string | null
+          fecha_registro: string
+          id?: string
+          idempotencia: string
+          motivo_anulacion?: string | null
+          motivo_baja?: string | null
+          nombre: string
+          origen: Database["public"]["Enums"]["origen_bien"]
+          proveedor_id?: string | null
+          valor_residual?: number
+          vehiculo_id?: string | null
+          vencimiento?: string | null
+          vida_util_meses?: number | null
+        }
+        Update: {
+          actividad?: Database["public"]["Enums"]["actividad"]
+          anulado_en?: string | null
+          anulado_por?: string | null
+          baja_en?: string | null
+          baja_por?: string | null
+          clase?: Database["public"]["Enums"]["clase_bien"]
+          costo?: number
+          creado_por?: string | null
+          created_at?: string
+          depreciacion_previa?: number
+          descripcion?: string | null
+          estado?: Database["public"]["Enums"]["estado_bien"]
+          fecha_adquisicion?: string
+          fecha_baja?: string | null
+          fecha_registro?: string
+          id?: string
+          idempotencia?: string
+          motivo_anulacion?: string | null
+          motivo_baja?: string | null
+          nombre?: string
+          origen?: Database["public"]["Enums"]["origen_bien"]
+          proveedor_id?: string | null
+          valor_residual?: number
+          vehiculo_id?: string | null
+          vencimiento?: string | null
+          vida_util_meses?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bienes_anulado_por_fkey"
+            columns: ["anulado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bienes_baja_por_fkey"
+            columns: ["baja_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bienes_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bienes_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bienes_vehiculo_id_fkey"
+            columns: ["vehiculo_id"]
+            isOneToOne: false
+            referencedRelation: "resumen_flota"
+            referencedColumns: ["vehiculo_id"]
+          },
+          {
+            foreignKeyName: "bienes_vehiculo_id_fkey"
+            columns: ["vehiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehiculos"
             referencedColumns: ["id"]
           },
         ]
@@ -753,6 +893,32 @@ export type Database = {
           },
         ]
       }
+      comprobantes_pago: {
+        Row: {
+          created_at: string
+          numero: number
+          pago_gasto_id: string
+        }
+        Insert: {
+          created_at?: string
+          numero: number
+          pago_gasto_id: string
+        }
+        Update: {
+          created_at?: string
+          numero?: number
+          pago_gasto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comprobantes_pago_pago_gasto_id_fkey"
+            columns: ["pago_gasto_id"]
+            isOneToOne: true
+            referencedRelation: "pagos_gasto"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conductores: {
         Row: {
           activo: boolean
@@ -885,7 +1051,7 @@ export type Database = {
           datos: Json
           id?: string
           plantilla_version: number
-          servicio_id?: never
+          servicio_id?: string | null
           tipo: string
           transporte_id?: string | null
           traslado_id?: string | null
@@ -898,7 +1064,7 @@ export type Database = {
           datos?: Json
           id?: string
           plantilla_version?: number
-          servicio_id?: never
+          servicio_id?: string | null
           tipo?: string
           transporte_id?: string | null
           traslado_id?: string | null
@@ -909,6 +1075,13 @@ export type Database = {
             columns: ["alquiler_id"]
             isOneToOne: false
             referencedRelation: "alquileres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_servicio_alquiler_id_fkey"
+            columns: ["alquiler_id"]
+            isOneToOne: false
+            referencedRelation: "saldos_alquileres"
             referencedColumns: ["id"]
           },
           {
@@ -929,7 +1102,21 @@ export type Database = {
             foreignKeyName: "contratos_servicio_transporte_id_fkey"
             columns: ["transporte_id"]
             isOneToOne: false
+            referencedRelation: "saldos_transportes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_servicio_transporte_id_fkey"
+            columns: ["transporte_id"]
+            isOneToOne: false
             referencedRelation: "transportes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_servicio_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "saldos_traslados"
             referencedColumns: ["id"]
           },
           {
@@ -1015,6 +1202,58 @@ export type Database = {
           },
           {
             foreignKeyName: "cuentas_dinero_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      depreciaciones_bien: {
+        Row: {
+          bien_id: string
+          creado_por: string | null
+          created_at: string
+          estado: Database["public"]["Enums"]["estado_asiento"]
+          id: string
+          mes: string
+          monto: number
+        }
+        Insert: {
+          bien_id: string
+          creado_por?: string | null
+          created_at?: string
+          estado?: Database["public"]["Enums"]["estado_asiento"]
+          id?: string
+          mes: string
+          monto: number
+        }
+        Update: {
+          bien_id?: string
+          creado_por?: string | null
+          created_at?: string
+          estado?: Database["public"]["Enums"]["estado_asiento"]
+          id?: string
+          mes?: string
+          monto?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "depreciaciones_bien_bien_id_fkey"
+            columns: ["bien_id"]
+            isOneToOne: false
+            referencedRelation: "bienes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "depreciaciones_bien_bien_id_fkey"
+            columns: ["bien_id"]
+            isOneToOne: false
+            referencedRelation: "saldos_bienes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "depreciaciones_bien_creado_por_fkey"
             columns: ["creado_por"]
             isOneToOne: false
             referencedRelation: "perfiles"
@@ -1363,6 +1602,82 @@ export type Database = {
           },
         ]
       }
+      mantenimientos_vehiculo: {
+        Row: {
+          creado_por: string | null
+          created_at: string
+          descripcion: string
+          id: string
+          idempotencia: string
+          km_llegada: number
+          km_salida: number
+          motivo_descuadre_km: string | null
+          notas: string | null
+          proxima_fecha: string | null
+          proximo_km: number | null
+          regreso: string
+          salida: string
+          tipo: string
+          vehiculo_id: string
+        }
+        Insert: {
+          creado_por?: string | null
+          created_at?: string
+          descripcion: string
+          id?: string
+          idempotencia: string
+          km_llegada: number
+          km_salida: number
+          motivo_descuadre_km?: string | null
+          notas?: string | null
+          proxima_fecha?: string | null
+          proximo_km?: number | null
+          regreso: string
+          salida: string
+          tipo: string
+          vehiculo_id: string
+        }
+        Update: {
+          creado_por?: string | null
+          created_at?: string
+          descripcion?: string
+          id?: string
+          idempotencia?: string
+          km_llegada?: number
+          km_salida?: number
+          motivo_descuadre_km?: string | null
+          notas?: string | null
+          proxima_fecha?: string | null
+          proximo_km?: number | null
+          regreso?: string
+          salida?: string
+          tipo?: string
+          vehiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mantenimientos_vehiculo_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mantenimientos_vehiculo_vehiculo_id_fkey"
+            columns: ["vehiculo_id"]
+            isOneToOne: false
+            referencedRelation: "resumen_flota"
+            referencedColumns: ["vehiculo_id"]
+          },
+          {
+            foreignKeyName: "mantenimientos_vehiculo_vehiculo_id_fkey"
+            columns: ["vehiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       membresia_beneficiarios: {
         Row: {
           activo: boolean
@@ -1677,6 +1992,100 @@ export type Database = {
           },
         ]
       }
+      pagos_bien: {
+        Row: {
+          bien_id: string
+          creado_por: string | null
+          created_at: string
+          cuenta_dinero_id: string
+          estado: Database["public"]["Enums"]["estado_pago"]
+          fecha: string
+          id: string
+          idempotencia: string
+          metodo: Database["public"]["Enums"]["metodo_pago"]
+          monto: number
+          motivo_reverso: string | null
+          referencia: string | null
+          reversado_en: string | null
+          reversado_por: string | null
+        }
+        Insert: {
+          bien_id: string
+          creado_por?: string | null
+          created_at?: string
+          cuenta_dinero_id: string
+          estado?: Database["public"]["Enums"]["estado_pago"]
+          fecha: string
+          id?: string
+          idempotencia: string
+          metodo: Database["public"]["Enums"]["metodo_pago"]
+          monto: number
+          motivo_reverso?: string | null
+          referencia?: string | null
+          reversado_en?: string | null
+          reversado_por?: string | null
+        }
+        Update: {
+          bien_id?: string
+          creado_por?: string | null
+          created_at?: string
+          cuenta_dinero_id?: string
+          estado?: Database["public"]["Enums"]["estado_pago"]
+          fecha?: string
+          id?: string
+          idempotencia?: string
+          metodo?: Database["public"]["Enums"]["metodo_pago"]
+          monto?: number
+          motivo_reverso?: string | null
+          referencia?: string | null
+          reversado_en?: string | null
+          reversado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagos_bien_bien_id_fkey"
+            columns: ["bien_id"]
+            isOneToOne: false
+            referencedRelation: "bienes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagos_bien_bien_id_fkey"
+            columns: ["bien_id"]
+            isOneToOne: false
+            referencedRelation: "saldos_bienes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagos_bien_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagos_bien_cuenta_dinero_id_fkey"
+            columns: ["cuenta_dinero_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas_dinero"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagos_bien_cuenta_dinero_id_fkey"
+            columns: ["cuenta_dinero_id"]
+            isOneToOne: false
+            referencedRelation: "saldos_cuentas_dinero"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagos_bien_reversado_por_fkey"
+            columns: ["reversado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pagos_gasto: {
         Row: {
           creado_por: string | null
@@ -1889,6 +2298,54 @@ export type Database = {
             columns: ["membresia_id"]
             isOneToOne: false
             referencedRelation: "saldos_membresias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      peticiones: {
+        Row: {
+          actualizado_por: string | null
+          creado_por: string | null
+          created_at: string
+          descripcion: string
+          estado: string
+          id: string
+          pantalla: string | null
+          updated_at: string
+        }
+        Insert: {
+          actualizado_por?: string | null
+          creado_por?: string | null
+          created_at?: string
+          descripcion: string
+          estado?: string
+          id?: string
+          pantalla?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actualizado_por?: string | null
+          creado_por?: string | null
+          created_at?: string
+          descripcion?: string
+          estado?: string
+          id?: string
+          pantalla?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peticiones_actualizado_por_fkey"
+            columns: ["actualizado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "peticiones_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2313,8 +2770,11 @@ export type Database = {
           idempotencia: string
           inicio_previsto: string
           inicio_real: string | null
+          km_llegada: number | null
+          km_salida: number | null
           minutos_estimados: number
           motivo_cancelacion: string | null
+          motivo_descuadre_km: string | null
           notas: string | null
           notas_finales: string | null
           origen: string
@@ -2339,8 +2799,11 @@ export type Database = {
           idempotencia: string
           inicio_previsto: string
           inicio_real?: string | null
+          km_llegada?: number | null
+          km_salida?: number | null
           minutos_estimados?: number
           motivo_cancelacion?: string | null
+          motivo_descuadre_km?: string | null
           notas?: string | null
           notas_finales?: string | null
           origen: string
@@ -2365,8 +2828,11 @@ export type Database = {
           idempotencia?: string
           inicio_previsto?: string
           inicio_real?: string | null
+          km_llegada?: number | null
+          km_salida?: number | null
           minutos_estimados?: number
           motivo_cancelacion?: string | null
+          motivo_descuadre_km?: string | null
           notas?: string | null
           notas_finales?: string | null
           origen?: string
@@ -2443,6 +2909,13 @@ export type Database = {
             foreignKeyName: "transportes_vehiculo_id_fkey"
             columns: ["vehiculo_id"]
             isOneToOne: false
+            referencedRelation: "resumen_flota"
+            referencedColumns: ["vehiculo_id"]
+          },
+          {
+            foreignKeyName: "transportes_vehiculo_id_fkey"
+            columns: ["vehiculo_id"]
+            isOneToOne: false
             referencedRelation: "vehiculos"
             referencedColumns: ["id"]
           },
@@ -2469,11 +2942,14 @@ export type Database = {
           idempotencia: string
           inicio_previsto: string
           inicio_real: string | null
+          km_llegada: number | null
+          km_salida: number | null
           membresia_id: string | null
           minutos_estimados: number
           motivo: string | null
           motivo_cancelacion: string | null
           motivo_cobertura: string | null
+          motivo_descuadre_km: string | null
           notas: string | null
           notas_finales: string | null
           origen: string
@@ -2505,11 +2981,14 @@ export type Database = {
           idempotencia: string
           inicio_previsto: string
           inicio_real?: string | null
+          km_llegada?: number | null
+          km_salida?: number | null
           membresia_id?: string | null
           minutos_estimados?: number
           motivo?: string | null
           motivo_cancelacion?: string | null
           motivo_cobertura?: string | null
+          motivo_descuadre_km?: string | null
           notas?: string | null
           notas_finales?: string | null
           origen: string
@@ -2541,11 +3020,14 @@ export type Database = {
           idempotencia?: string
           inicio_previsto?: string
           inicio_real?: string | null
+          km_llegada?: number | null
+          km_salida?: number | null
           membresia_id?: string | null
           minutos_estimados?: number
           motivo?: string | null
           motivo_cancelacion?: string | null
           motivo_cobertura?: string | null
+          motivo_descuadre_km?: string | null
           notas?: string | null
           notas_finales?: string | null
           origen?: string
@@ -2660,6 +3142,13 @@ export type Database = {
             foreignKeyName: "traslados_ambulancia_vehiculo_id_fkey"
             columns: ["vehiculo_id"]
             isOneToOne: false
+            referencedRelation: "resumen_flota"
+            referencedColumns: ["vehiculo_id"]
+          },
+          {
+            foreignKeyName: "traslados_ambulancia_vehiculo_id_fkey"
+            columns: ["vehiculo_id"]
+            isOneToOne: false
             referencedRelation: "vehiculos"
             referencedColumns: ["id"]
           },
@@ -2677,6 +3166,7 @@ export type Database = {
           id: string
           marca: string | null
           modelo: string | null
+          nombre: string | null
           placa: string | null
           tipo: Database["public"]["Enums"]["tipo_vehiculo"]
           updated_at: string
@@ -2692,6 +3182,7 @@ export type Database = {
           id?: string
           marca?: string | null
           modelo?: string | null
+          nombre?: string | null
           placa?: string | null
           tipo: Database["public"]["Enums"]["tipo_vehiculo"]
           updated_at?: string
@@ -2707,6 +3198,7 @@ export type Database = {
           id?: string
           marca?: string | null
           modelo?: string | null
+          nombre?: string | null
           placa?: string | null
           tipo?: Database["public"]["Enums"]["tipo_vehiculo"]
           updated_at?: string
@@ -2730,6 +3222,137 @@ export type Database = {
       }
     }
     Views: {
+      gastos_de_servicio: {
+        Row: {
+          alquiler_id: string | null
+          categoria_nombre: string | null
+          concepto: string | null
+          created_at: string | null
+          destinatario: string | null
+          estado: Database["public"]["Enums"]["estado_gasto"] | null
+          fecha: string | null
+          gasto_id: string | null
+          membresia_id: string | null
+          monto: number | null
+          pagado: number | null
+          pendiente: number | null
+          transporte_id: string | null
+          traslado_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gastos_servicio_alquiler_id_fkey"
+            columns: ["alquiler_id"]
+            isOneToOne: false
+            referencedRelation: "alquileres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_servicio_alquiler_id_fkey"
+            columns: ["alquiler_id"]
+            isOneToOne: false
+            referencedRelation: "saldos_alquileres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_servicio_gasto_id_fkey"
+            columns: ["gasto_id"]
+            isOneToOne: true
+            referencedRelation: "gastos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_servicio_gasto_id_fkey"
+            columns: ["gasto_id"]
+            isOneToOne: true
+            referencedRelation: "saldos_gastos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_servicio_membresia_id_fkey"
+            columns: ["membresia_id"]
+            isOneToOne: false
+            referencedRelation: "membresias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_servicio_membresia_id_fkey"
+            columns: ["membresia_id"]
+            isOneToOne: false
+            referencedRelation: "saldos_membresias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_servicio_transporte_id_fkey"
+            columns: ["transporte_id"]
+            isOneToOne: false
+            referencedRelation: "saldos_transportes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_servicio_transporte_id_fkey"
+            columns: ["transporte_id"]
+            isOneToOne: false
+            referencedRelation: "transportes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_servicio_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "saldos_traslados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_servicio_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "traslados_ambulancia"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recorridos_vehiculo: {
+        Row: {
+          conductor_nombre: string | null
+          detalle: string | null
+          diferencia: number | null
+          km_anterior: number | null
+          km_llegada: number | null
+          km_salida: number | null
+          llegada: string | null
+          motivo_descuadre_km: string | null
+          origen_id: string | null
+          origen_tipo: string | null
+          recorrido: number | null
+          salida: string | null
+          vehiculo_id: string | null
+        }
+        Relationships: []
+      }
+      resumen_flota: {
+        Row: {
+          activo: boolean | null
+          codigo: string | null
+          descuadres: number | null
+          en_recorrido: boolean | null
+          estado: Database["public"]["Enums"]["estado_vehiculo"] | null
+          km_actual: number | null
+          km_para_mantenimiento: number | null
+          marca: string | null
+          modelo: string | null
+          nombre: string | null
+          placa: string | null
+          proxima_fecha: string | null
+          proximo_km: number | null
+          recorridos: number | null
+          tipo: Database["public"]["Enums"]["tipo_vehiculo"] | null
+          ultima_fecha: string | null
+          ultimo_mantenimiento: string | null
+          vehiculo_id: string | null
+        }
+        Relationships: []
+      }
       saldos_alquileres: {
         Row: {
           aplicado: number | null
@@ -2768,6 +3391,7 @@ export type Database = {
           updated_at: string | null
           vehiculo_codigo: string | null
           vehiculo_id: string | null
+          vehiculo_nombre: string | null
           vehiculo_placa: string | null
         }
         Relationships: [
@@ -2808,6 +3432,69 @@ export type Database = {
           },
           {
             foreignKeyName: "alquileres_vehiculo_id_fkey"
+            columns: ["vehiculo_id"]
+            isOneToOne: false
+            referencedRelation: "resumen_flota"
+            referencedColumns: ["vehiculo_id"]
+          },
+          {
+            foreignKeyName: "alquileres_vehiculo_id_fkey"
+            columns: ["vehiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saldos_bienes: {
+        Row: {
+          actividad: Database["public"]["Enums"]["actividad"] | null
+          anulado_en: string | null
+          clase: Database["public"]["Enums"]["clase_bien"] | null
+          costo: number | null
+          created_at: string | null
+          cuota_mensual: number | null
+          depreciacion_acumulada: number | null
+          depreciacion_previa: number | null
+          descripcion: string | null
+          estado: Database["public"]["Enums"]["estado_bien"] | null
+          fecha_adquisicion: string | null
+          fecha_baja: string | null
+          fecha_registro: string | null
+          id: string | null
+          motivo_anulacion: string | null
+          motivo_baja: string | null
+          nombre: string | null
+          origen: Database["public"]["Enums"]["origen_bien"] | null
+          pagado: number | null
+          por_pagar: number | null
+          proveedor_id: string | null
+          proveedor_nombre: string | null
+          ultimo_mes: string | null
+          valor_en_libros: number | null
+          valor_residual: number | null
+          vehiculo_id: string | null
+          vehiculo_nombre: string | null
+          vencimiento: string | null
+          vida_util_meses: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bienes_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bienes_vehiculo_id_fkey"
+            columns: ["vehiculo_id"]
+            isOneToOne: false
+            referencedRelation: "resumen_flota"
+            referencedColumns: ["vehiculo_id"]
+          },
+          {
+            foreignKeyName: "bienes_vehiculo_id_fkey"
             columns: ["vehiculo_id"]
             isOneToOne: false
             referencedRelation: "vehiculos"
@@ -3114,6 +3801,7 @@ export type Database = {
           updated_at: string | null
           vehiculo_codigo: string | null
           vehiculo_id: string | null
+          vehiculo_nombre: string | null
         }
         Relationships: [
           {
@@ -3157,6 +3845,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tarifas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transportes_vehiculo_id_fkey"
+            columns: ["vehiculo_id"]
+            isOneToOne: false
+            referencedRelation: "resumen_flota"
+            referencedColumns: ["vehiculo_id"]
           },
           {
             foreignKeyName: "transportes_vehiculo_id_fkey"
@@ -3213,6 +3908,7 @@ export type Database = {
           updated_at: string | null
           vehiculo_codigo: string | null
           vehiculo_id: string | null
+          vehiculo_nombre: string | null
         }
         Relationships: [
           {
@@ -3296,6 +3992,13 @@ export type Database = {
             foreignKeyName: "traslados_ambulancia_vehiculo_id_fkey"
             columns: ["vehiculo_id"]
             isOneToOne: false
+            referencedRelation: "resumen_flota"
+            referencedColumns: ["vehiculo_id"]
+          },
+          {
+            foreignKeyName: "traslados_ambulancia_vehiculo_id_fkey"
+            columns: ["vehiculo_id"]
+            isOneToOne: false
             referencedRelation: "vehiculos"
             referencedColumns: ["id"]
           },
@@ -3314,6 +4017,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      actualizar_depreciaciones: { Args: never; Returns: number }
       actualizar_mensualidades: {
         Args: { p_cliente_id?: string; p_membresia_id?: string }
         Returns: Json
@@ -3355,6 +4059,10 @@ export type Database = {
           p_traslado_id: string
         }
         Returns: string[]
+      }
+      anular_bien: {
+        Args: { p_bien_id: string; p_motivo: string }
+        Returns: undefined
       }
       anular_cargo: {
         Args: { p_cargo_id: string; p_motivo: string }
@@ -3457,6 +4165,10 @@ export type Database = {
         Args: { p_motivo: string; p_precio: number; p_traslado_id: string }
         Returns: undefined
       }
+      dar_de_baja_bien: {
+        Args: { p_bien_id: string; p_fecha: string; p_motivo: string }
+        Returns: undefined
+      }
       devolver_alquiler: {
         Args: {
           p_adicionales?: Json
@@ -3485,6 +4197,10 @@ export type Database = {
           recurso_tipo: string
         }[]
       }
+      editar_bien: {
+        Args: { p_bien_id: string; p_descripcion: string; p_nombre: string }
+        Returns: undefined
+      }
       editar_transporte: {
         Args: {
           p_destino: string
@@ -3509,15 +4225,26 @@ export type Database = {
         }
         Returns: undefined
       }
-      entregar_alquiler: {
-        Args: {
-          p_alquiler_id: string
-          p_combustible: Database["public"]["Enums"]["nivel_combustible"]
-          p_km_salida: number
-          p_notas: string
-        }
-        Returns: string[]
-      }
+      entregar_alquiler:
+        | {
+            Args: {
+              p_alquiler_id: string
+              p_combustible: Database["public"]["Enums"]["nivel_combustible"]
+              p_km_salida: number
+              p_notas: string
+            }
+            Returns: string[]
+          }
+        | {
+            Args: {
+              p_alquiler_id: string
+              p_combustible: Database["public"]["Enums"]["nivel_combustible"]
+              p_km_salida: number
+              p_motivo_descuadre_km: string
+              p_notas: string
+            }
+            Returns: string[]
+          }
       establecer_vencimiento_membresia: {
         Args: { p_fecha_fin: string; p_membresia_id: string; p_motivo: string }
         Returns: undefined
@@ -3535,22 +4262,42 @@ export type Database = {
           transportes: number
         }[]
       }
-      finalizar_transporte: {
-        Args: {
-          p_aplicar_anticipo?: number
-          p_notas_finales: string
-          p_transporte_id: string
-        }
-        Returns: Json
-      }
-      finalizar_traslado: {
-        Args: {
-          p_aplicar_anticipo?: number
-          p_notas_finales: string
-          p_traslado_id: string
-        }
-        Returns: Json
-      }
+      finalizar_transporte:
+        | {
+            Args: {
+              p_aplicar_anticipo?: number
+              p_km_llegada: number
+              p_notas_finales: string
+              p_transporte_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_aplicar_anticipo?: number
+              p_notas_finales: string
+              p_transporte_id: string
+            }
+            Returns: Json
+          }
+      finalizar_traslado:
+        | {
+            Args: {
+              p_aplicar_anticipo?: number
+              p_km_llegada: number
+              p_notas_finales: string
+              p_traslado_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_aplicar_anticipo?: number
+              p_notas_finales: string
+              p_traslado_id: string
+            }
+            Returns: Json
+          }
       generar_contrato_membresia: {
         Args: { p_membresia_id: string }
         Returns: string
@@ -3600,11 +4347,27 @@ export type Database = {
         Args: { p_motivo: string; p_vinculo_id: string }
         Returns: undefined
       }
-      iniciar_transporte: {
-        Args: { p_transporte_id: string }
-        Returns: string[]
-      }
-      iniciar_traslado: { Args: { p_traslado_id: string }; Returns: Json }
+      iniciar_transporte:
+        | { Args: { p_transporte_id: string }; Returns: string[] }
+        | {
+            Args: {
+              p_km_salida: number
+              p_motivo_descuadre_km?: string
+              p_transporte_id: string
+            }
+            Returns: string[]
+          }
+      iniciar_traslado:
+        | { Args: { p_traslado_id: string }; Returns: Json }
+        | {
+            Args: {
+              p_km_salida: number
+              p_motivo_descuadre_km?: string
+              p_traslado_id: string
+            }
+            Returns: Json
+          }
+      kilometraje_vehiculo: { Args: { p_vehiculo_id: string }; Returns: number }
       modificar_alquiler: {
         Args: {
           p_alquiler_id: string
@@ -3669,6 +4432,27 @@ export type Database = {
           p_fecha: string
           p_idempotencia: string
           p_monto: number
+        }
+        Returns: string
+      }
+      registrar_bien: {
+        Args: {
+          p_actividad: Database["public"]["Enums"]["actividad"]
+          p_clase: Database["public"]["Enums"]["clase_bien"]
+          p_costo: number
+          p_depreciacion_previa: number
+          p_descripcion: string
+          p_fecha_adquisicion: string
+          p_fecha_registro: string
+          p_idempotencia: string
+          p_nombre: string
+          p_origen: Database["public"]["Enums"]["origen_bien"]
+          p_pago?: Json
+          p_proveedor_id: string
+          p_valor_residual: number
+          p_vehiculo_id: string
+          p_vencimiento: string
+          p_vida_util_meses: number
         }
         Returns: string
       }
@@ -3760,6 +4544,27 @@ export type Database = {
         }
         Returns: string
       }
+      registrar_gastos_de_servicio: {
+        Args: { p_lineas: Json; p_servicio_id: string; p_tipo: string }
+        Returns: string[]
+      }
+      registrar_mantenimiento: {
+        Args: {
+          p_descripcion: string
+          p_idempotencia: string
+          p_km_llegada: number
+          p_km_salida: number
+          p_motivo_descuadre_km?: string
+          p_notas?: string
+          p_proxima_fecha?: string
+          p_proximo_km?: number
+          p_regreso: string
+          p_salida: string
+          p_tipo: string
+          p_vehiculo_id: string
+        }
+        Returns: string
+      }
       registrar_membresia: {
         Args: {
           p_beneficiarios: string[]
@@ -3785,7 +4590,31 @@ export type Database = {
         }
         Returns: string
       }
+      registrar_pago_bien: {
+        Args: {
+          p_bien_id: string
+          p_cuenta_dinero_id: string
+          p_fecha: string
+          p_idempotencia: string
+          p_metodo: Database["public"]["Enums"]["metodo_pago"]
+          p_monto: number
+          p_referencia: string
+        }
+        Returns: string
+      }
       registrar_pago_gasto: {
+        Args: {
+          p_cuenta_dinero_id: string
+          p_fecha: string
+          p_gasto_id: string
+          p_idempotencia: string
+          p_metodo: Database["public"]["Enums"]["metodo_pago"]
+          p_monto: number
+          p_referencia: string
+        }
+        Returns: string
+      }
+      registrar_pago_gasto_servicio: {
         Args: {
           p_cuenta_dinero_id: string
           p_fecha: string
@@ -3987,6 +4816,10 @@ export type Database = {
         Args: { p_cobro_id: string; p_motivo: string }
         Returns: undefined
       }
+      reversar_pago_bien: {
+        Args: { p_motivo: string; p_pago_id: string }
+        Returns: undefined
+      }
       reversar_pago_gasto: {
         Args: { p_motivo: string; p_pago_id: string }
         Returns: undefined
@@ -4014,10 +4847,18 @@ export type Database = {
     }
     Enums: {
       actividad: "ambulancias" | "alquileres" | "transportes" | "general"
+      clase_bien:
+        | "terreno"
+        | "edificio"
+        | "vehiculo"
+        | "mobiliario"
+        | "equipo"
+        | "otro"
       condicion_cobertura: "valida" | "pendiente_validacion" | "no_valida"
       estado_alquiler: "reservado" | "entregado" | "devuelto" | "cancelado"
       estado_aplicacion: "vigente" | "reversada"
       estado_asiento: "confirmado" | "reversado"
+      estado_bien: "activo" | "dado_de_baja" | "anulado"
       estado_cargo: "vigente" | "anulado"
       estado_gasto: "registrado" | "anulado"
       estado_membresia: "activa" | "suspendida" | "cancelada"
@@ -4040,6 +4881,7 @@ export type Database = {
       metodo_pago: "efectivo" | "transferencia" | "tarjeta" | "otro"
       modalidad_cupo: "compartido" | "individual"
       nivel_combustible: "vacio" | "cuarto" | "medio" | "tres_cuartos" | "lleno"
+      origen_bien: "existente" | "compra"
       origen_cargo:
         | "manual"
         | "periodo_membresia"
@@ -4054,6 +4896,10 @@ export type Database = {
         | "pago_gasto"
         | "transferencia"
         | "apertura"
+        | "bien"
+        | "pago_bien"
+        | "depreciacion"
+        | "baja_bien"
       origen_ocupacion: "traslado" | "alquiler" | "transporte"
       rol_usuario: "administrador" | "operador" | "finanzas"
       tipo_cliente: "natural" | "juridica"
@@ -4196,10 +5042,19 @@ export const Constants = {
   public: {
     Enums: {
       actividad: ["ambulancias", "alquileres", "transportes", "general"],
+      clase_bien: [
+        "terreno",
+        "edificio",
+        "vehiculo",
+        "mobiliario",
+        "equipo",
+        "otro",
+      ],
       condicion_cobertura: ["valida", "pendiente_validacion", "no_valida"],
       estado_alquiler: ["reservado", "entregado", "devuelto", "cancelado"],
       estado_aplicacion: ["vigente", "reversada"],
       estado_asiento: ["confirmado", "reversado"],
+      estado_bien: ["activo", "dado_de_baja", "anulado"],
       estado_cargo: ["vigente", "anulado"],
       estado_gasto: ["registrado", "anulado"],
       estado_membresia: ["activa", "suspendida", "cancelada"],
@@ -4224,6 +5079,7 @@ export const Constants = {
       metodo_pago: ["efectivo", "transferencia", "tarjeta", "otro"],
       modalidad_cupo: ["compartido", "individual"],
       nivel_combustible: ["vacio", "cuarto", "medio", "tres_cuartos", "lleno"],
+      origen_bien: ["existente", "compra"],
       origen_cargo: [
         "manual",
         "periodo_membresia",
@@ -4239,6 +5095,10 @@ export const Constants = {
         "pago_gasto",
         "transferencia",
         "apertura",
+        "bien",
+        "pago_bien",
+        "depreciacion",
+        "baja_bien",
       ],
       origen_ocupacion: ["traslado", "alquiler", "transporte"],
       rol_usuario: ["administrador", "operador", "finanzas"],

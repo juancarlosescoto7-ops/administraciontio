@@ -29,6 +29,7 @@ export function gruposNavegacion(rol: Rol): GrupoNavegacion[] {
       icono: "flota",
       enlaces: [
         { href: "/vehiculos", etiqueta: "Vehículos" },
+        { href: "/flota", etiqueta: "Kilometraje y mantenimiento" },
         { href: "/conductores", etiqueta: "Conductores" },
         ...(puede("gestionarGastos", rol) ? [{ href: "/empleados", etiqueta: "Empleados" }] : []),
       ],
@@ -42,6 +43,7 @@ export function gruposNavegacion(rol: Rol): GrupoNavegacion[] {
         { href: "/finanzas/pendientes", etiqueta: "Pendientes" },
         ...(puede("verTesoreria", rol) ? [{ href: "/finanzas/gastos", etiqueta: "Gastos" }] : []),
         { href: "/finanzas/cuentas", etiqueta: "Cajas y bancos" },
+        ...(puede("gestionarBienes", rol) ? [{ href: "/finanzas/bienes", etiqueta: "Bienes de la empresa" }] : []),
         { href: "/proveedores", etiqueta: "Proveedores" },
         ...(puede("verReportes", rol) ? [{ href: "/reportes", etiqueta: "Reportes" }] : []),
       ],
@@ -54,6 +56,7 @@ export function gruposNavegacion(rol: Rol): GrupoNavegacion[] {
         { href: "/tarifas", etiqueta: "Tarifas" },
         ...(puede("gestionarContrato", rol) ? [{ href: "/configuracion/contrato", etiqueta: "Contratos" }] : []),
         ...(puedeAdministrarUsuarios(rol) ? [{ href: "/configuracion/usuarios", etiqueta: "Usuarios" }] : []),
+        { href: "/peticiones", etiqueta: "Peticiones" },
       ],
     },
   ];

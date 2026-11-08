@@ -57,8 +57,11 @@ begin
   perform public.registrar_pago_gasto(gen_random_uuid(),g,cuenta,hoy,'efectivo',null,700);
   assert (select pendiente=0 and pagado=1000 from public.saldos_gastos where id=g), 'liquidación';
   perform set_config('request.jwt.claim.sub',current_setting('prueba.operador'),true);
-  assert not exists(select 1 from public.empleados), 'RLS empleados';
-  assert not exists(select 1 from public.gastos_personal), 'RLS remuneraciones';
+  -- Desde 2026-11-05 el operador consulta empleados para darles bonos y ve
+  -- solo las remuneraciones ligadas a un servicio.
+  assert exists(select 1 from public.empleados where id=e), 'RLS empleados (lectura)';
+  assert not exists(select 1 from public.gastos_personal where gasto_id=g), 'RLS remuneraciones generales';
+  assert exists(select 1 from public.gastos_personal where gasto_id=g2), 'RLS remuneración del servicio';
   begin
     insert into public.empleados(nombre) values('No permitido');
     raise exception 'Operador creó empleado';

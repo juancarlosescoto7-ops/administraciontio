@@ -79,6 +79,7 @@ async function Listado({ searchParams }: { searchParams: ParametrosBusqueda }) {
           filas={filas}
           enlace={(fila) => `/finanzas/cargos/${fila.id}`}
           vacio="No hay cargos que coincidan con el filtro."
+          resaltar={(f) => Number(f.pendiente) > 0}
           columnas={[
             { clave: "concepto", etiqueta: "Concepto", celda: (f) => f.concepto },
             { clave: "cliente", etiqueta: "Cliente", celda: (f) => f.cliente_nombre },

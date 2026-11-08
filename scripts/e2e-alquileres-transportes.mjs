@@ -44,6 +44,19 @@ const reservaOcupada = (await api(adminApi.token, "POST", "rpc/registrar_alquile
 const { evaluar, esperar, ruta, texto, ir, llenar, pulsar, capturar, vista, iniciarSesion, cerrar, abrirVentana } = await abrirNavegador();
 const marcar = (selector) => evaluar(`document.querySelector(${JSON.stringify(selector)}).click()`);
 const abrir = (titulo) => abrirVentana(titulo);
+// Inicio con kilometraje (flota): se respeta la última llegada que propone el
+// formulario; si el vehículo no tiene recorridos, se usa 1000. Devuelve la salida.
+const iniciarConKm = async (titulo) => {
+  await abrir(titulo);
+  await visible("#campo-iniciar-km_salida");
+  let km = Number(await evaluar("document.querySelector('#campo-iniciar-km_salida').value") || 0);
+  if (!km) {
+    km = 1000;
+    await llenar("#campo-iniciar-km_salida", String(km));
+  }
+  await pulsar("Confirmar inicio");
+  return km;
+};
 const visible = (selector) => esperar(`document.querySelector(${JSON.stringify(selector)})?.checkVisibility()`);
 const faltan = async (...fragmentos) => {
   const actual = await texto();
@@ -86,14 +99,17 @@ try {
   comprobar("detalle: reservado, sin cargo todavía y anticipo disponible", (await faltan("Reservado", "Sin cargo todavía", L("1,000.00"))).length === 0);
 
   await visible("#campo-entrega-km");
-  await llenar("#campo-entrega-km", "1000");
+  // Flota: la salida propuesta es la última llegada del vehículo; sin recorridos, 1000.
+  const kmEntrega = Number(await evaluar("document.querySelector('#campo-entrega-km').value") || 0) || 1000;
+  await llenar("#campo-entrega-km", String(kmEntrega));
   await llenar("#campo-entrega-combustible", "lleno");
   await pulsar("Registrar entrega");
-  comprobar("entrega registrada: entregado con km 1,000 y tanque lleno",
-    (await esperar("document.body.innerText.includes('Entrega registrada')", 20000)) && (await faltan("Entregado", "1,000", "Lleno")).length === 0);
+  comprobar(`entrega registrada: entregado con km ${kmEntrega.toLocaleString("es-HN")} y tanque lleno`,
+    (await esperar("document.body.innerText.includes('Entrega registrada')", 20000)) &&
+      (await faltan("Entregado", kmEntrega.toLocaleString("es-HN"), "Lleno")).length === 0);
 
   await visible("#campo-devolucion-km");
-  await llenar("#campo-devolucion-km", "1250");
+  await llenar("#campo-devolucion-km", String(kmEntrega + 250));
   await llenar("#campo-devolucion-combustible", "medio");
   await llenar("#campo-devolucion-adicional1_concepto", `${MARCA} Lavado`);
   await pulsar("Registrar devolución");
@@ -133,9 +149,10 @@ try {
     (await esperar("location.pathname.startsWith('/transportes/') && document.body.innerText.includes('Solicitud registrada')", 20000)) &&
       (await faltan(codigoTransporte, "Solicitado")).length === 0);
   const rutaTransporte = (await ruta()).split("?")[0];
-  await pulsar("Iniciar servicio");
+  const kmTransporte = await iniciarConKm("Iniciar servicio");
   comprobar("servicio iniciado", await esperar("document.body.innerText.includes('Servicio iniciado')", 20000));
   await visible("#campo-finalizar-notas_finales");
+  await llenar("#campo-finalizar-km_llegada", String(kmTransporte + 25));
   await llenar("#campo-finalizar-notas_finales", `${MARCA} sin novedad`);
   await pulsar("Finalizar servicio");
   await esperar("document.body.innerText.includes('Servicio completado.')", 20000);

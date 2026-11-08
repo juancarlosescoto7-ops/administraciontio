@@ -79,6 +79,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
           filas={(cargos ?? []).map((c) => ({ ...c, id: c.id! }))}
           enlace={(c) => `/finanzas/cargos/${c.id}`}
           vacio="El cliente no tiene cargos."
+          resaltar={(c) => Number(c.pendiente) > 0}
           columnas={[
             { clave: "concepto", etiqueta: "Concepto", celda: (c) => c.concepto },
             { clave: "fecha", etiqueta: "Fecha", celda: (c) => formatearFecha(c.fecha) },

@@ -60,14 +60,14 @@ async function Listado({ searchParams }: { searchParams: ParametrosBusqueda }) {
   const activos = filtros.estado === "activos";
   let consulta = supabase
     .from("saldos_traslados")
-    .select("id, inicio_previsto, cliente_nombre, paciente, tipo, estado, condicion_cobertura, vehiculo_codigo, conductor_nombre, origen, destino")
+    .select("id, inicio_previsto, cliente_nombre, paciente, tipo, estado, condicion_cobertura, vehiculo_nombre, conductor_nombre, origen, destino")
     .order("inicio_previsto", { ascending: activos })
     .limit(LIMITE_LISTADO + 1);
   if (activos) consulta = consulta.in("estado", ESTADOS_ACTIVOS as EstadoTraslado[]);
   else if (filtros.estado !== "todos") consulta = consulta.eq("estado", filtros.estado as EstadoTraslado);
   if (tipo !== "todos") consulta = consulta.eq("tipo", tipo as "cubierto");
   if (filtros.busqueda) {
-    consulta = consulta.or(filtroBusqueda(["cliente_nombre", "paciente", "origen", "destino", "vehiculo_codigo", "conductor_nombre"], filtros.busqueda));
+    consulta = consulta.or(filtroBusqueda(["cliente_nombre", "paciente", "origen", "destino", "vehiculo_nombre", "conductor_nombre"], filtros.busqueda));
   }
   // Rango por la fecha programada (día completo en Tegucigalpa).
   if (filtros.desde) consulta = consulta.gte("inicio_previsto", momentoDesdeLocal(`${filtros.desde}T00:00`));
@@ -97,7 +97,7 @@ async function Listado({ searchParams }: { searchParams: ParametrosBusqueda }) {
             { clave: "tipo", etiqueta: "Tipo", celda: (f) => (f.tipo ? ETIQUETAS_TIPO_TRASLADO[f.tipo] : "—") },
             { clave: "estado", etiqueta: "Estado", celda: (f) => <InsigniaTraslado estado={f.estado} /> },
             { clave: "cobertura", etiqueta: "Cobertura", celda: (f) => <InsigniaCobertura condicion={f.condicion_cobertura} /> },
-            { clave: "ambulancia", etiqueta: "Ambulancia", celda: (f) => f.vehiculo_codigo ?? "Sin asignar" },
+            { clave: "ambulancia", etiqueta: "Ambulancia", celda: (f) => f.vehiculo_nombre ?? "Sin asignar" },
             { clave: "conductor", etiqueta: "Conductor", celda: (f) => f.conductor_nombre ?? "Sin asignar" },
           ]}
         />

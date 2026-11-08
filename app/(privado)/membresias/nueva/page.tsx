@@ -17,6 +17,8 @@ import {
 } from "@/lib/membresias/definiciones";
 import { periodosDesde } from "@/lib/membresias/fechas";
 import { formatearFecha, formatearMoneda, hoyEnTegucigalpa } from "@/lib/formato";
+import { LineasGasto } from "@/components/bonos/lineas-gasto";
+import { opcionesLineas } from "@/lib/bonos/servidor";
 import { createClient } from "@/lib/supabase/server";
 import { Cargando, Encabezado, SinPermiso } from "@/components/encabezado";
 import { BuscarCliente, type ParametrosBusqueda } from "@/components/finanzas/filtros";
@@ -113,6 +115,7 @@ async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda })
             detalle: [b.identificacion, b.fecha_nacimiento ? `nac. ${formatearFecha(b.fecha_nacimiento)}` : null].filter(Boolean).join(" · ") || null,
           }))}
           administrador={puede("gestionarMembresia", usuario.rol)}
+          opciones={await opcionesLineas(supabase)}
         />
       )}
     </>
@@ -126,6 +129,7 @@ function Revision({
   hoy,
   beneficiarios,
   administrador,
+  opciones,
 }: {
   clienteId: string;
   plan: { id: string; nombre: string; precio_mensual: number; cupo_mensual: number; modalidad_cupo: "compartido" | "individual"; dias_gracia: number };
@@ -133,6 +137,7 @@ function Revision({
   hoy: string;
   beneficiarios: { id: string; nombre: string; detalle: string | null }[];
   administrador: boolean;
+  opciones: Awaited<ReturnType<typeof opcionesLineas>>;
 }) {
   const periodos = periodosDesde(inicio, 3);
   // Mensualidades que se generarían hoy si la fecha de inicio es pasada.
@@ -176,6 +181,13 @@ function Revision({
             camposNuevo={camposBeneficiarioNuevo()}
             camposCondiciones={condiciones}
             campoConfirmar={campos.find((campo) => campo.nombre === "confirmar")!}
+            extra={
+              <LineasGasto
+                opciones={opciones}
+                ingreso={{ etiqueta: "Cuota mensual del plan", monto: plan.precio_mensual, nota: "Por mes: el ingreso real son las cuotas que se emiten. Un bono por la venta se descuenta de la primera cuota." }}
+                titulo="Bonos y gastos de esta venta"
+              />
+            }
           />
         </div>
       </Seccion>
