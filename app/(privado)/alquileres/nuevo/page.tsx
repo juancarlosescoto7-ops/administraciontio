@@ -36,7 +36,7 @@ export default function PaginaNuevoAlquiler({ searchParams }: PageProps<"/alquil
 
 async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda }) {
   const usuario = await requerirUsuario();
-  if (!puede("gestionarAlquileres", usuario.rol)) {
+  if (!puede("gestionarAlquileres", usuario)) {
     return <SinPermiso mensaje="Su rol permite consultar alquileres, no reservarlos." />;
   }
   const parametros = await searchParams;

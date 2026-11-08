@@ -31,7 +31,7 @@ async function Tesoreria({ params, searchParams }: { params: Promise<{ id: strin
   const usuario = await requerirUsuario();
   const { id } = await params;
   const parametros = await searchParams;
-  if (!esUuid(id) || !puede("verTesoreria", usuario.rol)) return null;
+  if (!esUuid(id) || !puede("verTesoreria", usuario)) return null;
 
   const supabase = await createClient();
   const [{ data: cuenta }, { data: aperturas }, { data: movimientos }] = await Promise.all([
@@ -67,7 +67,7 @@ async function Tesoreria({ params, searchParams }: { params: Promise<{ id: strin
   const apertura = aperturas?.find(
     (m) => m.evento === "registro" && !aperturas.some((r) => r.evento === "reverso" && r.origen_id === m.origen_id),
   );
-  const corrige = puede("corregir", usuario.rol);
+  const corrige = puede("corregir", usuario);
   const ruta = `/finanzas/cuentas/${id}`;
 
   return (

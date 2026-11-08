@@ -29,7 +29,7 @@ export default function PaginaNuevoTransporte({ searchParams }: PageProps<"/tran
 
 async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda }) {
   const usuario = await requerirUsuario();
-  if (!puede("gestionarTransportes", usuario.rol)) {
+  if (!puede("gestionarTransportes", usuario)) {
     return <SinPermiso mensaje="Su rol permite consultar transportes, no registrarlos." />;
   }
   const parametros = await searchParams;

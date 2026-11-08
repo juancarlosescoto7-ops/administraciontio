@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import Link from "next/link";
-import { puede, type Rol } from "@/lib/auth/roles";
+import { puede, type Sujeto } from "@/lib/auth/roles";
 import { pagarGastoServicio, agregarGastosServicio } from "@/lib/bonos/acciones";
 import { formatearVoucher, ganancia } from "@/lib/bonos/lineas";
 import { opcionesLineas } from "@/lib/bonos/servidor";
@@ -40,7 +40,7 @@ export async function ResultadoServicio({
 }: {
   tipo: TipoServicioGasto;
   id: string;
-  rol: Rol;
+  rol: Sujeto;
   /** Ingreso previsto si aún no hay cargos; null si el servicio se canceló. */
   estimado: { monto: number | string | null; nota: string } | null;
   conductorId?: string | null;

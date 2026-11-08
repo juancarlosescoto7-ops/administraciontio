@@ -75,7 +75,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
   const recorrido = filas.reduce((total, r) => total + (r.recorrido ?? 0), 0);
   const hoy = hoyEnTegucigalpa();
   const estado = estadoMantenimiento({ km_para_mantenimiento: v.km_para_mantenimiento, proxima_fecha: v.proxima_fecha }, hoy);
-  const registra = puede("gestionarFlota", usuario.rol) && v.activo;
+  const registra = puede("gestionarFlota", usuario) && v.activo;
   const descuadres = v.descuadres ?? 0;
 
   return (

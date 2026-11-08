@@ -44,7 +44,7 @@ export async function procesar(
   if (!usuario) {
     return responder({ error: "Su sesión expiró o su usuario no está activo. Inicie sesión de nuevo." });
   }
-  if (!puede(permiso, usuario.rol)) {
+  if (!puede(permiso, usuario)) {
     return responder({ error: "Su rol no permite realizar esta operación." });
   }
 

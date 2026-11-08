@@ -10,10 +10,10 @@ export default function Page({ params, searchParams }: PageProps<"/empleados/[id
 }
 async function Contenido({ params, searchParams }: PageProps<"/empleados/[id]">) {
   const usuario = await requerirUsuario();
-  if (!puede("gestionarGastos", usuario.rol)) return <SinPermiso mensaje="El personal lo administran el administrador y finanzas." />;
+  if (!puede("gestionarGastos", usuario)) return <SinPermiso mensaje="El personal lo administran el administrador y finanzas." />;
   const { id } = await params;
   return <>
     <PaginaDetalle clave="empleados" params={params} searchParams={searchParams} />
-    <Remuneraciones persona="empleado" id={id} rol={usuario.rol} />
+    <Remuneraciones persona="empleado" id={id} rol={usuario} />
   </>;
 }

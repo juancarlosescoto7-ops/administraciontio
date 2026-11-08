@@ -33,7 +33,7 @@ export default function PaginaPlantillaContrato({ searchParams }: PageProps<"/co
 
 async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda }) {
   const usuario = await requerirUsuario();
-  if (!puede("gestionarContrato", usuario.rol)) {
+  if (!puede("gestionarContrato", usuario)) {
     return <SinPermiso mensaje="La plantilla del contrato la edita el administrador." />;
   }
   const parametros = await searchParams;

@@ -1,4 +1,4 @@
-// Generado con Supabase MCP tras bonos, vouchers y resultado por servicio (2026-11-05).
+// Generado con Supabase MCP tras permisos por usuario (2026-11-07).
 // No editar a mano: regenerar después de cada migración.
 
 export type Json =
@@ -2186,8 +2186,10 @@ export type Database = {
           actualizado_por: string | null
           correo: string | null
           created_at: string
+          es_desarrollador: boolean
           id: string
           nombre: string
+          permisos_denegados: string[]
           rol: Database["public"]["Enums"]["rol_usuario"]
           updated_at: string
         }
@@ -2196,8 +2198,10 @@ export type Database = {
           actualizado_por?: string | null
           correo?: string | null
           created_at?: string
+          es_desarrollador?: boolean
           id: string
           nombre: string
+          permisos_denegados?: string[]
           rol?: Database["public"]["Enums"]["rol_usuario"]
           updated_at?: string
         }
@@ -2206,8 +2210,10 @@ export type Database = {
           actualizado_por?: string | null
           correo?: string | null
           created_at?: string
+          es_desarrollador?: boolean
           id?: string
           nombre?: string
+          permisos_denegados?: string[]
           rol?: Database["public"]["Enums"]["rol_usuario"]
           updated_at?: string
         }
@@ -4305,6 +4311,10 @@ export type Database = {
       generar_contrato_servicio: {
         Args: { p_servicio_id: string; p_tipo: string }
         Returns: string
+      }
+      guardar_permisos_usuario: {
+        Args: { p_denegados: string[]; p_id: string; p_motivo?: string }
+        Returns: undefined
       }
       guardar_plantilla_contrato:
         | { Args: { p_contenido: string }; Returns: number }

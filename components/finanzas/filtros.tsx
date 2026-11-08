@@ -142,7 +142,7 @@ export async function BuscarCliente({ ruta, busqueda }: { ruta: string; busqueda
           </button>
         </form>
         {/* Fuera del formulario de búsqueda: un formulario no puede contener otro. */}
-        {puedeEditar("clientes", usuario.rol) && (
+        {puedeEditar("clientes", usuario) && (
           <Dialogo
             titulo="Registrar cliente nuevo"
             textoBoton="Cliente nuevo"

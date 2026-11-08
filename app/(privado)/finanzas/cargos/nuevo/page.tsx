@@ -25,7 +25,7 @@ export default function PaginaNuevoCargo({ searchParams }: PageProps<"/finanzas/
 
 async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda }) {
   const usuario = await requerirUsuario();
-  if (!puede("registrarCargo", usuario.rol)) {
+  if (!puede("registrarCargo", usuario)) {
     return <SinPermiso mensaje="Solo el administrador registra cargos administrativos." />;
   }
   const parametros = await searchParams;

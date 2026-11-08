@@ -27,7 +27,7 @@ export default function PaginaNuevoCobro({ searchParams }: PageProps<"/finanzas/
 
 async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda }) {
   const usuario = await requerirUsuario();
-  if (!puede("registrarCobro", usuario.rol)) {
+  if (!puede("registrarCobro", usuario)) {
     return <SinPermiso mensaje="Su rol no permite registrar cobros." />;
   }
   const parametros = await searchParams;

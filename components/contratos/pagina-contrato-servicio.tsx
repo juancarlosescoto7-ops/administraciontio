@@ -57,7 +57,7 @@ export async function PaginaContratoServicio({
   const contrato = contratos?.[0];
   const anteriores = (contratos?.length ?? 0) - 1;
   const cancelado = servicio.estado === "cancelado";
-  const generar = puede(permiso, usuario.rol) && !cancelado ? generarContratoServicio.bind(null, tipo, id) : null;
+  const generar = puede(permiso, usuario) && !cancelado ? generarContratoServicio.bind(null, tipo, id) : null;
 
   return (
     <>

@@ -1,5 +1,5 @@
 import type { Campo, Opcion } from "@/lib/catalogos/definiciones";
-import { puede, type Rol } from "@/lib/auth/roles";
+import { puede, type Sujeto } from "@/lib/auth/roles";
 import { camposKmSalida } from "@/lib/flota/definiciones";
 import type { Database } from "@/lib/supabase/tipos-bd";
 
@@ -59,7 +59,7 @@ export function diferenciaCombustible(salida: NivelCombustible | null, regreso: 
 
 export type AccionesAlquiler = { modificar: boolean; entregar: boolean; devolver: boolean; cancelar: boolean };
 
-export function accionesAlquiler(estado: EstadoAlquiler, rol: Rol): AccionesAlquiler {
+export function accionesAlquiler(estado: EstadoAlquiler, rol: Sujeto): AccionesAlquiler {
   const gestiona = puede("gestionarAlquileres", rol);
   return {
     modificar: gestiona && estado === "reservado",

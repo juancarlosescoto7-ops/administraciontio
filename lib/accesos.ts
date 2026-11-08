@@ -1,4 +1,4 @@
-import { puede, puedeEditar, type Rol } from "@/lib/auth/roles";
+import { puede, puedeEditar, type Sujeto } from "@/lib/auth/roles";
 import type { NombreIcono } from "@/components/iconos";
 
 export type Tono = "azul" | "verde" | "morado" | "naranja";
@@ -9,7 +9,7 @@ export type AccesoRapido = { href: string; etiqueta: string; icono: NombreIcono;
  * Altas y registros frecuentes que el rol puede iniciar. Es solo navegación:
  * cada página y la base vuelven a validar el permiso.
  */
-export function accesosRapidos(rol: Rol): AccesoRapido[] {
+export function accesosRapidos(rol: Sujeto): AccesoRapido[] {
   const candidatos: (AccesoRapido | false)[] = [
     puede("gestionarTraslados", rol) && { href: "/ambulancias/nuevo", etiqueta: "Nueva solicitud de traslado", icono: "servicios", tono: "azul" },
     puede("gestionarTransportes", rol) && { href: "/transportes/nuevo", etiqueta: "Nueva solicitud de transporte", icono: "flota", tono: "morado" },

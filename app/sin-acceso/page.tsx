@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { presentarAcceso } from "@/lib/auth/acceso";
 import { obtenerSesion } from "@/lib/auth/sesion";
 import { MarcaLogo } from "@/components/marca";
 import { cerrarSesion } from "../login/acciones";
@@ -29,7 +30,7 @@ async function DetalleSinAcceso() {
   return (
     <>
       <p className="mt-3 texto-tenue">
-        Su usuario{sesion.correo ? ` (${sesion.correo})` : ""} existe, pero su perfil
+        Su usuario{sesion.correo ? ` (${presentarAcceso(sesion.correo)})` : ""} existe, pero su perfil
         interno no está activo. Solicite al administrador que lo habilite.
       </p>
       <form action={cerrarSesion} className="mt-6">

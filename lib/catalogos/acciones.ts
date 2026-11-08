@@ -79,7 +79,7 @@ async function guardar(
   if (!usuario) {
     return respuesta({ error: "Su sesión expiró o su usuario no está activo. Inicie sesión de nuevo." });
   }
-  if (!puedeEditar(def.clave, usuario.rol)) {
+  if (!puedeEditar(def.clave, usuario)) {
     return respuesta({ error: "Su rol no permite modificar este catálogo." });
   }
   if (id !== null && !esUuid(id)) {

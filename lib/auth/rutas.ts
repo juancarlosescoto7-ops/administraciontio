@@ -1,6 +1,9 @@
 /** Rutas accesibles sin sesión. Todo lo demás exige iniciar sesión. */
 const RUTAS_PUBLICAS = ["/login"];
 
+/** Cabecera que el proxy fija en cada solicitud con la ruta pedida. */
+export const CABECERA_RUTA = "x-erp-ruta";
+
 export function esRutaPublica(pathname: string): boolean {
   // Presentación con datos ficticios, sin consultas ni acciones del ERP.
   // La excepción es exacta: no abre subrutas ni módulos operativos.

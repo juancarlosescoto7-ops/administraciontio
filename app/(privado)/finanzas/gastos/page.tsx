@@ -51,7 +51,7 @@ export default function PaginaGastos({ searchParams }: PageProps<"/finanzas/gast
 
 async function BotonRegistrar() {
   const usuario = await requerirUsuario();
-  if (!puede("gestionarGastos", usuario.rol)) return null;
+  if (!puede("gestionarGastos", usuario)) return null;
   return (
     <Link href="/finanzas/gastos/nuevo" className="boton boton-primario">
       Registrar gasto
@@ -61,7 +61,7 @@ async function BotonRegistrar() {
 
 async function Listado({ searchParams }: { searchParams: ParametrosBusqueda }) {
   const usuario = await requerirUsuario();
-  if (!puede("verTesoreria", usuario.rol)) {
+  if (!puede("verTesoreria", usuario)) {
     return <SinPermiso mensaje="Los gastos los consultan el administrador y finanzas." />;
   }
   const parametros = await searchParams;

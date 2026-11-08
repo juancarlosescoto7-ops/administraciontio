@@ -29,7 +29,7 @@ export default function PaginaGasto({ params, searchParams }: PageProps<"/finanz
 
 async function Contenido({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: ParametrosBusqueda }) {
   const usuario = await requerirUsuario();
-  if (!puede("verTesoreria", usuario.rol)) {
+  if (!puede("verTesoreria", usuario)) {
     return <SinPermiso mensaje="Los gastos los consultan el administrador y finanzas." />;
   }
   const { id } = await params;
@@ -55,10 +55,10 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
   const ruta = `/finanzas/gastos/${id}`;
   const registrado = gasto.estado === "registrado";
   const pendiente = aCentavos(gasto.pendiente) ?? 0;
-  const corrige = puede("corregir", usuario.rol);
+  const corrige = puede("corregir", usuario);
   const pagoAReversar = pagos?.find((p) => p.id === primerValor(parametros.pago) && p.estado === "confirmado");
   const tienePagos = (pagos ?? []).some((p) => p.estado === "confirmado");
-  const cuentas = registrado && pendiente > 0 && puede("gestionarGastos", usuario.rol) ? await opcionesCuentas(supabase) : [];
+  const cuentas = registrado && pendiente > 0 && puede("gestionarGastos", usuario) ? await opcionesCuentas(supabase) : [];
 
   return (
     <>

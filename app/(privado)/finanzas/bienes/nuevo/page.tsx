@@ -22,7 +22,7 @@ export default function PaginaNuevoBien() {
 
 async function Contenido() {
   const usuario = await requerirUsuario();
-  if (!puede("gestionarBienes", usuario.rol)) {
+  if (!puede("gestionarBienes", usuario)) {
     return <SinPermiso mensaje="Su rol no permite registrar bienes." />;
   }
   const supabase = await createClient();

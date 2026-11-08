@@ -1,5 +1,80 @@
 # Estado del proyecto
 
+## Usuarios por oficina y permisos por usuario (2026-11-07)
+
+**Solicitud:** crear usuarios para la administración y las oficinas, una cuenta de desarrollador y un módulo donde el desarrollador encienda o apague opciones, módulos o funciones para cada usuario. «Por ahora todos tendrán acceso a todo». Registrado en el §16 de `ESPECIFICACION_MAESTRA.md`. No se inicia E7.
+
+**Decisiones del propietario:**
+1. Las cuentas de oficina compartían un mismo correo: entran con **nombre de usuario** en vez de correo.
+2. Hay dos cuentas de Talanga.
+3. El bloqueo de lo apagado se aplica **en la aplicación**; la base sigue protegiendo por rol.
+
+### Cuentas creadas (solo en desarrollo `cgohbizokewvivxmvbij`)
+
+| Nombre | Usuario para entrar | Rol |
+|---|---|---|
+| Administración | `administracion` | Administrador |
+| Administración Cantarranas | `cantarranas` | Administrador |
+| Administración Talanga | `talanga` | Administrador |
+| Administración Talanga 2 | `talanga2` | Administrador |
+
+- Creadas con `private.crear_usuario_interno` por MCP. Las contraseñas no están en el repositorio.
+- **Pendiente:** la cuenta de desarrollador (`juancarlosescoto@gmail.com`). Falta su contraseña. Se crea con `select private.crear_usuario_interno('juancarlosescoto@gmail.com', '<contraseña>', '<nombre>', 'administrador', true);`.
+
+### Funcionalidad
+
+- **Login** «Usuario o correo»: sin «@» se busca `<usuario>@usuarios.erp.invalid` (dominio reservado, nunca recibe correo). Ignora mayúsculas, tildes y espacios («Administración», «Talanga 2»). Ajuste tras el reporte del usuario de que no podía entrar: las cuentas funcionaban, y lo más probable es que se usara el correo original `jorge.lagos2@icloud.com`, que no existe. En menú, Usuarios y Permisos se muestra el usuario, no el correo interno.
+- **Permisos** (`/configuracion/permisos`, solo desarrollador):
+  - Lista de usuarios con su resumen: «Acceso a todo» o «2 módulos apagados · 1 función apagada».
+  - Por usuario, 24 módulos agrupados como el menú (Servicios, Clientes, Flota y personal, Finanzas, Configuración), cada uno con su interruptor y, debajo, sus funciones (registrar, editar, corregir…).
+  - Apagar un módulo deja sus funciones en gris. Al volver a encenderlo, recuperan su estado.
+  - Lo que el rol no permite aparece bloqueado con «Su rol no lo permite».
+  - «Encender todo», «Apagar todo» y «Encender/Apagar sección».
+  - Barra fija con el conteo de cambios sin guardar, «Descartar», motivo opcional y «Guardar permisos».
+  - Historial «Apagó: …; encendió: …» con fecha y autor.
+- **Cómo se aplica:**
+  - El proxy pone la ruta pedida en la cabecera `x-erp-ruta` (siempre la sobrescribe).
+  - `requerirUsuario` redirige a `/sin-permiso` («Módulo no habilitado») si el módulo de esa ruta está apagado. `usuarioActivoOpcional` devuelve null, así que las acciones de esa página también se bloquean.
+  - `puede`, `puedeEditar` y `puedeAdministrarUsuarios` reciben el usuario y respetan lo apagado: los botones desaparecen y las acciones del servidor lo rechazan.
+  - El menú, los accesos rápidos, el panel de inicio y el buscador ocultan lo apagado.
+- **Cuenta de desarrollador:**
+  - Siempre tiene todo lo de su rol, y su lista de apagados no se puede cambiar (lo impide una restricción en la base).
+  - Un administrador que no es desarrollador no puede cambiar su nombre, rol ni estado.
+  - La marca solo se pone desde la base de datos.
+
+### Migración
+
+| Versión | Contenido | MD5 (SQL aplicado = archivo) |
+|---|---|---|
+| `20261108014533_permisos_por_usuario.sql` | `perfiles.es_desarrollador` y `perfiles.permisos_denegados` (máx. 200, vacío si es desarrollador). `private.es_desarrollador()`. `proteger_perfil` impide cambiar la marca con sesión. `actualizar_perfil` protege la cuenta de desarrollador. RPC `guardar_permisos_usuario` (solo desarrollador; normaliza, valida el formato de las claves, rechaza al desarrollador y deja bitácora). `private.crear_usuario_interno` (solo propietario de la base: crea usuario de Auth e identidad, y activa el perfil con bitácora) | `af3e71d1897fe65874e1ce3621d4116b` |
+
+- Aplicada solo en desarrollo; tipos regenerados por MCP.
+
+### Pruebas
+
+- `npm test` **189/189**. Nuevos:
+  - `lib/auth/permisos.test.ts` (18): catálogo, rutas por prefijo, módulo que apaga funciones, techo del rol, desarrollador, menú y accesos, normalización y acceso por usuario.
+  - `components/permisos/editor-permisos.test.ts` (3): interruptores, campos enviados, módulo apagado y bloqueo por rol.
+- `tsc` OK. `eslint`: un error previo y ajeno en `components/bonos/recomendacion.test.ts` (`react/no-children-prop`); ningún archivo de este cambio tiene avisos.
+- **Base de desarrollo**, en una transacción revertida, 8 comprobaciones OK:
+  - Un administrador que no es desarrollador no guarda permisos (42501) ni desactiva al desarrollador (42501), y nadie se marca desarrollador (42501).
+  - El desarrollador guarda, la lista queda normalizada y ordenada, y se registra 1 evento en bitácora.
+  - Una clave inválida da 22023 y no se puede restringir al desarrollador (42501).
+  - El usuario ve su propia lista.
+  - Se confirmó después que no quedó ningún cambio.
+- **Auth:** `cantarranas@usuarios.erp.invalid` inicia sesión con la clave correcta y la incorrecta se rechaza.
+- **Navegador** (Edge sin interfaz contra el `next dev` del usuario en :3000, cuenta `talanga`), 8 comprobaciones OK:
+  - Clave incorrecta rechazada, y login con el usuario escrito en mayúsculas.
+  - El menú no muestra Permisos ni el correo interno.
+  - `/configuracion/permisos` redirige a `/sin-permiso`, lo que prueba que la cabecera del proxy llega al servidor.
+  - Usuarios lista las cuentas nuevas por su usuario, y un módulo encendido abre.
+- **No probado en navegador:** el editor de permisos con una cuenta de desarrollador real y el bloqueo de un módulo apagado de punta a punta. El control de permisos de la sesión rechazó marcar temporalmente una cuenta real como desarrollador. Queda para cuando exista la cuenta de desarrollador.
+- Asesores de seguridad: sin avisos nuevos. `guardar_permisos_usuario` se suma al aviso general existente de funciones SECURITY DEFINER, que verifican permisos por dentro como las demás.
+
+### Límite conocido
+
+Lo apagado lo aplica la aplicación, no la RLS. Alguien con conocimientos técnicos podría usar su sesión contra la API de Supabase directamente, pero solo dentro de lo que su rol ya permite. El propietario aceptó este límite.
+
 ## Bonos por servicio, vouchers y resultado del servicio (2026-11-05)
 
 **Solicitud:** dar un bono a un empleado o prestador con cada servicio vendido, pagarlo en el momento de registrar el servicio o dejarlo pendiente, generar un voucher del pago, y que el módulo muestre «tienes este ingreso, le restas estos gastos y te queda esto». Registrado en el §16 de `ESPECIFICACION_MAESTRA.md`. No se inicia E7.

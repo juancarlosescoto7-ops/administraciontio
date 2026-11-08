@@ -112,7 +112,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
         vigente={vigente}
         pendiente={cargo.pendiente}
         aFavor={saldoCliente?.saldo_a_favor}
-        rol={usuario.rol}
+        rol={usuario}
         volver={ruta}
         recienAplicado={parametros.aplicado === "1"}
       />
@@ -137,7 +137,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
         />
       </Seccion>
 
-      {vigente && puede("corregir", usuario.rol) && (
+      {vigente && puede("corregir", usuario) && (
         <Seccion titulo="Correcciones">
           <Desplegable titulo="Anular cargo" peligro>
             <p className="mb-4 text-sm">
@@ -155,7 +155,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
         </Seccion>
       )}
 
-      {puede("verTesoreria", usuario.rol) && (
+      {puede("verTesoreria", usuario) && (
         <Seccion titulo="Asientos contables">
           <AsientosDocumento origenes={[{ tipo: "cargo", id }]} />
         </Seccion>

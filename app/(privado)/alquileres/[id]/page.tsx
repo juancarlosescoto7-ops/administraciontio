@@ -70,7 +70,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       : Promise.resolve({ data: null }),
   ]);
 
-  const acciones = accionesAlquiler(a.estado, usuario.rol);
+  const acciones = accionesAlquiler(a.estado, usuario);
   const aFavor = Number(saldo?.saldo_a_favor ?? 0);
   const combustible = diferenciaCombustible(a.combustible_salida, a.combustible_regreso);
   const opcionesVehiculo = (vehiculos ?? []).map((v) => ({
@@ -214,7 +214,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
               {aFavor > 0 && ` El cliente tiene ${formatearMoneda(aFavor)} a favor.`}
             </p>
             <FormularioOperacion
-              campos={camposDevolucion(aFavor > 0, puede("corregirKilometraje", usuario.rol))}
+              campos={camposDevolucion(aFavor > 0, puede("corregirKilometraje", usuario))}
               accion={devolverAlquiler.bind(null, id, aFavor > 0)}
               textoEnviar="Registrar devolución"
               tono="exito"
@@ -240,7 +240,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
               Ver cargo
             </Link>
           )}
-          {puede("registrarCobro", usuario.rol) && a.estado !== "cancelado" && (
+          {puede("registrarCobro", usuario) && a.estado !== "cancelado" && (
             <Link href={`/finanzas/cobros/nuevo?cliente=${a.cliente_id}`} className="boton boton-secundario">
               {a.cargo_id ? "Registrar cobro" : "Registrar anticipo"}
             </Link>
@@ -253,7 +253,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
             vigente={a.cargo_estado === "vigente"}
             pendiente={a.pendiente}
             aFavor={aFavor}
-            rol={usuario.rol}
+            rol={usuario}
             volver={`/alquileres/${id}`}
             recienAplicado={parametros.aplicado === "1"}
           />
@@ -266,7 +266,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       <ResultadoServicio
         tipo="alquiler"
         id={id}
-        rol={usuario.rol}
+        rol={usuario}
         estimado={a.estado === "cancelado" ? null : { monto: a.precio_pactado, nota: "Precio pactado: se convierte en cargo al devolver el vehículo." }}
         abierta={parametros.gastos === "1"}
         recomendacion={parametros.devuelto === "1" ? { titulo: "Vehículo devuelto: resultado del alquiler", parametro: "devuelto" } : null}

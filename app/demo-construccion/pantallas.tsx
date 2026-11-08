@@ -38,7 +38,7 @@ const HOY = "2026-10-29";
 const AHORA = new Date("2026-10-29T14:00:00Z");
 
 export function menuDemo() {
-  return gruposNavegacion(ROL);
+  return gruposNavegacion({ rol: ROL });
 }
 
 const boton = (texto: string) => <span className="boton boton-primario">{texto}</span>;
@@ -224,7 +224,7 @@ export function resumenCobro() {
  * `cobro` suma el cobro registrado en la escena de prueba.
  */
 export function panelDemo({ grafico = false, cobro = false }: { grafico?: boolean; cobro?: boolean } = {}) {
-  const grupos = gruposNavegacion(ROL);
+  const grupos = gruposNavegacion({ rol: ROL });
   const accesos = accesosRapidos(ROL);
   const nuevo = cobro ? [{ id: "0", cliente_nombre: COBRO_PRUEBA.cliente, fecha: HOY, metodo: "transferencia" as const, monto: COBRO_PRUEBA.monto, estado: "confirmado" }] : [];
   const cobros = [

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { presentarAcceso } from "@/lib/auth/acceso";
 import { ETIQUETAS_ROL, puedeAdministrarUsuarios } from "@/lib/auth/roles";
 import { requerirUsuario } from "@/lib/auth/sesion";
 import { formatearFechaHora } from "@/lib/formato";
@@ -16,7 +17,7 @@ export default function PaginaUsuarios() {
 
 async function ContenidoUsuarios() {
   const usuario = await requerirUsuario();
-  if (!puedeAdministrarUsuarios(usuario.rol)) {
+  if (!puedeAdministrarUsuarios(usuario)) {
     return (
       <>
         <Encabezado titulo="Usuarios" />
@@ -28,7 +29,7 @@ async function ContenidoUsuarios() {
   const supabase = await createClient();
   const { data: perfiles, error } = await supabase
     .from("perfiles")
-    .select("id, nombre, correo, rol, activo, created_at")
+    .select("id, nombre, correo, rol, activo, es_desarrollador, created_at")
     .order("activo", { ascending: false })
     .order("nombre");
 
@@ -41,11 +42,17 @@ async function ContenidoUsuarios() {
 
       <div className="aviso aviso-advertencia mb-4 text-sm">
         <p className="font-medium">Para agregar un usuario</p>
-        <ol className="mt-1 list-decimal pl-5">
-          <li>En Supabase Dashboard › Authentication › Users, use «Add user» con su correo y una contraseña.</li>
-          <li>El usuario aparecerá aquí como inactivo, con rol Operador.</li>
-          <li>Ábralo, asigne el rol, márquelo como activo e indique el motivo.</li>
-        </ol>
+        <ul className="mt-1 list-disc pl-5">
+          <li>
+            Con nombre de usuario (sin correo): lo crea el desarrollador desde la base de datos y entra escribiendo su
+            usuario en «Usuario o correo».
+          </li>
+          <li>
+            Con correo: en Supabase Dashboard › Authentication › Users, use «Add user». Aparecerá aquí como inactivo,
+            con rol Operador; ábralo, asigne el rol, márquelo como activo e indique el motivo.
+          </li>
+          {usuario.esDesarrollador && <li>Los módulos y funciones de cada usuario se encienden o apagan en Permisos.</li>}
+        </ul>
       </div>
 
       {error ? (
@@ -65,10 +72,11 @@ async function ContenidoUsuarios() {
                     {perfil.nombre}
                     {perfil.id === usuario.id && <span className="texto-tenue"> (usted)</span>}
                   </span>
-                  <span className="text-sm texto-tenue break-all">{perfil.correo ?? "Sin correo"}</span>
+                  <span className="text-sm texto-tenue break-all">{presentarAcceso(perfil.correo) ?? "Sin usuario"}</span>
                 </span>
                 <span className="flex flex-wrap items-center gap-2 text-sm">
                   <span>{ETIQUETAS_ROL[perfil.rol]}</span>
+                  {perfil.es_desarrollador && <span className="insignia insignia-info">Desarrollador</span>}
                   <InsigniaEstado activo={perfil.activo} />
                   <span className="texto-tenue">Alta: {formatearFechaHora(perfil.created_at)}</span>
                 </span>

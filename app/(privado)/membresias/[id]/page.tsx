@@ -85,8 +85,8 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
 
   const ruta = `/membresias/${id}`;
   const cancelada = membresia.estado === "cancelada";
-  const operador = puede("registrarMembresia", usuario.rol) && !cancelada;
-  const administrador = puede("gestionarMembresia", usuario.rol) && !cancelada;
+  const operador = puede("registrarMembresia", usuario) && !cancelada;
+  const administrador = puede("gestionarMembresia", usuario) && !cancelada;
   const vinculoBaja = primerValor(parametros.vinculo);
   const vinculadosIds = new Set(vigentes.map((v) => v.beneficiario_id));
   const opcionesAgregar = (activos ?? []).filter((b) => !vinculadosIds.has(b.id)).map((b) => ({ valor: b.id, etiqueta: b.nombre }));
@@ -106,7 +106,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
             <Link href={`${ruta}/contrato`} className="boton boton-secundario">
               Contrato
             </Link>
-            {!cancelada && puede("actualizarMensualidades", usuario.rol) && <BotonActualizarMensualidades membresiaId={id} />}
+            {!cancelada && puede("actualizarMensualidades", usuario) && <BotonActualizarMensualidades membresiaId={id} />}
           </>
         }
       />
@@ -143,7 +143,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       />
       <p className="mb-6 flex flex-wrap gap-2">
         {/* También sin deuda: un pago anticipado queda como saldo a favor. */}
-        {puede("registrarCobro", usuario.rol) && (
+        {puede("registrarCobro", usuario) && (
           <Link href={`/finanzas/cobros/nuevo?cliente=${membresia.cliente_id}`} className="boton boton-primario">
             Registrar cobro
           </Link>
@@ -159,7 +159,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
           vigente
           pendiente={cuotaPendiente.pendiente}
           aFavor={saldoCliente?.saldo_a_favor}
-          rol={usuario.rol}
+          rol={usuario}
           volver={ruta}
           recienAplicado={parametros.aplicado === "1"}
         />
@@ -356,7 +356,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       <ResultadoServicio
         tipo="membresia"
         id={id}
-        rol={usuario.rol}
+        rol={usuario}
         estimado={cancelada ? null : { monto: membresia.precio_pactado, nota: "Aún sin cuotas emitidas: se muestra la cuota mensual pactada." }}
         abierta={parametros.gastos === "1"}
         recomendacion={parametros.guardado === "1" ? { titulo: "Membresía vendida: resultado de la venta", parametro: "guardado" } : null}

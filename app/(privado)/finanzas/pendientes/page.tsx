@@ -31,7 +31,7 @@ export default function PaginaPendientes({ searchParams }: PageProps<"/finanzas/
 async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda }) {
   const usuario = await requerirUsuario();
   const busqueda = limpiarBusqueda(primerValor((await searchParams).q));
-  const verPagar = puede("verTesoreria", usuario.rol);
+  const verPagar = puede("verTesoreria", usuario);
   const supabase = await createClient();
 
   let consulta = supabase

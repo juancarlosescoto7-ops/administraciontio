@@ -26,7 +26,7 @@ export default function PaginaTransferir() {
 
 async function Contenido() {
   const usuario = await requerirUsuario();
-  if (!puede("transferir", usuario.rol)) {
+  if (!puede("transferir", usuario)) {
     return <SinPermiso mensaje="Su rol no permite registrar transferencias." />;
   }
   const cuentas = await opcionesCuentas(await createClient());

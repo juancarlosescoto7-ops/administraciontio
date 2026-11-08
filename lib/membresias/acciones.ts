@@ -49,7 +49,7 @@ export async function registrarMembresiaCompleta(
     .map((nombre) => ({ id: nombre.slice(PREFIJO_BENEFICIARIO.length), nombre: "", detalle: null }));
   const nuevos = indicesBeneficiariosNuevos(nombres);
   const usuario = await usuarioActivoOpcional();
-  const administrador = usuario !== null && puede("gestionarMembresia", usuario.rol);
+  const administrador = usuario !== null && puede("gestionarMembresia", usuario);
   // El nombre de cada fila nueva se exige abajo: una fila vacía se ignora.
   const campos = camposAltaIntegrada({ beneficiarios: casillas, nuevos, administrador }).map(
     (campo) => (/^nuevo_\d+_nombre$/.test(campo.nombre) ? { ...campo, requerido: false } : campo),
@@ -239,7 +239,7 @@ export type EstadoActualizacion = { mensaje: string | null; error: string | null
 
 async function ejecutarActualizacion(membresiaId: string | null): Promise<ResumenActualizacion | string> {
   const usuario = await usuarioActivoOpcional();
-  if (!usuario || !puede("actualizarMensualidades", usuario.rol)) return "Su rol no permite realizar esta operación.";
+  if (!usuario || !puede("actualizarMensualidades", usuario)) return "Su rol no permite realizar esta operación.";
   if (membresiaId !== null && !esUuid(membresiaId)) return "Operación no válida.";
 
   const supabase = await createClient();

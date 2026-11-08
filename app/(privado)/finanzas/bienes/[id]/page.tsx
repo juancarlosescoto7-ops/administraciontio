@@ -30,7 +30,7 @@ const mesAnio = (mes: string) => formatearFecha(mes).slice(3);
 
 async function Contenido({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: ParametrosBusqueda }) {
   const usuario = await requerirUsuario();
-  if (!puede("gestionarBienes", usuario.rol)) {
+  if (!puede("gestionarBienes", usuario)) {
     return <SinPermiso mensaje="Los bienes de la empresa los consultan el administrador y finanzas." />;
   }
   const { id } = await params;
@@ -52,7 +52,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
   const ruta = `/finanzas/bienes/${id}`;
   const activo = bien.estado === "activo";
   const porPagar = aCentavos(bien.por_pagar) ?? 0;
-  const corrige = puede("corregir", usuario.rol);
+  const corrige = puede("corregir", usuario);
   const pagoAReversar = pagos?.find((p) => p.id === primerValor(parametros.pago) && p.estado === "confirmado");
   const tienePagos = (pagos ?? []).some((p) => p.estado === "confirmado");
   const cuentas = bien.estado !== "anulado" && porPagar > 0 ? await opcionesCuentas(supabase) : [];

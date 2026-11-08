@@ -62,7 +62,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
             Esta membresía se registró antes de que existiera el contrato. Puede generarlo ahora con la plantilla vigente y los datos
             actuales de la membresía; quedará congelado.
           </p>
-          {puede("registrarMembresia", usuario.rol) ? (
+          {puede("registrarMembresia", usuario) ? (
             <BotonAccion accion={generarContrato.bind(null, id)} texto="Generar contrato" />
           ) : (
             <p className="text-sm texto-tenue">Solo el administrador o el operador pueden generarlo.</p>

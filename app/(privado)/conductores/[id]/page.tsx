@@ -13,5 +13,5 @@ export default function Page({ params, searchParams }: PageProps<"/conductores/[
 // Visible solo para administrador y finanzas; el operador ve la ficha sin pagos.
 async function PagosConductor({ params }: Pick<PageProps<"/conductores/[id]">, "params">) {
   const [usuario, { id }] = await Promise.all([requerirUsuario(), params]);
-  return <Remuneraciones persona="conductor" id={id} rol={usuario.rol} />;
+  return <Remuneraciones persona="conductor" id={id} rol={usuario} />;
 }

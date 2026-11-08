@@ -1,9 +1,16 @@
+import { RUTA_PERMISOS, rutaPermitida, type Restricciones } from "@/lib/auth/permisos";
 import { puede, puedeAdministrarUsuarios, type Rol } from "@/lib/auth/roles";
 import type { GrupoNavegacion } from "@/components/navegacion";
 
-// Solo rutas existentes; la visibilidad por rol repite la de cada página,
-// que sigue validando permisos en el servidor.
-export function gruposNavegacion(rol: Rol): GrupoNavegacion[] {
+// Solo rutas existentes; la visibilidad por rol y por módulos apagados repite
+// la de cada página, que sigue validando permisos en el servidor.
+export function gruposNavegacion(usuario: { rol: Rol } & Restricciones): GrupoNavegacion[] {
+  return todosLosGrupos(usuario)
+    .map((grupo) => ({ ...grupo, enlaces: grupo.enlaces.filter((enlace) => rutaPermitida(usuario, enlace.href)) }))
+    .filter((grupo) => grupo.enlaces.length > 0);
+}
+
+function todosLosGrupos(rol: { rol: Rol } & Restricciones): GrupoNavegacion[] {
   return [
     { titulo: null, icono: "inicio", enlaces: [{ href: "/", etiqueta: "Inicio" }] },
     {
@@ -56,6 +63,7 @@ export function gruposNavegacion(rol: Rol): GrupoNavegacion[] {
         { href: "/tarifas", etiqueta: "Tarifas" },
         ...(puede("gestionarContrato", rol) ? [{ href: "/configuracion/contrato", etiqueta: "Contratos" }] : []),
         ...(puedeAdministrarUsuarios(rol) ? [{ href: "/configuracion/usuarios", etiqueta: "Usuarios" }] : []),
+        ...(rol.esDesarrollador ? [{ href: RUTA_PERMISOS, etiqueta: "Permisos" }] : []),
         { href: "/peticiones", etiqueta: "Peticiones" },
       ],
     },

@@ -33,7 +33,7 @@ export async function actualizarUsuario(
   });
 
   const usuario = await usuarioActivoOpcional();
-  if (!usuario || !puedeAdministrarUsuarios(usuario.rol)) {
+  if (!usuario || !puedeAdministrarUsuarios(usuario)) {
     return respuesta({ error: "Solo un administrador activo puede modificar usuarios." });
   }
   if (!esUuid(id)) return respuesta({ error: "Usuario no válido." });

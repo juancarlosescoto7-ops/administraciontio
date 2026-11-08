@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { esRutaPublica } from "@/lib/auth/rutas";
+import { CABECERA_RUTA, esRutaPublica } from "@/lib/auth/rutas";
 import { leerConfigSupabase } from "./config";
 
 /**
@@ -9,8 +9,11 @@ import { leerConfigSupabase } from "./config";
  * optimista: cada página, Server Action y la RLS vuelven a verificar el acceso.
  */
 export async function updateSession(request: NextRequest) {
-  let response = NextResponse.next({ request });
   const { pathname, search } = request.nextUrl;
+  // Ruta pedida, para que el servidor aplique los módulos apagados por usuario
+  // (lib/auth/sesion.ts). Se sobrescribe siempre: nunca se confía en la del cliente.
+  request.headers.set(CABECERA_RUTA, pathname);
+  let response = NextResponse.next({ request });
 
   const resultado = leerConfigSupabase();
   if (resultado.estado !== "ok") {

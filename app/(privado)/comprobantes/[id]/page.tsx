@@ -48,7 +48,7 @@ async function Contenido({ params, searchParams }: Pick<PageProps<"/comprobantes
   const destinatario = persona?.nombre_destinatario ?? gasto?.proveedor_nombre ?? null;
   const tipoDestinatario = persona?.empleado_id ? "Empleado" : persona?.conductor_id ? "Conductor" : gasto?.proveedor_nombre ? "Proveedor / prestador" : null;
   const reversado = p.estado === "reversado";
-  const volver = servicio ? { href: servicio.href, etiqueta: servicio.etiqueta } : puede("gestionarGastos", usuario.rol) ? { href: `/finanzas/gastos/${p.gasto_id}`, etiqueta: "Gasto" } : { href: "/", etiqueta: "Inicio" };
+  const volver = servicio ? { href: servicio.href, etiqueta: servicio.etiqueta } : puede("gestionarGastos", usuario) ? { href: `/finanzas/gastos/${p.gasto_id}`, etiqueta: "Gasto" } : { href: "/", etiqueta: "Inicio" };
   const numero = formatearVoucher(p.comprobantes_pago?.numero);
 
   return (

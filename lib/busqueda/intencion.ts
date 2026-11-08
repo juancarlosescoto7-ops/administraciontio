@@ -1,5 +1,5 @@
 import { normalizar, type AccesoRapido } from "@/lib/accesos";
-import { puede, type Permiso, type Rol } from "@/lib/auth/roles";
+import { puede, type Permiso, type Sujeto } from "@/lib/auth/roles";
 import type { NombreIcono } from "@/components/iconos";
 import type { GrupoNavegacion } from "@/components/navegacion";
 
@@ -112,12 +112,12 @@ export const INTENCIONES: readonly Intencion[] = [
   },
 ];
 
-export function permitida(intencion: Intencion, rol: Rol): boolean {
+export function permitida(intencion: Intencion, rol: Sujeto): boolean {
   return intencion.permiso === null || puede(intencion.permiso, rol);
 }
 
 /** Palabras que el buscador sugiere para empezar, según el rol. */
-export function ejemplosPara(rol: Rol): string[] {
+export function ejemplosPara(rol: Sujeto): string[] {
   return INTENCIONES.filter((intencion) => permitida(intencion, rol)).map((intencion) => intencion.ejemplo);
 }
 

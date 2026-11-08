@@ -103,7 +103,7 @@ export async function editarBien(bienId: string, anterior: EstadoFormulario, for
  */
 export async function actualizarDepreciacionesAlAbrir(): Promise<number> {
   const usuario = await usuarioActivoOpcional();
-  if (!usuario || !puede("gestionarBienes", usuario.rol)) return 0;
+  if (!usuario || !puede("gestionarBienes", usuario)) return 0;
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("actualizar_depreciaciones");
   if (error) {

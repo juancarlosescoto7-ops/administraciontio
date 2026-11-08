@@ -58,7 +58,7 @@ export function PaginaListado({
 
 async function BotonNuevo({ def }: { def: DefinicionCatalogo }) {
   const usuario = await requerirUsuario();
-  if (!puedeEditar(def.clave, usuario.rol)) return null;
+  if (!puedeEditar(def.clave, usuario)) return null;
   return (
     <Link href={`${def.ruta}/nuevo`} className="boton boton-primario">
       {def.etiquetaNuevo}
@@ -242,7 +242,7 @@ export function PaginaNuevo({ clave }: { clave: ClaveCatalogo }) {
 
 async function ContenidoNuevo({ def }: { def: DefinicionCatalogo }) {
   const usuario = await requerirUsuario();
-  if (!puedeEditar(def.clave, usuario.rol)) {
+  if (!puedeEditar(def.clave, usuario)) {
     return <SinPermiso mensaje={`Su rol no permite registrar en ${def.titulo.toLowerCase()}.`} />;
   }
 
@@ -300,7 +300,7 @@ async function ContenidoDetalle({
   if (error) throw new Error("No se pudo cargar el registro.");
   if (!data) notFound();
   const fila = data as unknown as Fila;
-  const editable = puedeEditar(def.clave, usuario.rol);
+  const editable = puedeEditar(def.clave, usuario);
   const pendiente =
     def.clave === "clientes"
       ? Number((await supabase.from("saldos_clientes").select("pendiente").eq("cliente_id", id).maybeSingle()).data?.pendiente ?? 0)

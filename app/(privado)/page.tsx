@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense, type CSSProperties } from "react";
 import { accesosRapidos } from "@/lib/accesos";
+import { rutaPermitida } from "@/lib/auth/permisos";
 import { puede, type ClaveCatalogo } from "@/lib/auth/roles";
 import { requerirUsuario } from "@/lib/auth/sesion";
 import { ejemplosPara, opcionesFijas } from "@/lib/busqueda/intencion";
@@ -92,7 +93,9 @@ export default function Panel() {
 async function ContenidoPanel() {
   const usuario = await requerirUsuario();
   const supabase = await createClient();
-  const rol = usuario.rol;
+  const rol = usuario;
+  // Módulos apagados por el desarrollador: sus tarjetas y enlaces no se muestran.
+  const ver = (href: string) => rutaPermitida(usuario, href.split("?")[0]);
 
   const tesoreria = puede("verTesoreria", rol);
   const hoy = hoyEnTegucigalpa();
@@ -254,7 +257,7 @@ async function ContenidoPanel() {
           ? [{ tipo: "devolucion", id: a.id, momento: a.devolucion_prevista, cliente: a.cliente_nombre, detalle: null, codigo: a.vehiculo_nombre, estado: a.estado, href: `/alquileres/${a.id}` }]
           : [],
       ),
-    ],
+    ].map((lista) => lista.filter((servicio) => ver(servicio.href))),
     LIMITE_PROXIMOS,
   );
 
@@ -273,7 +276,7 @@ async function ContenidoPanel() {
           { etiqueta: "Dinero disponible", valor: monto(filas(cuentas)?.map((c) => c.saldo) ?? null), href: "/finanzas/cuentas" },
         ]
       : []),
-  ];
+  ].filter((indicador) => ver(indicador.href));
 
   const filasVehiculos = filas(vehiculos);
   const operativos = contar(filasVehiculos, (v) => v.estado === "operativo");
@@ -299,6 +302,7 @@ async function ContenidoPanel() {
           Indicadores de operación
         </h2>
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {ver("/finanzas/cobros") && (
           <li className="aparecer" style={{ "--orden": 2 } as CSSProperties}>
             <TarjetaIndicador
               etiqueta="Cobrado hoy"
@@ -309,6 +313,8 @@ async function ContenidoPanel() {
               tono="verde"
             />
           </li>
+          )}
+          {ver("/ambulancias") && (
           <li className="aparecer" style={{ "--orden": 3 } as CSSProperties}>
             <TarjetaIndicador
               etiqueta="Traslados de hoy"
@@ -320,6 +326,8 @@ async function ContenidoPanel() {
               tono="azul"
             />
           </li>
+          )}
+          {ver("/alquileres") && (
           <li className="aparecer" style={{ "--orden": 4 } as CSSProperties}>
             <TarjetaIndicador
               etiqueta="Vehículos alquilados ahora"
@@ -331,6 +339,8 @@ async function ContenidoPanel() {
               tono="morado"
             />
           </li>
+          )}
+          {ver("/membresias") && (
           <li className="aparecer" style={{ "--orden": 5 } as CSSProperties}>
             <TarjetaIndicador
               etiqueta="Membresías activas"
@@ -342,12 +352,13 @@ async function ContenidoPanel() {
               tono="naranja"
             />
           </li>
+          )}
         </ul>
       </section>
 
       <GrupoCajas id="operacion" titulo="Operación del día" orden={6}>
         <Seccion id="atencion" titulo="Requiere atención" descripcion="Casos que esperan una acción">
-          <ListaAtencion elementos={atencion} />
+          <ListaAtencion elementos={atencion.filter((elemento) => ver(elemento.href))} />
         </Seccion>
         <Seccion
           id="proximos"
@@ -359,6 +370,7 @@ async function ContenidoPanel() {
         </Seccion>
         <Seccion id="modulos" titulo="Resumen por servicio" descripcion="Ambulancias, alquileres y transporte" sinTarjeta>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+            {ver("/ambulancias") && (
             <TarjetaModulo
               titulo="Ambulancias"
               descripcion="Traslados médicos"
@@ -371,6 +383,8 @@ async function ContenidoPanel() {
               href="/ambulancias"
               etiquetaEnlace="Ver traslados"
             />
+            )}
+            {ver("/alquileres") && (
             <TarjetaModulo
               titulo="Alquiler de vehículos"
               descripcion="Reservas y contratos"
@@ -383,6 +397,8 @@ async function ContenidoPanel() {
               href="/alquileres"
               etiquetaEnlace="Ver alquileres"
             />
+            )}
+            {ver("/transportes") && (
             <TarjetaModulo
               titulo="Transporte con conductor"
               descripcion="Servicios con chofer"
@@ -395,8 +411,10 @@ async function ContenidoPanel() {
               href="/transportes"
               etiquetaEnlace="Ver transportes"
             />
+            )}
           </div>
         </Seccion>
+        {ver("/vehiculos") && (
         <Seccion
           id="flota"
           titulo="Estado de vehículos"
@@ -426,6 +444,7 @@ async function ContenidoPanel() {
             </ul>
           )}
         </Seccion>
+        )}
       </GrupoCajas>
 
       <GrupoCajas id="finanzas" titulo="Finanzas" orden={7}>
@@ -441,6 +460,7 @@ async function ContenidoPanel() {
             ))}
           </ul>
         </Seccion>
+        {ver("/finanzas/cobros") && (
         <Seccion
           id="cobros-semana"
           titulo="Cobros de los últimos 7 días"
@@ -453,7 +473,8 @@ async function ContenidoPanel() {
             <p role="alert" className="aviso aviso-error mx-5 mb-5">No se pudieron cargar los cobros.</p>
           )}
         </Seccion>
-        {resultadoMes && (
+        )}
+        {resultadoMes && ver("/reportes") && (
           <Seccion
             id="resultado-mes"
             titulo="Resultado del mes"
@@ -479,6 +500,7 @@ async function ContenidoPanel() {
             <p className="mx-5 mb-2 text-xs texto-tenue">Informe gerencial; no es utilidad fiscal. Los cobros del mes no son ingresos.</p>
           </Seccion>
         )}
+        {ver("/finanzas/cobros") && (
         <Seccion
           id="cobros"
           titulo="Cobros recientes"
@@ -504,12 +526,13 @@ async function ContenidoPanel() {
             </div>
           )}
         </Seccion>
+        )}
       </GrupoCajas>
 
       <GrupoCajas id="configuracion" titulo="Configuración" orden={8}>
         <Seccion id="catalogos" titulo="Catálogos" descripcion="Registros activos por catálogo">
           <ul className="grid grid-cols-2 gap-1 px-3 py-3">
-            {conteos.map(({ clave, total }) => {
+            {conteos.filter(({ clave }) => ver(CATALOGOS[clave].ruta)).map(({ clave, total }) => {
               const def = CATALOGOS[clave];
               return (
                 <li key={clave}>

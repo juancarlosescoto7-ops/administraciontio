@@ -1357,6 +1357,71 @@ body {
     width: 2px;
     background: var(--borde);
   }
+
+  /* Interruptor encendido/apagado (permisos por usuario): casilla nativa con role="switch". */
+  .interruptor {
+    appearance: none;
+    position: relative;
+    flex-shrink: 0;
+    width: 2.5rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    background: var(--borde-fuerte);
+    cursor: pointer;
+    transition: background-color 160ms ease;
+  }
+
+  .interruptor::after {
+    content: "";
+    position: absolute;
+    top: 0.1875rem;
+    left: 0.1875rem;
+    width: 1.125rem;
+    height: 1.125rem;
+    border-radius: 999px;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgb(6 27 49 / 0.25);
+    transition: transform 160ms ease;
+  }
+
+  .interruptor:checked {
+    background: var(--exito);
+  }
+
+  .interruptor:checked::after {
+    transform: translateX(1rem);
+  }
+
+  .interruptor:focus-visible {
+    outline: 2px solid var(--foco);
+    outline-offset: 2px;
+  }
+
+  .interruptor:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  .interruptor-chico {
+    width: 2rem;
+    height: 1.25rem;
+  }
+
+  .interruptor-chico::after {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  .interruptor-chico:checked::after {
+    transform: translateX(0.75rem);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .interruptor,
+    .interruptor::after {
+      transition: none;
+    }
+  }
 }
 
 /*

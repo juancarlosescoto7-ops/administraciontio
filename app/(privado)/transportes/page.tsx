@@ -40,7 +40,7 @@ export default function PaginaTransportes({ searchParams }: PageProps<"/transpor
 
 async function BotonNuevo() {
   const usuario = await requerirUsuario();
-  if (!puede("gestionarTransportes", usuario.rol)) return null;
+  if (!puede("gestionarTransportes", usuario)) return null;
   return (
     <Link href="/transportes/nuevo" className="boton boton-primario">
       Nueva solicitud

@@ -40,7 +40,7 @@ export default function PaginaAmbulancias({ searchParams }: PageProps<"/ambulanc
 
 async function BotonNuevo() {
   const usuario = await requerirUsuario();
-  if (!puede("gestionarTraslados", usuario.rol)) return null;
+  if (!puede("gestionarTraslados", usuario)) return null;
   return (
     <Link href="/ambulancias/nuevo" className="boton boton-primario">
       Nueva solicitud

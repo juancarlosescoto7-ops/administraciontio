@@ -32,10 +32,10 @@ async function Acciones() {
   const usuario = await requerirUsuario();
   return (
     <>
-      {puede("transferir", usuario.rol) && (
+      {puede("transferir", usuario) && (
         <Link href="/finanzas/cuentas/transferir" className="boton boton-secundario">Transferir</Link>
       )}
-      {puedeEditar("cuentas_dinero", usuario.rol) && (
+      {puedeEditar("cuentas_dinero", usuario) && (
         <Link href="/finanzas/cuentas/nuevo" className="boton boton-primario">Nueva cuenta</Link>
       )}
     </>
@@ -47,7 +47,7 @@ async function Listado() {
   const supabase = await createClient();
   const tipo = (t: string | null) => (t === "caja" ? "Caja" : "Banco");
 
-  if (!puede("verTesoreria", usuario.rol)) {
+  if (!puede("verTesoreria", usuario)) {
     const { data } = await supabase.from("cuentas_dinero").select("id, nombre, tipo, banco, activo").order("nombre");
     return (
       <Tabla

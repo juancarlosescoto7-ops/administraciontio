@@ -1,5 +1,5 @@
 import type { Campo, Opcion } from "@/lib/catalogos/definiciones";
-import { puede, type Rol } from "@/lib/auth/roles";
+import { puede, type Sujeto } from "@/lib/auth/roles";
 import { campoKmLlegada } from "@/lib/flota/definiciones";
 import type { Database } from "@/lib/supabase/tipos-bd";
 
@@ -39,7 +39,7 @@ export type AccionesTransporte = {
 };
 
 /** Espejo de las transiciones que valida la base. */
-export function accionesTransporte(estado: EstadoTransporte, rol: Rol): AccionesTransporte {
+export function accionesTransporte(estado: EstadoTransporte, rol: Sujeto): AccionesTransporte {
   const gestiona = puede("gestionarTransportes", rol);
   const sinIniciar = estado === "solicitado" || estado === "programado";
   return {

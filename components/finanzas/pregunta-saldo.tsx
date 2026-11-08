@@ -1,4 +1,4 @@
-import { puede, type Rol } from "@/lib/auth/roles";
+import { puede, type Sujeto } from "@/lib/auth/roles";
 import { aplicarSaldo } from "@/lib/finanzas/acciones";
 import { camposAplicarSaldo } from "@/lib/finanzas/definiciones";
 import { aCentavos, centavosATexto } from "@/lib/finanzas/montos";
@@ -27,7 +27,7 @@ export function PreguntaSaldoAFavor({
   vigente: boolean;
   pendiente: string | number | null | undefined;
   aFavor: string | number | null | undefined;
-  rol: Rol;
+  rol: Sujeto;
   /** Página a la que se vuelve tras aplicar (la que muestra la pregunta). */
   volver: string;
   /** La página llega de aplicar saldo: no se vuelve a abrir sola. */

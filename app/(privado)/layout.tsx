@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Suspense } from "react";
 import { accesosRapidos } from "@/lib/accesos";
+import { presentarAcceso } from "@/lib/auth/acceso";
 import { ETIQUETAS_ROL } from "@/lib/auth/roles";
 import { requerirUsuario } from "@/lib/auth/sesion";
 import { gruposNavegacion } from "@/lib/navegacion";
@@ -35,11 +36,11 @@ async function BarraNavegacion() {
 
   return (
     <Navegacion
-      grupos={gruposNavegacion(usuario.rol)}
-      acciones={accesosRapidos(usuario.rol)}
+      grupos={gruposNavegacion(usuario)}
+      acciones={accesosRapidos(usuario)}
       nombreUsuario={usuario.nombre}
       rolUsuario={ETIQUETAS_ROL[usuario.rol]}
-      correoUsuario={usuario.correo}
+      correoUsuario={presentarAcceso(usuario.correo)}
     />
   );
 }

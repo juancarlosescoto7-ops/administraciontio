@@ -41,7 +41,7 @@ export default function PaginaCargos({ searchParams }: PageProps<"/finanzas/carg
 
 async function BotonRegistrar() {
   const usuario = await requerirUsuario();
-  if (!puede("registrarCargo", usuario.rol)) return null;
+  if (!puede("registrarCargo", usuario)) return null;
   return (
     <Link href="/finanzas/cargos/nuevo" className="boton boton-primario">
       Registrar cargo

@@ -55,10 +55,10 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
         volver={{ href: "/finanzas/pendientes", etiqueta: "Pendientes" }}
         acciones={
           <>
-            {puede("registrarCargo", usuario.rol) && cliente.activo && (
+            {puede("registrarCargo", usuario) && cliente.activo && (
               <Link href={`/finanzas/cargos/nuevo?cliente=${id}`} className="boton boton-secundario">Registrar cargo</Link>
             )}
-            {puede("registrarCobro", usuario.rol) && (
+            {puede("registrarCobro", usuario) && (
               <Link href={`/finanzas/cobros/nuevo?cliente=${id}`} className="boton boton-primario">Registrar cobro</Link>
             )}
           </>

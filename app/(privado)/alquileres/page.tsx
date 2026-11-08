@@ -35,7 +35,7 @@ export default function PaginaAlquileres({ searchParams }: PageProps<"/alquilere
 
 async function BotonNuevo() {
   const usuario = await requerirUsuario();
-  if (!puede("gestionarAlquileres", usuario.rol)) return null;
+  if (!puede("gestionarAlquileres", usuario)) return null;
   return (
     <Link href="/alquileres/nuevo" className="boton boton-primario">
       Nueva reserva

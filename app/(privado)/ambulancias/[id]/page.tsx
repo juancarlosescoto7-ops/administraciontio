@@ -84,7 +84,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       : Promise.resolve({ data: null }),
   ]);
 
-  const acciones = accionesDisponibles({ estado: t.estado, tipo: t.tipo, reservaEstado: t.reserva_estado }, usuario.rol);
+  const acciones = accionesDisponibles({ estado: t.estado, tipo: t.tipo, reservaEstado: t.reserva_estado }, usuario);
   const particular = t.tipo === "particular";
   const aFavor = Number(saldo?.saldo_a_favor ?? 0);
   const opciones = (tipo: string): Opcion[] =>
@@ -290,7 +290,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
                   Ver cargo
                 </Link>
               )}
-              {puede("registrarCobro", usuario.rol) && t.estado !== "cancelado" && (
+              {puede("registrarCobro", usuario) && t.estado !== "cancelado" && (
                 <Link href={`/finanzas/cobros/nuevo?cliente=${t.cliente_id}`} className="boton boton-secundario">
                   {t.cargo_id ? "Registrar cobro" : "Registrar anticipo"}
                 </Link>
@@ -303,7 +303,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
                 vigente={t.cargo_estado === "vigente"}
                 pendiente={t.pendiente}
                 aFavor={aFavor}
-                rol={usuario.rol}
+                rol={usuario}
                 volver={`/ambulancias/${id}`}
                 recienAplicado={parametros.aplicado === "1"}
               />
@@ -323,7 +323,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
       <ResultadoServicio
         tipo="traslado"
         id={id}
-        rol={usuario.rol}
+        rol={usuario}
         conductorId={t.conductor_id}
         estimado={
           t.estado === "cancelado"

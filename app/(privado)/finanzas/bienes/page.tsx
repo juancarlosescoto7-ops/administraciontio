@@ -47,7 +47,7 @@ export default function PaginaBienes({ searchParams }: PageProps<"/finanzas/bien
 
 async function BotonRegistrar() {
   const usuario = await requerirUsuario();
-  if (!puede("gestionarBienes", usuario.rol)) return null;
+  if (!puede("gestionarBienes", usuario)) return null;
   return (
     <Link href="/finanzas/bienes/nuevo" className="boton boton-primario">
       Registrar bien
@@ -57,7 +57,7 @@ async function BotonRegistrar() {
 
 async function Listado({ searchParams }: { searchParams: ParametrosBusqueda }) {
   const usuario = await requerirUsuario();
-  if (!puede("gestionarBienes", usuario.rol)) {
+  if (!puede("gestionarBienes", usuario)) {
     return <SinPermiso mensaje="Los bienes de la empresa los consultan el administrador y finanzas." />;
   }
   const parametros = await searchParams;

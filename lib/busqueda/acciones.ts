@@ -2,6 +2,7 @@
 
 import { ETIQUETAS_ESTADO_ALQUILER } from "@/lib/alquileres/definiciones";
 import { ETIQUETAS_ESTADO_TRASLADO } from "@/lib/ambulancias/definiciones";
+import { rutaPermitida } from "@/lib/auth/permisos";
 import { usuarioActivoOpcional } from "@/lib/auth/sesion";
 import { filtroBusqueda, limpiarBusqueda } from "@/lib/catalogos/validacion";
 import { formatearFechaHora } from "@/lib/formato";
@@ -28,7 +29,7 @@ export async function buscarUniversal(consulta: string): Promise<OpcionBusqueda[
   const usuario = await usuarioActivoOpcional();
   if (!usuario) return [];
   const { intencion: pedida, texto: bruto } = interpretar(limpiarBusqueda(consulta));
-  const intencion = pedida && permitida(pedida, usuario.rol) ? pedida : null;
+  const intencion = pedida && permitida(pedida, usuario) ? pedida : null;
   const texto = bruto.length >= 2 ? bruto : "";
 
   const general: OpcionBusqueda[] = intencion
@@ -77,5 +78,6 @@ export async function buscarUniversal(consulta: string): Promise<OpcionBusqueda[
     ...filas(proveedores).flatMap((p) => registro("Proveedor", p.id, `/proveedores/${p.id}`, p.nombre, unir(p.telefono), "finanzas")),
   ];
 
-  return [...asistente, ...general, ...registros];
+  // Sin resultados de módulos que el desarrollador apagó para este usuario.
+  return [...asistente, ...general, ...registros].filter((opcion) => rutaPermitida(usuario, opcion.href.split("?")[0]));
 }

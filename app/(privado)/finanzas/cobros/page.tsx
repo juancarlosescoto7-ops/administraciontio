@@ -40,7 +40,7 @@ export default function PaginaCobros({ searchParams }: PageProps<"/finanzas/cobr
 
 async function BotonRegistrar() {
   const usuario = await requerirUsuario();
-  if (!puede("registrarCobro", usuario.rol)) return null;
+  if (!puede("registrarCobro", usuario)) return null;
   return (
     <Link href="/finanzas/cobros/nuevo" className="boton boton-primario">
       Registrar cobro

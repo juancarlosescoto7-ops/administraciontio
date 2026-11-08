@@ -9,6 +9,6 @@ export default function Page({ searchParams }: PageProps<"/empleados">) {
 }
 async function Contenido({ searchParams }: Pick<PageProps<"/empleados">, "searchParams">) {
   const usuario = await requerirUsuario();
-  if (!puede("gestionarGastos", usuario.rol)) return <SinPermiso mensaje="El personal lo administran el administrador y finanzas." />;
+  if (!puede("gestionarGastos", usuario)) return <SinPermiso mensaje="El personal lo administran el administrador y finanzas." />;
   return <PaginaListado clave="empleados" searchParams={searchParams} />;
 }

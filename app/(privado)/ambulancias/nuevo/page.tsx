@@ -34,7 +34,7 @@ export default function PaginaNuevoTraslado({ searchParams }: PageProps<"/ambula
 
 async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda }) {
   const usuario = await requerirUsuario();
-  if (!puede("gestionarTraslados", usuario.rol)) {
+  if (!puede("gestionarTraslados", usuario)) {
     return <SinPermiso mensaje="Su rol permite consultar traslados, no registrarlos." />;
   }
   const parametros = await searchParams;

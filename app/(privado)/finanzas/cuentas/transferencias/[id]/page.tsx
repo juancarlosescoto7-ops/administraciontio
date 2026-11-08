@@ -22,7 +22,7 @@ export default function PaginaTransferencia({ params, searchParams }: PageProps<
 
 async function Contenido({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: ParametrosBusqueda }) {
   const usuario = await requerirUsuario();
-  if (!puede("verTesoreria", usuario.rol)) {
+  if (!puede("verTesoreria", usuario)) {
     return <SinPermiso mensaje="Las transferencias las consultan el administrador y finanzas." />;
   }
   const { id } = await params;
@@ -68,7 +68,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
         ]}
       />
 
-      {puede("corregir", usuario.rol) && transferencia.estado === "confirmado" && (
+      {puede("corregir", usuario) && transferencia.estado === "confirmado" && (
         <Seccion titulo="Correcciones">
           <Desplegable titulo="Reversar transferencia" peligro>
             <FormularioCorreccion

@@ -37,8 +37,8 @@ async function Acciones() {
   const usuario = await requerirUsuario();
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-      {puede("actualizarMensualidades", usuario.rol) && <BotonActualizarMensualidades membresiaId={null} />}
-      {puede("registrarMembresia", usuario.rol) && (
+      {puede("actualizarMensualidades", usuario) && <BotonActualizarMensualidades membresiaId={null} />}
+      {puede("registrarMembresia", usuario) && (
         <Link href="/membresias/nueva" className="boton boton-primario">
           Nueva membresía
         </Link>

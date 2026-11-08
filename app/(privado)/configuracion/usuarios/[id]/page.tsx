@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { presentarAcceso } from "@/lib/auth/acceso";
 import { ETIQUETAS_ROL, esRol, puedeAdministrarUsuarios } from "@/lib/auth/roles";
 import { requerirUsuario } from "@/lib/auth/sesion";
 import { esUuid } from "@/lib/catalogos/presentacion";
@@ -17,6 +18,7 @@ function resumirCambio(antes: Json | null, despues: Json | null): string {
   const a = leer(antes);
   const d = leer(despues);
   const partes: string[] = [];
+  if (d.permisos_denegados !== undefined) return "permisos por módulo actualizados";
   if (a.nombre !== d.nombre && d.nombre !== undefined) partes.push(`nombre: ${String(d.nombre)}`);
   if (a.rol !== d.rol && esRol(d.rol)) partes.push(`rol: ${ETIQUETAS_ROL[d.rol]}`);
   if (a.activo !== d.activo && typeof d.activo === "boolean") {
@@ -38,7 +40,7 @@ export default function PaginaUsuario({ params, searchParams }: PropsUsuario) {
 async function ContenidoUsuario({ params, searchParams }: Pick<PropsUsuario, "params" | "searchParams">) {
   const usuario = await requerirUsuario();
   const volver = { href: "/configuracion/usuarios", etiqueta: "Usuarios" };
-  if (!puedeAdministrarUsuarios(usuario.rol)) {
+  if (!puedeAdministrarUsuarios(usuario)) {
     return (
       <>
         <Encabezado titulo="Usuario" volver={volver} />
@@ -55,7 +57,7 @@ async function ContenidoUsuario({ params, searchParams }: Pick<PropsUsuario, "pa
   const [{ data: perfil }, { data: eventos }] = await Promise.all([
     supabase
       .from("perfiles")
-      .select("id, nombre, correo, rol, activo, created_at, updated_at")
+      .select("id, nombre, correo, rol, activo, es_desarrollador, created_at, updated_at")
       .eq("id", id)
       .maybeSingle(),
     supabase
@@ -74,7 +76,8 @@ async function ContenidoUsuario({ params, searchParams }: Pick<PropsUsuario, "pa
         titulo={perfil.nombre}
         descripcion={
           <span className="flex flex-wrap items-center gap-2">
-            <span className="break-all">{perfil.correo ?? "Sin correo"}</span>
+            <span className="break-all">{presentarAcceso(perfil.correo) ?? "Sin usuario"}</span>
+            {perfil.es_desarrollador && <span className="insignia insignia-info">Desarrollador</span>}
             <InsigniaEstado activo={perfil.activo} />
           </span>
         }

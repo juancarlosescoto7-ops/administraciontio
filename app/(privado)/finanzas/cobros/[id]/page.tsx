@@ -40,7 +40,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
   if (!cobro) notFound();
 
   const ruta = `/finanzas/cobros/${id}`;
-  const corrige = puede("corregir", usuario.rol);
+  const corrige = puede("corregir", usuario);
   const aplicacionAReversar = aplicaciones?.find(
     (a) => a.id === primerValor(parametros.aplicacion) && a.estado === "vigente",
   );
@@ -136,7 +136,7 @@ async function Contenido({ params, searchParams }: { params: Promise<{ id: strin
         </Seccion>
       )}
 
-      {puede("verTesoreria", usuario.rol) && (
+      {puede("verTesoreria", usuario) && (
         <Seccion titulo="Asientos contables">
           <AsientosDocumento
             origenes={[{ tipo: "cobro", id }, ...(aplicaciones ?? []).map((a) => ({ tipo: "aplicacion" as const, id: a.id }))]}

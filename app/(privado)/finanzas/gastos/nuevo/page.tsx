@@ -25,7 +25,7 @@ export default function PaginaNuevoGasto({ searchParams }: PageProps<"/finanzas/
 
 async function Contenido({ searchParams }: Pick<PageProps<"/finanzas/gastos/nuevo">, "searchParams">) {
   const usuario = await requerirUsuario();
-  if (!puede("gestionarGastos", usuario.rol)) {
+  if (!puede("gestionarGastos", usuario)) {
     return <SinPermiso mensaje="Su rol no permite registrar gastos." />;
   }
   const supabase = await createClient();

@@ -37,7 +37,7 @@ export default function PaginaReportes({ searchParams }: PageProps<"/reportes">)
 
 async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda }) {
   const usuario = await requerirUsuario();
-  if (!puede("verReportes", usuario.rol)) {
+  if (!puede("verReportes", usuario)) {
     return <SinPermiso mensaje="Los reportes financieros los consultan el administrador y finanzas." />;
   }
   const parametros = await searchParams;

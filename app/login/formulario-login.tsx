@@ -14,12 +14,15 @@ export function FormularioLogin({ siguiente }: { siguiente: string }) {
     <form action={accion} className="flex flex-col gap-4" noValidate>
       <input type="hidden" name="siguiente" value={siguiente} />
       <label className="campo">
-        <span className="campo-etiqueta">Correo electrónico</span>
+        <span className="campo-etiqueta">Usuario o correo</span>
         <input
           className="entrada"
-          type="email"
+          type="text"
           name="correo"
           autoComplete="username"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
           required
           defaultValue={estado.correo}
           key={estado.correo}

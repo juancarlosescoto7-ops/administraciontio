@@ -38,7 +38,7 @@ export default function PaginaNuevaMembresia({ searchParams }: PageProps<"/membr
 
 async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda }) {
   const usuario = await requerirUsuario();
-  if (!puede("registrarMembresia", usuario.rol)) {
+  if (!puede("registrarMembresia", usuario)) {
     return <SinPermiso mensaje="Su rol no permite registrar membresías." />;
   }
   const parametros = await searchParams;
@@ -114,7 +114,7 @@ async function Contenido({ searchParams }: { searchParams: ParametrosBusqueda })
             nombre: b.nombre,
             detalle: [b.identificacion, b.fecha_nacimiento ? `nac. ${formatearFecha(b.fecha_nacimiento)}` : null].filter(Boolean).join(" · ") || null,
           }))}
-          administrador={puede("gestionarMembresia", usuario.rol)}
+          administrador={puede("gestionarMembresia", usuario)}
           opciones={await opcionesLineas(supabase)}
         />
       )}

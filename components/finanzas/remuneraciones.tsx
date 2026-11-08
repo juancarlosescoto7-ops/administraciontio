@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { puede, type Rol } from "@/lib/auth/roles";
+import { puede, type Sujeto } from "@/lib/auth/roles";
 import { esUuid } from "@/lib/catalogos/presentacion";
 import { createClient } from "@/lib/supabase/server";
 import { formatearFecha, formatearMoneda } from "@/lib/formato";
@@ -8,7 +8,7 @@ import { Seccion } from "./resumen";
 const LIMITE = 50;
 
 // Salarios y remuneraciones pagados a un empleado o conductor (solo administrador y finanzas).
-export async function Remuneraciones({ persona, id, rol }: { persona: "empleado" | "conductor"; id: string; rol: Rol }) {
+export async function Remuneraciones({ persona, id, rol }: { persona: "empleado" | "conductor"; id: string; rol: Sujeto }) {
   if (!puede("gestionarGastos", rol) || !esUuid(id)) return null;
   const supabase = await createClient();
   const { data: vinculos, error, count } = await supabase.from("gastos_personal")

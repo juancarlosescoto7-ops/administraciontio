@@ -100,7 +100,7 @@ export async function devolverAlquiler(
   formData: FormData,
 ): Promise<EstadoFormulario> {
   const usuario = await usuarioActivoOpcional();
-  const corrigeKm = usuario !== null && puede("corregirKilometraje", usuario.rol);
+  const corrigeKm = usuario !== null && puede("corregirKilometraje", usuario);
   return procesar(anterior, formData, camposDevolucion(aplicaAnticipo === true, corrigeKm), "gestionarAlquileres", async (datos, supabase) => {
     if (!esUuid(id)) return INVALIDA;
     const { adicionales, errores } = leerAdicionales(datos);

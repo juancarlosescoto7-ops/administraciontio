@@ -1,4 +1,5 @@
 import type { Database } from "@/lib/supabase/tipos-bd";
+import { funcionActiva, type ClaveFuncion, type Restricciones } from "./permisos";
 
 export type Rol = Database["public"]["Enums"]["rol_usuario"];
 
@@ -9,6 +10,21 @@ export const ETIQUETAS_ROL: Record<Rol, string> = {
   operador: "Operador",
   finanzas: "Finanzas",
 };
+
+/**
+ * Quién pide el permiso: solo el rol (sin restricciones por usuario) o el
+ * usuario con sus módulos y funciones apagados (ver permisos.ts). El rol es
+ * el techo; lo apagado solo resta.
+ */
+export type Sujeto = Rol | ({ rol: Rol } & Restricciones);
+
+function rolDe(sujeto: Sujeto): Rol {
+  return typeof sujeto === "string" ? sujeto : sujeto.rol;
+}
+
+function activa(sujeto: Sujeto, funcion: string): boolean {
+  return typeof sujeto === "string" || funcionActiva(sujeto, funcion);
+}
 
 export function esRol(valor: unknown): valor is Rol {
   return typeof valor === "string" && (ROLES as readonly string[]).includes(valor);
@@ -33,12 +49,12 @@ export const ROLES_EDICION = {
 
 export type ClaveCatalogo = keyof typeof ROLES_EDICION;
 
-export function puedeEditar(clave: ClaveCatalogo, rol: Rol): boolean {
-  return (ROLES_EDICION[clave] as readonly Rol[]).includes(rol);
+export function puedeEditar(clave: ClaveCatalogo, sujeto: Sujeto): boolean {
+  return (ROLES_EDICION[clave] as readonly Rol[]).includes(rolDe(sujeto)) && activa(sujeto, `editar.${clave}`);
 }
 
-export function puedeAdministrarUsuarios(rol: Rol): boolean {
-  return rol === "administrador";
+export function puedeAdministrarUsuarios(sujeto: Sujeto): boolean {
+  return rolDe(sujeto) === "administrador" && activa(sujeto, "administrarUsuarios");
 }
 
 /**
@@ -106,6 +122,13 @@ const PERMISOS = { ...PERMISOS_FINANZAS, ...PERMISOS_MEMBRESIAS, ...PERMISOS_AMB
 export type Permiso = keyof typeof PERMISOS;
 export type PermisoFinanzas = keyof typeof PERMISOS_FINANZAS;
 
-export function puede(permiso: Permiso, rol: Rol): boolean {
-  return (PERMISOS[permiso] as readonly Rol[]).includes(rol);
+export function puede(permiso: Permiso, sujeto: Sujeto): boolean {
+  return (PERMISOS[permiso] as readonly Rol[]).includes(rolDe(sujeto)) && activa(sujeto, permiso);
+}
+
+/** Si el ROL permite una función del módulo de permisos (sin mirar lo apagado). */
+export function rolPermiteFuncion(clave: ClaveFuncion, rol: Rol): boolean {
+  if (clave === "administrarUsuarios") return puedeAdministrarUsuarios(rol);
+  if (clave.startsWith("editar.")) return puedeEditar(clave.slice("editar.".length) as ClaveCatalogo, rol);
+  return puede(clave as Permiso, rol);
 }
